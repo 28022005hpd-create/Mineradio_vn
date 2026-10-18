@@ -148,10 +148,21 @@
       }
       if (typeof root.desktopWindow.getUiLanguage === 'function') {
         const initially = locale;
+        const hasLocalChoice = (() => {
+          try {
+            return !!(root.localStorage && (
+              root.localStorage.getItem(STORAGE) ||
+              root.localStorage.getItem('mineradio:ui-language:v1')
+            ));
+          } catch (_) { return false; }
+        })();
         Promise.resolve(root.desktopWindow.getUiLanguage()).then((result) => {
-          if (locale === initially && result && ALLOWED.includes(result.locale)) {
-            setLanguage(result.locale);
+          if (locale !== initially) return; // user switched during async startup
+          if (hasLocalChoice && typeof root.desktopWindow.setUiLanguage === 'function') {
+            // Migrate explicit renderer choice to the shared native tray preference.
+            return root.desktopWindow.setUiLanguage(locale);
           }
+          if (result && ALLOWED.includes(result.locale)) setLanguage(result.locale);
         }).catch(() => {});
       }
     }
