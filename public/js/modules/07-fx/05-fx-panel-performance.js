@@ -67,7 +67,7 @@ function updateDevelopmentFxControls() {
     if (locked) {
       el.classList.remove('on');
       el.setAttribute('aria-disabled', 'true');
-      el.title = runtimeUnavailable ? '当前系统不支持桌面壁纸模式' : '开发中，暂不可用';
+      el.title = MineradioI18n.source(runtimeUnavailable ? '当前系统不支持桌面壁纸模式' : '开发中，暂不可用');
     } else {
       el.removeAttribute('aria-disabled');
       el.title = item[2];
@@ -497,7 +497,7 @@ function resetFxSliderValue(id, key, btn) {
   syncLyricRealtimeFxChange(key);
   saveLyricLayout({ syncDisk: key === 'controlGlassChromaticOffset', user: true, reason: 'reset:' + key });
   animateFxResetButton(btn);
-  showToast('已恢复默认数值');
+  showToast(MineradioI18n.source('已恢复默认数值'));
 }
 function ensureFxSliderResetButton(id, key) {
   var el = document.getElementById(id);
@@ -505,8 +505,8 @@ function ensureFxSliderResetButton(id, key) {
   var btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'fx-reset-one';
-  btn.title = '恢复当前滑条默认值';
-  btn.setAttribute('aria-label', '恢复当前滑条默认值');
+  btn.title = MineradioI18n.source('恢复当前滑条默认值');
+  btn.setAttribute('aria-label', MineradioI18n.source('恢复当前滑条默认值'));
   btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
   btn.addEventListener('click', function (e) {
     e.preventDefault();
@@ -704,7 +704,7 @@ function ensureLyricPrimaryControls() {
     var label = document.createElement('div');
     label.className = 'fx-section-label';
     label.id = 'fx-lyric-primary-label';
-    label.textContent = '歌词开关';
+    label.textContent = MineradioI18n.source('歌词开关');
     grid = document.createElement('div');
     grid.className = 'fx-toggle-grid lyric-primary-toggle-grid';
     grid.id = 'fx-lyric-primary-controls';
@@ -729,7 +729,7 @@ function applyBackgroundMediaHint() {
   var value = document.getElementById('bg-image-value');
   if (value && !value.dataset.mediaHint) {
     value.dataset.mediaHint = '1';
-    value.title = '支持封面原图、图片 / 视频上传，已设置媒体可重复裁切';
+    value.title = MineradioI18n.source('支持封面原图、图片 / 视频上传，已设置媒体可重复裁切');
   }
   if (value) value.title = '\u652f\u6301\u5c01\u9762\u539f\u56fe\u3001\u56fe\u7247 / \u89c6\u9891\u4e0a\u4f20\uff0c\u5df2\u8bbe\u7f6e\u5a92\u4f53\u53ef\u91cd\u590d\u88c1\u5207';
   var label = value && value.closest ? value.closest('.fx-color-row-label') : null;
@@ -747,7 +747,7 @@ function relabelFxPanelControls() {
   setFxSliderLabel('fx-bgcropy', '\u88c1\u5207\u4e0a\u4e0b');
   setFxSliderLabel('fx-bgzoom', '\u88c1\u5207\u7f29\u653e');
   var title = document.querySelector('#fx-panel .fx-title');
-  if (title) title.textContent = '视觉控制台';
+  if (title) title.textContent = MineradioI18n.source('视觉控制台');
   ensureLyricPrimaryControls();
   ensureFxRangeControl('fx-lyrictranslationgap', 'fx-lyrictranslationscale', '译文字号', 0.46, 1.12, 0.01);
   ensureFxRangeControl('fx-lyrictranslationscale', 'fx-lyrictranslationopacity', '译文透明', 0.20, 1, 0.01);
