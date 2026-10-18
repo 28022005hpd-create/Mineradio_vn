@@ -216,12 +216,12 @@
                 <button class="home-insight-link" type="button" onclick="openHomeInsight()" data-i18n="ui.xzqzs5">查看偏好</button>
               </div>
               <div class="home-listen-metrics">
-                <div class="home-listen-metric"><strong id="home-today-time" class="home-listen-value" data-i18n="ui.22b2nu">0 分钟</strong><span
+                <div class="home-listen-metric"><strong id="home-today-time" class="home-listen-value">0 分钟</strong><span
                     class="home-listen-label" data-i18n="ui.9zsqmk">聆听时长</span></div>
-                <div class="home-listen-metric"><strong id="home-today-count" class="home-listen-value" data-i18n="ui.1igiw29">0 首</strong><span
+                <div class="home-listen-metric"><strong id="home-today-count" class="home-listen-value">0 首</strong><span
                     class="home-listen-label" data-i18n="ui.1ith8ca">今日歌曲</span></div>
-                <div class="home-listen-metric"><strong id="home-today-artist" class="home-listen-value" data-i18n="ui.ejoydg">等待记录</strong><span
-                    id="home-today-streak" class="home-listen-label" data-i18n="ui.w02pr8">开始播放后生成</span></div>
+                <div class="home-listen-metric"><strong id="home-today-artist" class="home-listen-value">等待记录</strong><span
+                    id="home-today-streak" class="home-listen-label">开始播放后生成</span></div>
               </div>
             </section>
 
@@ -230,8 +230,8 @@
               <span id="home-next-cover" class="home-next-cover" aria-hidden="true"></span>
               <span class="home-next-copy">
                 <span class="home-insight-kicker" data-i18n="ui.54jcyk">NEXT UP · 接下来播放</span>
-                <span id="home-next-title" class="home-next-title" data-i18n="ui.10vgka7">队列里还没有歌曲</span>
-                <span id="home-next-sub" class="home-next-sub" data-i18n="ui.1ajxgqq">点击打开音乐库</span>
+                <span id="home-next-title" class="home-next-title">队列里还没有歌曲</span>
+                <span id="home-next-sub" class="home-next-sub">点击打开音乐库</span>
               </span>
               <span class="home-next-arrow" aria-hidden="true">›</span>
             </button>
@@ -367,7 +367,7 @@
       </div>
       <div class="lyric-color-row visual-tint-row">
         <input id="visual-tint-picker" class="lyric-color-picker" type="color" value="#9db8cf" title="视觉主色" data-i18n-title="ui.15toibd">
-        <div class="fx-color-row-label">视觉主色<small id="visual-tint-value" data-i18n="ui.1h0m6gi">封面取色</small></div>
+        <div class="fx-color-row-label">视觉主色<small id="visual-tint-value">封面取色</small></div>
         <button class="fx-mini-btn ghost" id="visual-tint-auto-btn" type="button"
           onclick="openCoverColorPicker('visualTint')" data-i18n="ui.1ah8ey2">封面</button>
         <button class="fx-mini-btn ghost" type="button" onclick="resetVisualTintColor()" data-i18n="ui.1ybnnw9">默认</button>
@@ -421,7 +421,7 @@
       </div>
       <div class="lyric-color-row image-pick-row bg-media-row">
         <div class="bg-media-preview" id="bg-media-preview" aria-hidden="true"></div>
-        <div class="fx-color-row-label">背景媒体<small id="bg-image-value" data-i18n="ui.gvopo5">未设置</small></div>
+        <div class="fx-color-row-label">背景媒体<small id="bg-image-value">未设置</small></div>
         <div class="bg-media-actions">
           <button class="fx-mini-btn ghost" id="bg-album-toggle-btn" type="button" title="使用当前封面原图"
             onclick="toggleCustomBackgroundAlbumCover()" data-i18n-title="ui.wch4uc">&#23553;&#38754;</button>
@@ -434,7 +434,7 @@
       </div>
       <div class="lyric-color-row image-pick-row wallpaper-engine-row">
         <div class="wallpaper-engine-mark" aria-hidden="true">WE</div>
-        <div class="fx-color-row-label">Wallpaper Engine<small id="wallpaper-engine-value" data-i18n="ui.xzzdt1">未启用 · 原背景保留</small></div>
+        <div class="fx-color-row-label">Wallpaper Engine<small id="wallpaper-engine-value">未启用 · 原背景保留</small></div>
         <div class="wallpaper-engine-actions">
           <button class="fx-mini-btn ghost" type="button" onclick="openWallpaperEngineLibrary()" data-i18n="ui.ahf0tm">识别 / 导入</button>
           <button class="fx-mini-btn ghost" id="wallpaper-engine-restore-btn" type="button"
@@ -647,21 +647,21 @@
           <div class="lyric-color-grid" id="lyric-color-grid"></div>
           <div class="lyric-color-row">
             <input id="lyric-color-picker" class="lyric-color-picker" type="color" value="#a9b8c8" title="色轮取色" data-i18n-title="ui.iebcyt">
-            <div class="lyric-color-value" id="lyric-color-value" data-i18n="ui.1h0m6gi">封面取色</div>
+            <div class="lyric-color-value" id="lyric-color-value">封面取色</div>
             <button class="fx-mini-btn ghost" id="lyric-auto-btn" type="button"
               onclick="setLyricColorAuto()" data-i18n="ui.1ah8ey2">封面</button>
           </div>
           <div class="fx-section-label" data-i18n="ui.edx6w5">高亮颜色</div>
           <div class="lyric-color-row">
             <input id="lyric-highlight-picker" class="lyric-color-picker" type="color" value="#fff0b8" title="高亮取色" data-i18n-title="ui.ifn7fz">
-            <div class="lyric-color-value" id="lyric-highlight-value" data-i18n="ui.1d23e8w">跟随歌词</div>
+            <div class="lyric-color-value" id="lyric-highlight-value">跟随歌词</div>
             <button class="fx-mini-btn ghost" id="lyric-highlight-auto-btn" type="button"
               onclick="setLyricHighlightAuto()" data-i18n="ui.1ievl4j">跟随</button>
           </div>
           <div class="fx-section-label" data-i18n="ui.1ljaoni">溢光颜色</div>
           <div class="lyric-color-row linked" id="lyric-glow-row" onclick="handleLyricGlowRowClick(event)">
             <input id="lyric-glow-picker" class="lyric-color-picker" type="color" value="#9db8cf" title="溢光取色" data-i18n-title="ui.1gzsiy4">
-            <div class="lyric-color-value" id="lyric-glow-value" data-i18n="ui.1jhgqvh">跟随高亮</div>
+            <div class="lyric-color-value" id="lyric-glow-value">跟随高亮</div>
             <button class="fx-mini-btn ghost active" id="lyric-glow-link-btn" type="button"
               onclick="toggleLyricGlowLink(event)" data-i18n="ui.11zq5u4">链接</button>
           </div>
@@ -1042,8 +1042,8 @@
               title="开启后后台或最小化时保持视觉渲染，不进入低占用暂停" data-i18n-title="ui.jtc5ro"><span data-i18n="ui.1ldmg8u">直播后台保持</span><span class="dot"></span></div>
           </div>
           <div class="fx-section-label" data-i18n="ui.2htrhp">内存压缩 / Mem Reduct</div>
-          <div class="memory-status-chip" id="memory-status-chip" data-i18n="ui.1yrl7n0">系统内存读取中...</div>
-          <div class="fx-sub memory-status-sub" id="memory-status-sub" data-i18n="ui.tv1q6v">后台先压缩播放器进程；系统级释放可清工作集、修改页、待机页</div>
+          <div class="memory-status-chip" id="memory-status-chip">系统内存读取中...</div>
+          <div class="fx-sub memory-status-sub" id="memory-status-sub">后台先压缩播放器进程；系统级释放可清工作集、修改页、待机页</div>
           <div class="fx-toggle-grid">
             <div class="fx-toggle" id="t-memoryAutoTrimApp" onclick="toggleFx('memoryAutoTrimApp')"
               title="最小化、托盘后台或深度后台时压缩 Mineradio / Electron 工作集" data-i18n-title="ui.ws80r6"><span data-i18n="ui.1w6pr74">自动压缩播放器</span><span class="dot"></span></div>
@@ -1071,7 +1071,7 @@
           </div>
           <div class="fx-section-label" data-i18n="ui.hw7rfu">本地缓存</div>
           <div class="cache-storage-panel" id="cache-storage-panel">
-            <div class="cache-storage-head"><span data-i18n="ui.169mou8">统一缓存目录</span><span id="cache-storage-total" data-i18n="ui.1w8xcc7">读取中...</span></div>
+            <div class="cache-storage-head"><span data-i18n="ui.169mou8">统一缓存目录</span><span id="cache-storage-total">读取中...</span></div>
             <code class="cache-storage-path" id="cache-storage-root">桌面版启动后读取</code>
             <div class="cache-storage-actions">
               <button class="fx-mini-btn ghost" type="button" onclick="chooseMineradioCacheRoot()" data-i18n="ui.1g5g3pr">更改目录</button>
@@ -1088,7 +1088,7 @@
             <code class="cache-storage-path small" id="cache-storage-wallpaper-path">—</code>
             <div class="cache-storage-row muted"><span data-i18n="ui.6u0zb6">设置与登录资料（安全固定）</span><b id="cache-storage-userdata-size">—</b></div>
             <code class="cache-storage-path small" id="cache-storage-userdata-path">—</code>
-            <div class="fx-sub cache-storage-note" id="cache-storage-note" data-i18n="ui.17h1ceu">歌词缓存立即切换；网络、节奏分析与 WE 静音场景缓存目录在下次重启后切换。</div>
+            <div class="fx-sub cache-storage-note" id="cache-storage-note">歌词缓存立即切换；网络、节奏分析与 WE 静音场景缓存目录在下次重启后切换。</div>
           </div>
           <div class="fx-slider"><label data-i18n="ui.1o5pwit">粒子尺寸</label><input id="fx-point" type="range" min="0.5" max="2.2"
               step="0.01"><output></output></div>
@@ -1141,7 +1141,7 @@
       </div>
       <div id="queue-pane">
         <div class="queue-toolbar">
-          <div id="play-mode-chip" class="queue-chip" data-i18n="ui.1lqh81d">顺序循环</div>
+          <div id="play-mode-chip" class="queue-chip">顺序循环</div>
           <div style="display:flex;gap:6px">
             <button class="fx-mini-btn ghost" onclick="cyclePlayMode()"
               style="height:26px;padding:0 10px;font-size:11px" data-i18n="ui.lsjk20">切换模式</button>
@@ -1180,19 +1180,19 @@
         <line x1="12" y1="8" x2="12" y2="12" />
         <line x1="12" y1="16" x2="12.01" y2="16" />
       </svg>
-      <span id="trial-text" data-i18n="ui.6cbu66">仅播放试听片段</span>
+      <span id="trial-text">仅播放试听片段</span>
       <span id="trial-login-btn" class="login-link" onclick="showLoginModal()" data-i18n="ui.iler1t">扫码登录</span>
       <span class="close" onclick="document.getElementById('trial-banner').classList.remove('show')">×</span>
     </div>
 
     <!-- AI 深度加载角标 -->
     <div id="ai-depth-chip">
-      <div class="mini-spin"></div><span id="ai-depth-text" data-i18n="ui.19h080t">AI 深度估计…</span>
+      <div class="mini-spin"></div><span id="ai-depth-text">AI 深度估计…</span>
     </div>
 
     <!-- 节拍分析角标 -->
     <div id="beat-chip">
-      <div class="mini-spin"></div><span id="beat-text" data-i18n="ui.plmfjy">分析节奏…</span>
+      <div class="mini-spin"></div><span id="beat-text">分析节奏…</span>
     </div>
 
     <!-- 舞台歌词 (大字 3D, 由 JS 动态填充) -->
@@ -1200,8 +1200,8 @@
 
     <!-- 手势 HUD + 手骨架 -->
     <div id="gesture-hud" class="gesture-hud">
-      <div>手势：<b id="gesture-label" data-i18n="ui.1bc1qbr">待命</b></div>
-      <div id="gesture-confirm" class="gesture-confirm" data-i18n="ui.1kfz75k">将手放进摄像头视野</div>
+      <div>手势：<b id="gesture-label">待命</b></div>
+      <div id="gesture-confirm" class="gesture-confirm">将手放进摄像头视野</div>
       <div class="gesture-meter"><span id="gesture-fill"></span></div>
       <div class="gesture-legend" data-i18n="ui.topwpe">张掌推开 · 捏合旋转 · 握拳收束 · 左右滑切歌 · V 手势播放 · 食指音量 · 拇指喜欢 · 三指歌词</div>
     </div>
@@ -1315,7 +1315,7 @@
         <div class="mini-queue-head">
           <div>
             <div class="mini-queue-title" data-i18n="ui.1r2rmpv">当前队列</div>
-            <div id="mini-queue-count" class="mini-queue-count" data-i18n="ui.1igiw29">0 首</div>
+            <div id="mini-queue-count" class="mini-queue-count">0 首</div>
           </div>
           <button class="fx-mini-btn ghost" onclick="closeMiniQueue()" title="关闭"
             style="height:26px;padding:0 9px;font-size:13px" data-i18n-title="ui.g0fanx">×</button>
@@ -1406,7 +1406,7 @@
                 <span data-i18n="ui.kxkm1p">歌词校准</span>
                 <strong id="lyric-timing-value">0.0s</strong>
               </div>
-              <div id="lyric-timing-song" class="lyric-timing-song" data-i18n="ui.8i30oz">当前歌曲</div>
+              <div id="lyric-timing-song" class="lyric-timing-song">当前歌曲</div>
               <div class="lyric-timing-actions">
                 <button type="button" data-lyric-offset-step="-0.1" title="歌词延后 0.1 秒" data-i18n-title="ui.ktma61">-0.1</button>
                 <button type="button" data-lyric-offset-reset title="重置当前歌曲歌词校准" data-i18n-title="ui.mx3nyg">0</button>
@@ -1550,9 +1550,9 @@
         </div>
         <div id="login-auth-drawer" class="login-auth-drawer">
           <div class="login-auth-copy">
-            <h2 id="login-modal-title" data-i18n="ui.e3fwo3">扫码登录网易云音乐</h2>
+            <h2 id="login-modal-title">扫码登录网易云音乐</h2>
             <div id="login-modal-desc" class="desc">使用 <b data-i18n="ui.mrvkp0">网易云音乐 App</b> 扫码，可同步歌单、红心与播客。</div>
-            <div id="qr-status" data-i18n="ui.x9if7o">拖动接口到 MR 接入口后开始登录。</div>
+            <div id="qr-status">拖动接口到 MR 接入口后开始登录。</div>
           </div>
           <div class="login-auth-body">
             <div id="qr-shell" class="qr-shell">
@@ -1648,7 +1648,7 @@
           <button id="account-add-kugou" class="modal-btn" onclick="openProviderLogin('kugou')" data-i18n="ui.o5zu98">补登酷狗音乐</button>
           <button id="account-add-qishui" class="modal-btn" onclick="openProviderLogin('qishui')" data-i18n="ui.csi9yv">登录汽水音乐</button>
         </div>
-        <div id="account-hint" class="account-hint" data-i18n="ui.z3nlfp">QQ 音乐真实登录暂未接入，当前先预览双平台账号交互。</div>
+        <div id="account-hint" class="account-hint">QQ 音乐真实登录暂未接入，当前先预览双平台账号交互。</div>
         <div class="btn-row">
           <button class="modal-btn" onclick="closeUserModal()" data-i18n="ui.g0fanx">关闭</button>
           <button id="account-logout-btn" class="modal-btn primary" onclick="logoutActiveAccount()" data-i18n="ui.kxvj6w">退出当前平台</button>
@@ -1726,7 +1726,7 @@
           <button class="fx-mini-btn ghost" type="button" onclick="refreshWallpaperEngineLibrary()" data-i18n="ui.rlnfyt">刷新识别</button>
           <button class="fx-mini-btn ghost" type="button" onclick="restoreHiddenWallpaperEngineItems()" data-i18n="ui.1ec40lx">恢复隐藏</button>
         </div>
-        <div id="wallpaper-engine-library-status" class="wallpaper-engine-library-status" data-i18n="ui.1hbcoub">等待识别本机 Wallpaper Engine 库</div>
+        <div id="wallpaper-engine-library-status" class="wallpaper-engine-library-status">等待识别本机 Wallpaper Engine 库</div>
         <div id="wallpaper-engine-manual-roots" class="wallpaper-engine-manual-roots"></div>
         <div id="wallpaper-engine-grid" class="wallpaper-engine-grid" aria-live="polite"></div>
         <div id="wallpaper-engine-details-drawer" class="wallpaper-engine-details-drawer" aria-hidden="true"
@@ -1735,7 +1735,7 @@
             <div class="wallpaper-engine-details-head">
               <div>
                 <div class="wallpaper-engine-kicker">PROJECT PROPERTIES</div>
-                <h3 id="wallpaper-engine-details-title" data-i18n="ui.155wd6i">项目设置</h3>
+                <h3 id="wallpaper-engine-details-title">项目设置</h3>
               </div>
               <button class="wallpaper-engine-close" type="button" onclick="closeWallpaperEngineProjectDetails()" aria-label="关闭项目设置" data-i18n-aria-label="ui.1s460ky">×</button>
             </div>
@@ -1773,8 +1773,8 @@
       <div class="modal local-beat-modal">
         <h2 data-i18n="ui.1lxnvas">本地节奏分析</h2>
         <div class="local-beat-track">
-          <div id="local-beat-title" class="local-beat-track-title" data-i18n="ui.1kcy9kv">本地歌曲</div>
-          <div id="local-beat-sub" class="local-beat-track-sub" data-i18n="ui.1r0tscg">选择一种电影视角分析方式</div>
+          <div id="local-beat-title" class="local-beat-track-title">本地歌曲</div>
+          <div id="local-beat-sub" class="local-beat-track-sub">选择一种电影视角分析方式</div>
         </div>
         <div class="local-beat-tabs">
           <button id="local-beat-tab-mr" class="local-beat-tab active" type="button"
@@ -1800,8 +1800,8 @@
       <div class="modal custom-lyric-modal">
         <h2 data-i18n="ui.1pi54sv">自定义歌词</h2>
         <div class="custom-lyric-track">
-          <div id="custom-lyric-title" class="custom-lyric-title" data-i18n="ui.8i30oz">当前歌曲</div>
-          <div id="custom-lyric-sub" class="custom-lyric-sub" data-i18n="ui.1wo4u1n">支持 LRC 时间轴，也可以直接输入纯文本歌词</div>
+          <div id="custom-lyric-title" class="custom-lyric-title">当前歌曲</div>
+          <div id="custom-lyric-sub" class="custom-lyric-sub">支持 LRC 时间轴，也可以直接输入纯文本歌词</div>
         </div>
         <textarea id="custom-lyric-input" class="custom-lyric-input" spellcheck="false"
           placeholder="[00:12.00] 第一行歌词&#10;[00:16.50] 第二行歌词&#10;&#10;没有时间轴也可以，每一行会按歌曲时长自动铺开" data-i18n-placeholder="ui.dru955"></textarea>
@@ -1816,7 +1816,7 @@
 
     <div id="track-detail-modal" class="modal-mask">
       <div class="modal track-detail-modal">
-        <h2 id="track-detail-heading" data-i18n="ui.17xemxy">歌曲详情</h2>
+        <h2 id="track-detail-heading">歌曲详情</h2>
         <div id="track-detail-body"></div>
         <div class="btn-row">
           <button class="modal-btn" onclick="closeTrackDetailModal()" data-i18n="ui.g0fanx">关闭</button>
@@ -1835,7 +1835,7 @@
             </div>
           </div>
           <div class="update-hero">
-            <div id="update-hero-main" class="update-hero-main" data-i18n="ui.sdx5n9">请以本次发布公告中的最新网盘链接为准。</div>
+            <div id="update-hero-main" class="update-hero-main">请以本次发布公告中的最新网盘链接为准。</div>
             <div id="update-hero-sub" class="update-hero-sub"></div>
           </div>
           <div id="update-list" class="update-list"></div>
@@ -1845,11 +1845,11 @@
             <button id="update-primary-btn" class="update-primary-btn" type="button"
               onclick="startUpdatePreviewDownload()">
               <span id="update-btn-fill" class="update-btn-fill"></span>
-              <span id="update-btn-label" class="update-btn-label" data-i18n="ui.1tntsge">查看更新页面</span>
+              <span id="update-btn-label" class="update-btn-label">查看更新页面</span>
             </button>
             <button class="update-secondary-btn" type="button" onclick="closeUpdatePanel()" data-i18n="ui.1589w37">取消</button>
           </div>
-          <div id="update-footnote" class="update-footnote" data-i18n="ui.jrkn6k">将在浏览器打开下载页面，软件不会在本地下载或应用补丁。</div>
+          <div id="update-footnote" class="update-footnote">将在浏览器打开下载页面，软件不会在本地下载或应用补丁。</div>
         </div>
       </div>
     </div>
@@ -1878,7 +1878,7 @@
     </div>
     <div id="source-fallback-notice" aria-live="polite">
       <div class="source-fallback-head">
-        <div id="source-fallback-title" class="source-fallback-title" data-i18n="ui.9xtqh1">自动换源</div>
+        <div id="source-fallback-title" class="source-fallback-title">自动换源</div>
         <button class="source-fallback-close" type="button" onclick="closeSourceFallbackNotice()">×</button>
       </div>
       <div id="source-fallback-body" class="source-fallback-body"></div>
@@ -1921,7 +1921,7 @@
         aria-checked="false">
         <span class="desktop-mode-switch-copy">
           <strong data-i18n="ui.qeb95e">锁定软件操作</strong>
-          <small id="desktop-software-lock-state" data-i18n="ui.wv0qe7">软件可正常操作</small>
+          <small id="desktop-software-lock-state">软件可正常操作</small>
         </span>
         <span class="desktop-mode-switch-track" aria-hidden="true"><span></span></span>
       </button>
@@ -1929,7 +1929,7 @@
         aria-checked="true">
         <span class="desktop-mode-switch-copy">
           <strong data-i18n="ui.34ung">显示桌面图标</strong>
-          <small id="desktop-icons-visible-state" data-i18n="ui.190h1mo">图标已显示</small>
+          <small id="desktop-icons-visible-state">图标已显示</small>
         </span>
         <span class="desktop-mode-switch-track" aria-hidden="true"><span></span></span>
       </button>
