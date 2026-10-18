@@ -61,11 +61,16 @@
   // UI only: NEVER feed dynamic song titles, artists, lyrics or account data here.
   function source(value, params) {
     if (typeof value !== 'string') return value;
-    const id = sourceIndex[value];
-    if (id) return t(id, params);
+    const trimmed = value.trim();
+    const id = sourceIndex[value] || sourceIndex[trimmed];
+    if (id) {
+      const left = value.slice(0, value.indexOf(trimmed));
+      const right = value.slice(value.indexOf(trimmed) + trimmed.length);
+      return left + t(id, params) + right;
+    }
     // A few count labels are grammatical templates rather than static IDs.
     if (locale === VIETNAMESE) {
-      const match = /^(\d+)\s*(首歌曲|首|分钟|秒)$/.exec(value);
+      const match = /^(\d+)\s*(首歌曲|首|分钟|秒)$/.exec(trimmed);
       if (match) return match[1] + ' ' + ({
         '首歌曲':'bài hát', '首':'bài', '分钟':'phút', '秒':'giây'
       })[match[2]];
