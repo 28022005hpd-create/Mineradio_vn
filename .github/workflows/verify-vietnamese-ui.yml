@@ -1,0 +1,41 @@
+name: Verify Vietnamese interface layer
+
+on:
+  push:
+    branches: ['feature/vi-vn-non-invasive-localization']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vietnamese-ui:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax: original and localization scripts
+        run: |
+          node --check public/js/i18n/vi-dictionary.js
+          node --check public/js/i18n/runtime.js
+          node --check public/js/index-loader.js
+          node --check public/js/modules/11-main-loop.js
+          node --check public/js/modules/05-playback/08-audio-graph-controls.js
+      - name: Translations, coverage, dynamic updates and rollback
+        run: node --test tests/vi-i18n.test.js
+      - name: Original Mineradio playback UI regression tests
+        run: |
+          node --test tests/playback-audio-graph-recovery.test.js
+          node --test tests/playback-source-fallback-transaction.test.js
+          node --test tests/playback-single-repeat-loop.test.js
+      - name: Ensure minimal injection points and untouched shader bundle
+        run: |
+          test -f public/js/modules/02-visual/00-pointer-cover-particles.js
+          test -f public/js/modules/03-beat/06-sonic-audio-monitor.js
+          test -f public/sonic-topography-preset.js
+          test -f public/sonic-workshop-preset.js
+          grep -q 'js/i18n/runtime.js' public/index.html
+          grep -q 'js/i18n/runtime.js' public/desktop-lyrics.html
