@@ -1105,10 +1105,6 @@
     "Khóa để tránh chạm nhầm; nhấn nút chuột giữa lên lời để khóa/mở"
   ],
   [
-    "歌词溢光强度",
-    "Cường độ phát sáng lời hát"
-  ],
-  [
     "歌单架颜色",
     "Màu kệ nhạc"
   ],
@@ -2975,6 +2971,18 @@
   [
     "Cuefield AutoMix 反馈",
     "Đánh giá Cuefield AutoMix"
+  ],
+  [
+    "词",
+    "Lời"
+  ],
+  [
+    "[00:12.00] 第一行歌词&#10;[00:16.50] 第二行歌词&#10;&#10;没有时间轴也可以，每一行会按歌曲时长自动铺开",
+    "[00:12.00] Dòng lời thứ nhất&#10;[00:16.50] Dòng lời thứ hai&#10;&#10;Không có thời gian cũng được, mỗi dòng sẽ tự phân bổ theo thời lượng bài hát."
+  ],
+  [
+    "[00:12.00] 第一行歌词\n[00:16.50] 第二行歌词\n\n没有时间轴也可以，每一行会按歌曲时长自动铺开",
+    "[00:12.00] Dòng lời thứ nhất\n[00:16.50] Dòng lời thứ hai\n\nKhông có thời gian cũng được, mỗi dòng sẽ tự phân bổ theo thời lượng bài hát."
   ]
 ];
   const exact = Object.freeze(Object.fromEntries(entries));
