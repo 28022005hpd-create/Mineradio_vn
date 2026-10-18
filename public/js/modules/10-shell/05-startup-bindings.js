@@ -3,6 +3,7 @@ if (typeof MineradioI18n !== 'undefined' && MineradioI18n.onChange) {
   MineradioI18n.onChange(function () {
     if (typeof updateSearchModeTabs === 'function') updateSearchModeTabs();
     if (typeof updateDevelopmentFxControls === 'function') updateDevelopmentFxControls();
+    if (typeof renderHomeDiscover === 'function') renderHomeDiscover();
   });
 }
 applyDiyMode(diyPlayerMode, { save: false });
