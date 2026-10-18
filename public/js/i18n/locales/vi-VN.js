@@ -3,6 +3,8 @@
 (function (root) {
   const locales = root.MineradioLocales || (root.MineradioLocales = {});
   locales["vi-VN"] = Object.freeze({
+  "settings.language": "Ngôn ngữ giao diện",
+
   "ui.1ybnnw9": "Mặc định",
   "ui.g0fanx": "Đóng",
   "ui.1589w37": "Hủy",
