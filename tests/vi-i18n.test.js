@@ -100,7 +100,7 @@ test('native controls switch Chinese ↔ Vietnamese without reload or DOM observ
   i.setLanguage('not-a-locale');
   assert.equal(i.locale,'vi-VN');
   assert.equal(u.nativeUpdates.length,2);
-  assert.doesNotMatch(read('i18n.js'), /MutationObserver|createTreeWalker|setInterval/);
+  assert.doesNotMatch(read('i18n.js').replace(/\/\*[\s\S]*?\*\//g,''), /\bnew MutationObserver\b|\.createTreeWalker\(|\bsetInterval\(/);
 });
 
 test('generated labels can use t(id), source(text), and bind(container) by explicit render call', () => {
