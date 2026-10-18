@@ -143,6 +143,7 @@ function renderSearchHistory() {
     items.map(function (q) { return '<button class="search-history-chip" type="button" data-history-query="' + escHtml(q) + '">' + escHtml(q) + '</button>'; }).join('') +
     '</div>' +
     '</div>';
+  MineradioI18n.bind($results);
   setSearchHistorySurface(true);
   $results.classList.add('show');
   requestAnimationFrame(updateSearchPillGlassDisplacementMap);
@@ -1235,6 +1236,7 @@ function appendNextSearchResults(expectedKey) {
     var sentinel = $results.querySelector('[data-search-load-more]');
     if (sentinel) sentinel.insertAdjacentHTML('beforebegin', html);
     else $results.insertAdjacentHTML('beforeend', html);
+    MineradioI18n.bind($results);
     syncLikeStatusForSongs(searchMusicRenderState.songs.slice(start, end));
     searchMusicRenderState.appending = false;
     refreshSearchLoadMoreSentinel();
@@ -1256,6 +1258,7 @@ function renderSongSearchResults(songs) {
   var html = '';
   for (var i = 0; i < searchMusicRenderState.visibleCount; i++) html += searchSongResultHtml(playlist[i], i);
   $results.innerHTML = html + searchLoadMoreSentinelHtml();
+  MineradioI18n.bind($results);
   $results.classList.add('show');
   syncLikeStatusForSongs(playlist.slice(0, searchMusicRenderState.visibleCount));
   if (window.gsap) animateListItems($results, '.search-result', { x: 0, y: 6, stagger: 0.012, duration: 0.18, limit: 18 });
