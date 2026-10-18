@@ -1,3 +1,10 @@
+// Built-in locale updates only owned UI controls; playback and GPU state are untouched.
+if (typeof MineradioI18n !== 'undefined' && MineradioI18n.onChange) {
+  MineradioI18n.onChange(function () {
+    if (typeof updateSearchModeTabs === 'function') updateSearchModeTabs();
+    if (typeof updateDevelopmentFxControls === 'function') updateDevelopmentFxControls();
+  });
+}
 applyDiyMode(diyPlayerMode, { save: false });
 bindFxPanel();
 applySavedLyricPaletteState();
