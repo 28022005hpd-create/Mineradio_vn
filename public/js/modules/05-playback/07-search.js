@@ -138,7 +138,7 @@ function renderSearchHistory() {
   }
   $results.innerHTML =
     '<div class="search-history">' +
-    '<div class="search-history-head"><span>搜索历史</span><button class="search-history-clear" type="button" data-clear-history="1">清空</button></div>' +
+    '<div class="search-history-head"><span data-i18n="ui.1ggkcof">搜索历史</span><button class="search-history-clear" type="button" data-clear-history="1" data-i18n="ui.9mbwb2">清空</button></div>' +
     '<div class="search-history-list">' +
     items.map(function (q) { return '<button class="search-history-chip" type="button" data-history-query="' + escHtml(q) + '">' + escHtml(q) + '</button>'; }).join('') +
     '</div>' +
@@ -339,7 +339,7 @@ function renderPodcastPrograms() {
         '<div class="search-result-meta">' + escHtml(programMetaText(p)) + '</div>' +
         '</div>' +
         '</div>' +
-        '<button class="add-btn" title="下一首播放" onclick="event.stopPropagation();queuePodcastProgram(' + i + ')">+</button>' +
+        '<button class="add-btn" title="下一首播放" data-i18n-title="ui.77fg6b" onclick="event.stopPropagation();queuePodcastProgram(' + i + ')">+</button>' +
         '</div>';
     }).join('');
   $results.classList.add('show');
@@ -1141,8 +1141,8 @@ function searchSongResultHtml(s, i) {
       '</div>' +
       '</div>' +
       '<button class="song-action-btn' + (isSongLiked(s) ? ' liked' : '') + '" data-like-index="' + i + '" title="' + (isSongLiked(s) ? '取消红心' : '红心喜欢') + '" onclick="event.stopPropagation();toggleLikeSearchResult(' + i + ')">' + heartIconSvg() + '</button>' +
-      '<button class="song-action-btn" title="收藏到歌单" onclick="event.stopPropagation();collectSearchResult(' + i + ')">' + playlistPlusIconSvg() + '</button>' +
-      '<button class="add-btn" title="下一首播放" onclick="event.stopPropagation();queueSearchResult(' + i + ')">+</button>' +
+      '<button class="song-action-btn" title="收藏到歌单" data-i18n-title="ui.115lq6p" onclick="event.stopPropagation();collectSearchResult(' + i + ')">' + playlistPlusIconSvg() + '</button>' +
+      '<button class="add-btn" title="下一首播放" data-i18n-title="ui.77fg6b" onclick="event.stopPropagation();queueSearchResult(' + i + ')">+</button>' +
       '</div>';
 }
 function searchLoadMoreSentinelHtml() {
