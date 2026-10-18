@@ -108,6 +108,10 @@
     if (locale === next) return locale;
     locale = next;
     try { root.localStorage && root.localStorage.setItem(STORAGE, locale); } catch (_) {}
+    // Electron owns the native tray preference; no network and no page reload.
+    if (root.desktopWindow && typeof root.desktopWindow.setUiLanguage === 'function') {
+      Promise.resolve(root.desktopWindow.setUiLanguage(locale)).catch(() => {});
+    }
     const doc = root.document;
     if (doc) {
       doc.documentElement.lang = locale;
@@ -133,6 +137,19 @@
   function init() {
     const doc = root.document;
     if (!doc) return;
+    if (root.desktopWindow) {
+      if (typeof root.desktopWindow.onUiLanguageChanged === 'function') {
+        root.desktopWindow.onUiLanguageChanged((next) => setLanguage(next));
+      }
+      if (typeof root.desktopWindow.getUiLanguage === 'function') {
+        const initially = locale;
+        Promise.resolve(root.desktopWindow.getUiLanguage()).then((result) => {
+          if (locale === initially && result && ALLOWED.includes(result.locale)) {
+            setLanguage(result.locale);
+          }
+        }).catch(() => {});
+      }
+    }
     doc.documentElement.lang = locale;
     const picker = doc.getElementById && doc.getElementById('mineradio-language-select');
     if (picker) picker.value = locale;
