@@ -8,6 +8,14 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   toggleFullscreen: () => ipcRenderer.invoke('desktop-window-toggle-fullscreen'),
   exitFullscreenWindowed: () => ipcRenderer.invoke('desktop-window-exit-fullscreen-windowed'),
   getState: () => ipcRenderer.invoke('desktop-window-get-state'),
+  getUiLanguage: () => ipcRenderer.invoke('mineradio-ui-language-get'),
+  setUiLanguage: (locale) => ipcRenderer.invoke('mineradio-ui-language-set', locale),
+  onUiLanguageChanged: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, locale) => callback(locale);
+    ipcRenderer.on('mineradio-ui-language-changed', listener);
+    return () => ipcRenderer.removeListener('mineradio-ui-language-changed', listener);
+  },
   getGpuDiagnostics: () => ipcRenderer.invoke('mineradio-get-gpu-diagnostics'),
   getMemorySnapshot: () => ipcRenderer.invoke('mineradio-memory-get-snapshot'),
   configureMemoryReduct: (payload) => ipcRenderer.invoke('mineradio-memory-configure-auto', payload || {}),
