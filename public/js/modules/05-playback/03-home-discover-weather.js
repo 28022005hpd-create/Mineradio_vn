@@ -1,10 +1,10 @@
 function fallbackHomeTiles() {
   return [
-    { kind: 'login', title: '登录同步歌单', sub: '网易云 / QQ / 酷狗 / 汽水' },
-    { kind: 'search', title: '搜索一首歌', sub: '原唱优先', query: '' },
-    { kind: 'local', title: '导入本地音乐', sub: '本地文件也能可视化' },
-    { kind: 'podcastSearch', title: '搜索播客', sub: '长内容 / 电台' },
-    { kind: 'guide', title: '看看视觉舞台', sub: '粒子 / 歌词 / 封面' },
+    { kind: 'login', title: MineradioI18n.source('登录同步歌单'), sub: MineradioI18n.source('网易云 / QQ / 酷狗 / 汽水') },
+    { kind: 'search', title: MineradioI18n.source('搜索一首歌'), sub: MineradioI18n.source('原唱优先'), query: '' },
+    { kind: 'local', title: MineradioI18n.source('导入本地音乐'), sub: MineradioI18n.source('本地文件也能可视化') },
+    { kind: 'podcastSearch', title: MineradioI18n.source('搜索播客'), sub: MineradioI18n.source('长内容 / 电台') },
+    { kind: 'guide', title: MineradioI18n.source('看看视觉舞台'), sub: MineradioI18n.source('粒子 / 歌词 / 封面') },
   ];
 }
 function homeTileCover(item) {
@@ -50,30 +50,30 @@ function renderHomeTiles() {
   var loggedOutHome = !homeDiscoverState.loggedIn && !hasAnyPlatformLogin();
   var summary = homeListenSummary();
   if (summary.recent && tiles.length < 5) {
-    tiles.push({ kind: 'recent', title: summary.recent.name || '继续听', sub: summary.recent.artist || summary.recent.source || '', cover: summary.recent.cover, record: summary.recent });
+    tiles.push({ kind: 'recent', title: summary.recent.name || MineradioI18n.source('继续听'), sub: summary.recent.artist || summary.recent.source || '', cover: summary.recent.cover, record: summary.recent });
   }
   if (summary.topArtist && tiles.length < 5) {
-    tiles.push({ kind: 'profile', title: summary.topArtist.name, sub: '常听歌手 · ' + summary.topArtist.plays + ' 次', query: summary.topArtist.name });
+    tiles.push({ kind: 'profile', title: summary.topArtist.name, sub: MineradioI18n.source('常听歌手 · ') + summary.topArtist.plays + MineradioI18n.source(' 次'), query: summary.topArtist.name });
   }
   if (!loggedOutHome) {
     homeDiscoverState.songs.slice(0, Math.max(0, 4 - tiles.length)).forEach(function (song, i) {
-      tiles.push({ kind: 'song', index: i, song: song, title: song.name || '今日歌曲', sub: song.artist || songSourceLabel(song) });
+      tiles.push({ kind: 'song', index: i, song: song, title: song.name || MineradioI18n.source('今日歌曲'), sub: song.artist || songSourceLabel(song) });
     });
     homeDiscoverState.playlists.slice(0, Math.max(0, 5 - tiles.length)).forEach(function (pl, i) {
-      tiles.push({ kind: 'playlist', index: i, title: pl.name || '推荐歌单', sub: (pl.trackCount ? pl.trackCount + ' 首' : 'Playlist') + (pl.playCount ? ' · ' + compactHomeCount(pl.playCount) + ' 播放' : ''), cover: pl.cover });
+      tiles.push({ kind: 'playlist', index: i, title: pl.name || MineradioI18n.source('推荐歌单'), sub: (pl.trackCount ? pl.trackCount + MineradioI18n.source(' 首') : 'Playlist') + (pl.playCount ? ' · ' + compactHomeCount(pl.playCount) + MineradioI18n.source(' 播放') : ''), cover: pl.cover });
     });
     if (tiles.length < 5) {
       homeDiscoverState.podcasts.slice(0, 5 - tiles.length).forEach(function (p, i) {
-        tiles.push({ kind: 'podcast', index: i, title: p.name || '热门播客', sub: p.djName || p.category || 'Podcast', cover: p.cover });
+        tiles.push({ kind: 'podcast', index: i, title: p.name || MineradioI18n.source('热门播客'), sub: p.djName || p.category || 'Podcast', cover: p.cover });
       });
     }
   }
   if (!tiles.length) tiles = fallbackHomeTiles();
   tiles = tiles.slice(0, 5);
-  if (title) title.textContent = summary.recent ? '接着听' : (loggedOutHome ? '先从这里开始' : '你的歌单与推荐');
+  if (title) title.textContent = summary.recent ? MineradioI18n.source('接着听') : (loggedOutHome ? MineradioI18n.source('先从这里开始') : MineradioI18n.source('你的歌单与推荐'));
   if (note) {
-    var liveNote = homeDiscoverState.updatedAt ? '刚刚更新 · 点击即可播放' : '点击即可播放';
-    note.textContent = homeDiscoverState.loading ? '正在整理推荐' : (loggedOutHome ? '登录平台后显示个人推荐' : (homeDiscoverState.error ? '离线精选' : liveNote));
+    var liveNote = homeDiscoverState.updatedAt ? MineradioI18n.source('刚刚更新 · 点击即可播放') : MineradioI18n.source('点击即可播放');
+    note.textContent = homeDiscoverState.loading ? MineradioI18n.source('正在整理推荐') : (loggedOutHome ? MineradioI18n.source('登录平台后显示个人推荐') : (homeDiscoverState.error ? MineradioI18n.source('离线精选') : liveNote));
   }
   row.innerHTML = tiles.map(function (item, i) {
     var cover = homeTileCover(item);
@@ -94,14 +94,14 @@ function renderHomeDiscover() {
   var weatherTitle = document.getElementById('home-weather-title');
   var weatherKicker = document.getElementById('home-weather-kicker');
   var weatherMeta = document.getElementById('home-weather-meta');
-  if (weatherTitle) weatherTitle.textContent = '我的音乐库';
+  if (weatherTitle) weatherTitle.textContent = MineradioI18n.source('我的音乐库');
   if (weatherKicker) weatherKicker.textContent = 'Mineradio · Your Library';
   if (sub) {
-    if (loggedOutHome) sub.textContent = '登录后会把你的歌单、常听歌手和最近播放放在这里；也可以直接搜索或导入本地音乐。';
-    else sub.textContent = '从你的歌单、最近播放、平台推荐和常听歌手开始。';
+    if (loggedOutHome) sub.textContent = MineradioI18n.source('登录后会把你的歌单、常听歌手和最近播放放在这里；也可以直接搜索或导入本地音乐。');
+    else sub.textContent = MineradioI18n.source('从你的歌单、最近播放、平台推荐和常听歌手开始。');
   }
   if (weatherMeta) {
-    var meta = loggedOutHome ? ['跨平台搜索', '本地音乐', '热门电台'] : ['个人推荐', '平台歌单', '热门电台'];
+    var meta = loggedOutHome ? [MineradioI18n.source('跨平台搜索'), MineradioI18n.source('本地音乐'), MineradioI18n.source('热门电台')] : [MineradioI18n.source('个人推荐'), MineradioI18n.source('平台歌单'), MineradioI18n.source('热门电台')];
     weatherMeta.innerHTML = meta.map(function (text) { return '<span class="home-weather-pill">' + escHtml(text) + '</span>'; }).join('');
   }
   var daily = homeDiscoverState.songs[0] || null;
@@ -122,21 +122,21 @@ function renderHomeDiscover() {
   var profileSub = document.getElementById('home-profile-sub');
   var libTitle = document.getElementById('home-library-title');
   var libSub = document.getElementById('home-library-sub');
-  if (weatherCardTitle) weatherCardTitle.textContent = '我的歌单';
+  if (weatherCardTitle) weatherCardTitle.textContent = MineradioI18n.source('我的歌单');
   if (weatherCardSub) {
-    weatherCardSub.textContent = playlistItem ? (((playlistItem.trackCount || 0) ? playlistItem.trackCount + ' 首 · ' : '') + (playlistItem.creator || '打开左侧歌单库')) : '打开左侧歌单库';
+    weatherCardSub.textContent = playlistItem ? (((playlistItem.trackCount || 0) ? playlistItem.trackCount + MineradioI18n.source(' 首 · ') : '') + (playlistItem.creator || MineradioI18n.source('打开左侧歌单库'))) : MineradioI18n.source('打开左侧歌单库');
   }
-  if (continueTitle) continueTitle.textContent = summary.recent ? summary.recent.name : '继续听';
-  if (continueSub) continueSub.textContent = summary.recent ? (summary.recent.artist || summary.recent.source || '最近播放') : '最近播放会出现在这里';
-  if (profileTitle) profileTitle.textContent = summary.topArtist ? summary.topArtist.name : (summary.topSong ? summary.topSong.name : '听歌画像');
-  if (profileSub) profileSub.textContent = summary.topArtist ? ('常听歌手 · ' + summary.topArtist.plays + ' 次') : (summary.totalPlays ? summary.totalPlays + ' 次有效播放' : '播放几首后生成偏好');
+  if (continueTitle) continueTitle.textContent = summary.recent ? summary.recent.name : MineradioI18n.source('继续听');
+  if (continueSub) continueSub.textContent = summary.recent ? (summary.recent.artist || summary.recent.source || MineradioI18n.source('最近播放')) : MineradioI18n.source('最近播放会出现在这里');
+  if (profileTitle) profileTitle.textContent = summary.topArtist ? summary.topArtist.name : (summary.topSong ? summary.topSong.name : MineradioI18n.source('听歌画像'));
+  if (profileSub) profileSub.textContent = summary.topArtist ? (MineradioI18n.source('常听歌手 · ') + summary.topArtist.plays + MineradioI18n.source(' 次')) : (summary.totalPlays ? summary.totalPlays + MineradioI18n.source(' 次有效播放') : MineradioI18n.source('播放几首后生成偏好'));
   if (loggedOutHome) {
-    if (dailyTitle) dailyTitle.textContent = '每日推荐';
-    if (dailySub) dailySub.textContent = '登录后同步你的今日歌曲';
-    if (privateTitle) privateTitle.textContent = '推荐歌曲';
-    if (privateSub) privateSub.textContent = '登录后同步更多歌曲';
-    if (libTitle) libTitle.textContent = '更多歌曲';
-    if (libSub) libSub.textContent = '播放后会继续补全推荐';
+    if (dailyTitle) dailyTitle.textContent = MineradioI18n.source('每日推荐');
+    if (dailySub) dailySub.textContent = MineradioI18n.source('登录后同步你的今日歌曲');
+    if (privateTitle) privateTitle.textContent = MineradioI18n.source('推荐歌曲');
+    if (privateSub) privateSub.textContent = MineradioI18n.source('登录后同步更多歌曲');
+    if (libTitle) libTitle.textContent = MineradioI18n.source('更多歌曲');
+    if (libSub) libSub.textContent = MineradioI18n.source('播放后会继续补全推荐');
     setHomeArt('home-weather-art', '', 280);
     setHomeArt('home-daily-art', '', 280);
     setHomeArt('home-private-art', '', 280);
@@ -144,12 +144,12 @@ function renderHomeDiscover() {
     setHomeArt('home-profile-art', summary.topSong && summary.topSong.cover || summary.recent && summary.recent.cover, 280);
     setHomeArt('home-library-art', '', 280);
   } else {
-    if (dailyTitle) dailyTitle.textContent = daily ? daily.name : '每日推荐';
-    if (dailySub) dailySub.textContent = daily ? ((daily.artist || songSourceLabel(daily) || '今日歌曲') + ' · 点击播放今日队列') : '同步你的今日歌曲';
-    if (privateTitle) privateTitle.textContent = cardSongB ? cardSongB.name : '私人雷达';
-    if (privateSub) privateSub.textContent = cardSongB ? (cardSongB.artist || songSourceLabel(cardSongB) || '推荐歌曲') : (homeDiscoverState.songs.length + ' 首 · 根据今日推荐与常听偏好');
-    if (libTitle) libTitle.textContent = cardSongC ? cardSongC.name : (summary.topArtist ? summary.topArtist.name : '更多歌曲');
-    if (libSub) libSub.textContent = cardSongC ? (cardSongC.artist || songSourceLabel(cardSongC) || '推荐歌曲') : (summary.topArtist ? ('歌手偏好 · ' + summary.topArtist.plays + ' 次') : '播放几首后生成你的偏好');
+    if (dailyTitle) dailyTitle.textContent = daily ? daily.name : MineradioI18n.source('每日推荐');
+    if (dailySub) dailySub.textContent = daily ? ((daily.artist || songSourceLabel(daily) || MineradioI18n.source('今日歌曲')) + MineradioI18n.source(' · 点击播放今日队列')) : MineradioI18n.source('同步你的今日歌曲');
+    if (privateTitle) privateTitle.textContent = cardSongB ? cardSongB.name : MineradioI18n.source('私人雷达');
+    if (privateSub) privateSub.textContent = cardSongB ? (cardSongB.artist || songSourceLabel(cardSongB) || MineradioI18n.source('推荐歌曲')) : (homeDiscoverState.songs.length + MineradioI18n.source(' 首 · 根据今日推荐与常听偏好'));
+    if (libTitle) libTitle.textContent = cardSongC ? cardSongC.name : (summary.topArtist ? summary.topArtist.name : MineradioI18n.source('更多歌曲'));
+    if (libSub) libSub.textContent = cardSongC ? (cardSongC.artist || songSourceLabel(cardSongC) || MineradioI18n.source('推荐歌曲')) : (summary.topArtist ? (MineradioI18n.source('歌手偏好 · ') + summary.topArtist.plays + MineradioI18n.source(' 次')) : MineradioI18n.source('播放几首后生成你的偏好'));
     setHomeArt('home-weather-art', (userPlaylists[0] && userPlaylists[0].cover) || (playlistItem && playlistItem.cover) || daily && daily.cover, 280);
     setHomeArt('home-daily-art', daily && daily.cover, 280);
     setHomeArt('home-private-art', cardSongB && cardSongB.cover || daily && daily.cover || summary.recent && summary.recent.cover || playlistItem && playlistItem.cover, 280);
