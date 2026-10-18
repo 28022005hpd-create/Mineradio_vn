@@ -14,7 +14,7 @@
   const LABEL_ATTRS = ['title', 'placeholder', 'aria-label', 'alt'];
   const IGNORE = [
     '[data-i18n-skip]', '[data-mineradio-i18n]',
-    '[contenteditable="true"]', 'script', 'style', 'textarea', 'code', 'pre', 'svg', 'canvas',
+    '[contenteditable="true"]', 'script', 'style', 'code', 'pre', 'svg', 'canvas',
     // Song/artist/library metadata and lyrics must remain in their original language.
     '.song-name', '.song-title', '.song-artist', '.song-album', '.song-cover',
     '.track-title', '.track-artist', '.track-name', '.track-meta', '.artist-name',
@@ -58,7 +58,7 @@
   // Translation is idempotent: observing our own changes is a no-op.
   function text(node) {
     const parent = node.parentElement;
-    if (!parent || ignored(parent)) return;
+    if (!parent || ignored(parent) || parent.tagName === 'TEXTAREA') return;
     const current = node.nodeValue || '';
     let memory = rememberedText.get(node);
     if (memory && current !== memory.rendered) {
@@ -126,13 +126,13 @@
   }
 
   function updateButton() {
-    if (!button) return;
     const vietnamese = locale === 'vi';
+    document.documentElement.lang = vietnamese ? 'vi' : 'zh-CN';
+    if (!button) return;
     button.textContent = vietnamese ? '中文' : 'Tiếng Việt';
     button.title = vietnamese ? 'Chuyển về giao diện gốc' : 'Chuyển sang tiếng Việt';
     button.setAttribute('aria-label', button.title);
     button.setAttribute('aria-pressed', String(vietnamese));
-    document.documentElement.lang = vietnamese ? 'vi' : 'zh-CN';
   }
 
   function setLanguage(next) {
@@ -144,7 +144,8 @@
   }
 
   function makeToggle() {
-    if (!document.body || document.getElementById('mineradio-language-toggle')) return;
+    // Avoid a fixed-position toggle obscuring the separate desktop-lyrics or splash windows.
+    if (!document.body || !document.getElementById('desktop-window-shell') || document.getElementById('mineradio-language-toggle')) return;
     button = document.createElement('button');
     button.id = 'mineradio-language-toggle';
     button.type = 'button';
