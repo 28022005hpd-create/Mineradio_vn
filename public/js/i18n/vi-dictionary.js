@@ -1372,16 +1372,16 @@
   const exact = Object.freeze(Object.fromEntries(entries));
   const CJK = /[\u3400-\u9fff]/;
   const templates = [
-    [/^(\\d+)\\s*首$/, '$1 bài'],
-    [/^(\\d+)\\s*分钟$/, '$1 phút'],
-    [/^(\\d+)\\s*秒$/, '$1 giây'],
-    [/^(\\d+)\\s*首歌曲$/, '$1 bài hát'],
-    [/^正在搜索[\\s“\"]+(.+?)[”\"]?…?$/, 'Đang tìm “$1”…'],
-    [/^继续滚动加载\\s*·\\s*当前还有\\s*(\\d+)\\s*首?$/, 'Cuộn để tải thêm · Còn $1 bài']
+    [/^(\d+)\s*首$/, '$1 bài'],
+    [/^(\d+)\s*分钟$/, '$1 phút'],
+    [/^(\d+)\s*秒$/, '$1 giây'],
+    [/^(\d+)\s*首歌曲$/, '$1 bài hát'],
+    [/^正在搜索[\s“\"]+(.+?)[”\"]?…?$/, 'Đang tìm “$1”…'],
+    [/^继续滚动加载\s*·\s*当前还有\s*(\d+)\s*首?$/, 'Cuộn để tải thêm · Còn $1 bài']
   ];
   function translate(input) {
     if (typeof input !== 'string') return input;
-    const match = /^(\\s*)([\\s\\S]*?)(\\s*)$/.exec(input);
+    const match = /^(\s*)([\s\S]*?)(\s*)$/.exec(input);
     if (!match) return input;
     const middle = match[2];
     const trimmed = middle.trim();
