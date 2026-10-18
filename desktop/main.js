@@ -147,6 +147,16 @@ const STARTUP_QA_USER_DATA_PATH = (() => {
 const STABLE_USER_DATA_PATH = STARTUP_QA_USER_DATA_PATH || path.join(app.getPath('appData'), APP_NAME);
 fs.mkdirSync(STABLE_USER_DATA_PATH, { recursive: true });
 app.setPath('userData', STABLE_USER_DATA_PATH);
+
+// One language preference shared by the Electron window and native tray menu.
+const UI_LANGUAGE_SETTINGS_FILE = path.join(STABLE_USER_DATA_PATH, 'ui-language.json');
+function readNativeUiLanguage() {
+  try {
+    const data = JSON.parse(fs.readFileSync(UI_LANGUAGE_SETTINGS_FILE, 'utf8'));
+    return data && data.locale === 'zh-CN' ? 'zh-CN' : 'vi-VN';
+  } catch (_) { return 'vi-VN'; }
+}
+let nativeUiLanguage = readNativeUiLanguage();
 const INITIAL_CACHE_SETTINGS = ensureCacheDirectories(readCacheSettings());
 const loginEasterEggGate = new LoginEasterEggGate({
   userDataPath: STABLE_USER_DATA_PATH,
@@ -2121,10 +2131,11 @@ function createOrUpdateTray() {
     }
   }
   const desktopMode = fullDesktopModeRuntime.getStatus('tray-menu');
+  const zh = nativeUiLanguage === 'zh-CN';
   const menu = Menu.buildFromTemplate([
-    { label: `显示 ${APP_NAME}`, click: () => focusMainWindow() },
+    { label: zh ? `显示 ${APP_NAME}` : `Hiện ${APP_NAME}`, click: () => focusMainWindow() },
     {
-      label: '退出完整桌面模式',
+      label: zh ? '退出完整桌面模式' : 'Thoát chế độ desktop đầy đủ',
       visible: desktopMode.enabled === true,
       click: () => disableFullDesktopMode('tray-exit-desktop-mode').catch((error) => {
         console.warn('[FullDesktopMode] tray exit failed:', error && error.message || error);
@@ -2132,7 +2143,7 @@ function createOrUpdateTray() {
     },
     { type: 'separator' },
     {
-      label: '退出',
+      label: zh ? '退出' : 'Thoát',
       click: () => {
         appQuitting = true;
         app.quit();
@@ -3976,6 +3987,20 @@ ipcMain.handle('desktop-window-exit-fullscreen-windowed', (event) => {
   }
   exitFullscreenToWindow(win);
   return getWindowState(win);
+});
+
+ipcMain.handle('mineradio-ui-language-get', () => ({ locale: nativeUiLanguage }));
+ipcMain.handle('mineradio-ui-language-set', (event, next) => {
+  if (next !== 'zh-CN' && next !== 'vi-VN') return { ok: false, locale: nativeUiLanguage };
+  nativeUiLanguage = next;
+  try {
+    fs.writeFileSync(UI_LANGUAGE_SETTINGS_FILE, JSON.stringify({ version: 1, locale: next }), 'utf8');
+  } catch (err) { console.warn('[I18n] Could not persist native language:', err.message); }
+  createOrUpdateTray();
+  BrowserWindow.getAllWindows().forEach((win) => {
+    if (!win.isDestroyed()) win.webContents.send('mineradio-ui-language-changed', next);
+  });
+  return { ok: true, locale: next };
 });
 
 ipcMain.handle('desktop-window-get-state', (event) => {
