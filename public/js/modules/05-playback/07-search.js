@@ -197,6 +197,7 @@ function updateSearchModeTabs() {
       : (searchMode === 'kugou' ? '搜索酷狗音乐...' : (searchMode === 'qq' ? '搜索 QQ 音乐...' : (searchMode === 'netease' ? '搜索网易云音乐...' : '搜索歌曲、歌手...')));
   }
   if ($input && searchMode === 'qishui') $input.placeholder = '搜索汽水音乐匹配源...';
+  if ($input) $input.placeholder = MineradioI18n.source($input.placeholder);
   requestAnimationFrame(updateSearchPillGlassDisplacementMap);
 }
 function setSearchMode(mode) {
@@ -536,7 +537,7 @@ function renderControlSourceSwitcher(matches) {
       var ready = active || !!match;
       var providerLimited = !!(match && provider.key === 'spotify' && match.playable === false);
       var cleanStatus = active ? '当前' : (providerLimited ? '匹配源' : (match ? '可切换' : (controlSourceSwitcherState.loading ? '检测中' : controlSourceIssueLabel(issue))));
-      var title = active ? '当前音源' : (providerLimited ? (provider.title + ': 播放将自动换源') : (match ? ('切换到 ' + provider.title) : (provider.title + ': ' + controlSourceIssueLabel(issue))));
+      var title = active ? MineradioI18n.source('当前音源') : (providerLimited ? (provider.title + ': 播放将自动换源') : (match ? ('切换到 ' + provider.title) : (provider.title + ': ' + controlSourceIssueLabel(issue))));
       var status = active ? '当前' : (providerLimited ? '匹配源' : (match ? '可切换' : (controlSourceSwitcherState.loading ? '检测中' : '无匹配')));
       return '<button type="button" class="control-source-option' + (active ? ' active' : '') + (!ready ? ' disabled' : '') + '" data-source-provider="' + provider.key + '" title="' + escHtml(title) + '" ' + (!ready ? 'disabled ' : '') + 'onclick="switchCurrentSongSource(\'' + provider.key + '\')">' +
         '<span class="tag-source ' + provider.key + '">' + provider.label + '</span>' +
@@ -604,7 +605,7 @@ function toggleControlSourceSwitcher(e) {
   }
   var song = currentControlSong();
   if (!song || song.type === 'local' || song.source === 'local' || song.localUrl || song.type === 'podcast') {
-    showToast('当前歌曲不支持切换音源');
+    showToast(MineradioI18n.source('当前歌曲不支持切换音源'));
     return;
   }
   var anchor = e && e.currentTarget ? e.currentTarget : null;
@@ -1148,8 +1149,8 @@ function searchLoadMoreSentinelHtml() {
   var remaining = Math.max(0, searchMusicRenderState.songs.length - searchMusicRenderState.visibleCount);
   if (!remaining && !searchMusicRenderState.remoteHasMore && !searchMusicRenderState.loadingMore) return '';
   var label = searchMusicRenderState.loadingMore
-    ? '正在加载更多歌曲…'
-    : (remaining ? ('继续滚动加载 · 当前还有 ' + remaining + ' 首') : '继续滚动加载更多歌曲');
+    ? MineradioI18n.source('正在加载更多歌曲…')
+    : (remaining ? ('继续滚动加载 · 当前还有 ' + remaining + ' 首') : MineradioI18n.source('继续滚动加载更多歌曲'));
   return '<div class="search-empty search-load-more" data-search-load-more="1" role="status">' + label + '</div>';
 }
 function refreshSearchLoadMoreSentinel() {
@@ -1284,7 +1285,7 @@ async function doSearch(q, opts) {
       resetSearchMusicRenderState();
       playlist = [];
       searchLastResultQuery = '';
-      $results.innerHTML = '<div class="search-empty">' + escHtml(searchProviderNotice || '没有找到相关歌曲') + '</div>';
+      $results.innerHTML = '<div class="search-empty">' + escHtml(searchProviderNotice || MineradioI18n.source('没有找到相关歌曲')) + '</div>';
       $results.classList.add('show');
       return;
     }
@@ -1305,7 +1306,7 @@ async function doSearch(q, opts) {
       resetSearchMusicRenderState();
       playlist = [];
       searchLastResultQuery = '';
-      $results.innerHTML = '<div class="search-empty">搜索暂时失败，请稍后重试</div>';
+      $results.innerHTML = '<div class="search-empty">' + MineradioI18n.source('搜索暂时失败，请稍后重试') + '</div>';
       $results.classList.add('show');
     }
   }
