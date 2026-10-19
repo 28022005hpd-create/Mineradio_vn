@@ -15,6 +15,13 @@ config.extraMetadata = {
     update: { disabled:true, preview:true, provider:'none', mirrors:[] }
   }
 };
+// server.js imports this module eagerly during MR-BOOT-SERVER-START.
+// Production's *-api.js glob does not match lyric-translation-service.js.
+// Include it explicitly in this isolated preview (never change main installer).
+config.files = clone(config.files);
+if (!config.files.includes('lyric-translation-service.js')) {
+  config.files.push('lyric-translation-service.js');
+}
 config.publish = null;
 config.win.executableName = 'MineradioBloomLyricsPreview';
 config.nsis = clone(config.nsis);
