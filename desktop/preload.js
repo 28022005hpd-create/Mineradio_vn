@@ -92,6 +92,16 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   clearKugouMusicLogin: () => ipcRenderer.invoke('kugou-music-clear-login'),
   clearQishuiMusicLogin: () => ipcRenderer.invoke('qishui-music-clear-login'),
   openUpdatePage: (url) => ipcRenderer.invoke('mineradio-open-update-page', String(url || '')),
+  getVnGithubUpdateStatus: () => ipcRenderer.invoke('mineradio-vn-update-status'),
+  checkVnGithubUpdate: () => ipcRenderer.invoke('mineradio-vn-update-check'),
+  installVnGithubUpdate: () => ipcRenderer.invoke('mineradio-vn-update-install'),
+  onVnGithubUpdateStatus: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const fn = (_event, status) => callback(status || {});
+    ipcRenderer.on('mineradio-vn-github-update-status', fn);
+    return () => ipcRenderer.removeListener('mineradio-vn-github-update-status', fn);
+  },
+
   restartApp: () => ipcRenderer.invoke('mineradio-restart-app'),
   configureGlobalHotkeys: (bindings) => ipcRenderer.invoke('mineradio-hotkeys-configure-global', bindings || []),
   copyText: (text) => {

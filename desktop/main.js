@@ -25,6 +25,8 @@ const {
 const { extractKugouAuth } = require('../kugou-api');
 const { qishuiCookieHasLogin } = require('../qishui-api');
 const { clearSpotifyToken } = require('../spotify-api');
+const { GithubVnAutoUpdater, installerLaunchScript } = require('./github-vn-auto-update');
+
 
 registerWallpaperEngineScheme(protocol);
 registerLocalMusicScheme(protocol);
@@ -100,6 +102,34 @@ const APP_PACKAGE_INFO = (() => {
   }
 })();
 const APP_METADATA = APP_PACKAGE_INFO.mineradio || {};
+const VN_BUILD_METADATA = (() => {
+  try { return require('./vn-update-build.json'); }
+  catch (_) { return {}; }
+})();
+const VN_AUTO_UPDATE_CONFIG = APP_METADATA.githubAutoUpdate || {};
+let pendingVnInstaller = null;
+const vnAutoUpdater = new GithubVnAutoUpdater({
+  enabled: process.platform === 'win32' && app.isPackaged && APP_METADATA.internalBeta !== true &&
+    VN_AUTO_UPDATE_CONFIG.enabled === true && VN_BUILD_METADATA.channel === 'vi-VN',
+  owner: '28022005hpd-create',
+  repo: 'Mineradio_vn',
+  buildNumber: VN_BUILD_METADATA.buildNumber || 0,
+  userData: path.join(app.getPath('appData'), APP_METADATA.runtimeName || APP_PACKAGE_INFO.productName || 'Mineradio'),
+  onStatus: (status) => {
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents &&
+        !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('mineradio-vn-github-update-status', status);
+    }
+  }
+});
+function startVnAutoUpdatePolling() {
+  if (!vnAutoUpdater.enabled) return;
+  const initial = setTimeout(() => vnAutoUpdater.check(), 14000);
+  if (initial.unref) initial.unref();
+  const interval = setInterval(() => vnAutoUpdater.check(), 25 * 60 * 1000);
+  if (interval.unref) interval.unref();
+}
+
 const APP_NAME = process.env.MINERADIO_RUNTIME_NAME || APP_METADATA.runtimeName || APP_PACKAGE_INFO.productName || 'Mineradio';
 const APP_USER_MODEL_ID = process.env.MINERADIO_APP_USER_MODEL_ID || APP_METADATA.appUserModelId || (APP_PACKAGE_INFO.build && APP_PACKAGE_INFO.build.appId) || 'com.mineradio.desktop';
 const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico');
@@ -4889,6 +4919,62 @@ ipcMain.handle('qishui-music-clear-login', async () => {
   return clearQishuiMusicLoginSession();
 });
 
+
+ipcMain.handle('mineradio-vn-update-status', (event) => {
+  if (!isTrustedMainWindowIpc(event)) return { status: 'disabled', error: 'UNTRUSTED_SENDER' };
+  return vnAutoUpdater.snapshot();
+});
+ipcMain.handle('mineradio-vn-update-check', async (event) => {
+  if (!isTrustedMainWindowIpc(event)) return { status: 'disabled', error: 'UNTRUSTED_SENDER' };
+  return vnAutoUpdater.check();
+});
+ipcMain.handle('mineradio-vn-update-install', async (event) => {
+  if (!isTrustedMainWindowIpc(event)) return { ok: false, error: 'UNTRUSTED_SENDER' };
+  if (process.platform !== 'win32' || !vnAutoUpdater.enabled) return { ok: false, error: 'UPDATER_DISABLED' };
+  const exe = app.getPath('exe');
+  const dir = path.dirname(exe);
+  const marker = path.join(dir, '.mineradio-install-root');
+  let markerText = '';
+  try { markerText = fs.readFileSync(marker, 'utf8'); } catch (_) {}
+  if (!markerText.includes('appId=com.mineradio.desktop')) {
+    return { ok: false, error: 'INSTALL_MARKER_MISSING' };
+  }
+  const installer = await vnAutoUpdater.verifiedFile();
+  if (!installer) return { ok: false, error: 'VERIFIED_UPDATE_NOT_READY' };
+  const owner = getSenderWindow(event);
+  const result = await dialog.showMessageBox(owner || undefined, {
+    type: 'question',
+    title: 'Mineradio_vn - cập nhật',
+    message: nativeUiLanguage === 'zh-CN' ? '安装已验证的新版并重启？' : 'Cài đặt bản đã xác minh và khởi động lại Mineradio?',
+    detail: nativeUiLanguage === 'zh-CN'
+      ? 'Ứng dụng sẽ đóng trước khi chạy bộ cài từ GitHub.'
+      : 'Ứng dụng sẽ thoát an toàn, chạy bộ cài đã xác minh và mở lại. Nhạc và cài đặt cá nhân vẫn được giữ.',
+    buttons: nativeUiLanguage === 'zh-CN' ? ['安装并重启', '取消'] : ['Cài và khởi động lại', 'Để sau'],
+    defaultId: 1,
+    cancelId: 1,
+    noLink: true,
+  });
+  if (result.response !== 0) return { ok: false, cancelled: true };
+  pendingVnInstaller = { installer, dir, exe };
+  setTimeout(() => { appQuitting = true; app.quit(); }, 150);
+  return { ok: true, restarting: true };
+});
+app.on('quit', () => {
+  if (!pendingVnInstaller) return;
+  const chosen = pendingVnInstaller;
+  pendingVnInstaller = null;
+  try {
+    const script = installerLaunchScript(chosen.installer, chosen.dir, chosen.exe, process.pid);
+    const child = spawn('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')
+    ], { detached: true, windowsHide: true, stdio: 'ignore' });
+    child.unref();
+  } catch (e) {
+    console.error('[GithubVnUpdate] Failed to launch verified installer helper:', e.message);
+  }
+});
+
 ipcMain.handle('mineradio-open-update-page', async (event, value) => {
   try {
     if (!isTrustedMainWindowIpc(event)) return { ok: false, error: 'UNTRUSTED_SENDER' };
@@ -5984,6 +6070,7 @@ if (!gotSingleInstanceLock) {
     powerMonitor.on('resume', () => restoreUnexpectedMainWindowVisibility(mainWindow, 'system-resume'));
     powerMonitor.on('unlock-screen', () => restoreUnexpectedMainWindowVisibility(mainWindow, 'screen-unlock'));
     await createWindow();
+    startVnAutoUpdatePolling();
   }).catch((e) => reportWindowCreationFailure('Main', e));
 
   app.on('activate', () => {

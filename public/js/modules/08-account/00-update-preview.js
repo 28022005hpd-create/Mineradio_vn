@@ -379,3 +379,83 @@ function pulseUpdateReady() {
     );
   }
 }
+
+
+// Standalone VN GitHub updater. The original author's web-download update
+// panel above remains unchanged; this is a different release channel.
+var vnGithubUpdateSnapshot = { status: 'idle' };
+function vnGithubUpdateLanguageIsVietnamese() {
+  return !window.MineradioI18n || window.MineradioI18n.locale === 'vi-VN';
+}
+function renderVnGithubUpdate() {
+  var label = document.getElementById('vn-github-update-status');
+  var action = document.getElementById('vn-github-update-action');
+  var heading = document.getElementById('vn-github-update-heading');
+  var caption = document.getElementById('vn-github-update-caption');
+  if (!label || !action) return;
+  var vi = vnGithubUpdateLanguageIsVietnamese();
+  var data = vnGithubUpdateSnapshot || {};
+  var state = data.status || 'idle';
+  var built = Number(data.latestBuild) || 0;
+  var progress = Math.max(0, Math.min(100, Number(data.progress) || 0));
+  if (heading) heading.textContent = vi ? 'Cập nhật từ GitHub' : 'GitHub 自动更新';
+  if (caption) caption.textContent = vi
+    ? 'Chỉ tải từ Mineradio_vn. Không gửi thay đổi trên máy lên GitHub.'
+    : '仅从 Mineradio_vn 更新，不上传本机修改。';
+  var statusMap = vi ? {
+    idle: 'Đang chờ kiểm tra bản mới', disabled: 'Chỉ hỗ trợ Mineradio_vn đã cài trên Windows',
+    checking: 'Đang kiểm tra GitHub...', downloading: 'Đang tải và xác minh: ' + progress + '%',
+    ready: 'Đã sẵn sàng bản mới #' + built, 'up-to-date': 'Đã là bản mới nhất',
+    error: 'Chưa thể cập nhật: ' + String(data.error || 'Lỗi kết nối')
+  } : {
+    idle: '等待检查更新', disabled: '仅支持 Windows 安装版',
+    checking: '正在检查 GitHub...', downloading: '下载和验证中：' + progress + '%',
+    ready: '新版已准备就绪 #' + built, 'up-to-date': '已是最新版本',
+    error: '更新失败：' + String(data.error || '网络错误')
+  };
+  label.textContent = statusMap[state] || statusMap.idle;
+  action.textContent = state === 'ready'
+    ? (vi ? 'Cài và khởi động lại' : '安装并重启')
+    : (vi ? 'Kiểm tra ngay' : '立即检查');
+  action.disabled = state === 'disabled' || state === 'checking' || state === 'downloading';
+}
+async function handleVnGithubUpdateAction() {
+  if (!window.desktopWindow) return;
+  var api = window.desktopWindow;
+  var ready = vnGithubUpdateSnapshot.status === 'ready';
+  try {
+    var result = ready && typeof api.installVnGithubUpdate === 'function'
+      ? await api.installVnGithubUpdate()
+      : await api.checkVnGithubUpdate();
+    if (result && result.status) vnGithubUpdateSnapshot = result;
+    if (result && result.error && typeof showToast === 'function') showToast(result.error);
+    renderVnGithubUpdate();
+  } catch (e) {
+    vnGithubUpdateSnapshot = { status: 'error', error: e.message || 'UPDATE_FAILED' };
+    renderVnGithubUpdate();
+  }
+}
+function initVnGithubUpdatePanel() {
+  var api = window.desktopWindow;
+  if (!api || typeof api.getVnGithubUpdateStatus !== 'function') {
+    vnGithubUpdateSnapshot = { status: 'disabled' };
+    renderVnGithubUpdate();
+    return;
+  }
+  if (typeof api.onVnGithubUpdateStatus === 'function') {
+    api.onVnGithubUpdateStatus(function (status) {
+      vnGithubUpdateSnapshot = status || {};
+      renderVnGithubUpdate();
+    });
+  }
+  if (window.MineradioI18n && typeof window.MineradioI18n.onChange === 'function') {
+    window.MineradioI18n.onChange(renderVnGithubUpdate);
+  }
+  api.getVnGithubUpdateStatus().then(function (state) {
+    vnGithubUpdateSnapshot = state || {};
+    renderVnGithubUpdate();
+  }).catch(function (error) {
+    vnGithubUpdateSnapshot = { status: 'error', error: error.message || 'IPC_FAILED' };
+    renderVnGithubUpdate();
+  });
+}

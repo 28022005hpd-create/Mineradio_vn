@@ -24,6 +24,7 @@ jobs:
           node --check public/js/i18n/i18n.js
           node --check desktop/preload.js
           node --check desktop/main.js
+          node --check desktop/github-vn-auto-update.js
           node --check public/js/modules/05-playback/07-search.js
           node --check public/js/modules/05-playback/14-player-controls.js
           node --check public/js/modules/07-fx/05-fx-panel-performance.js
@@ -39,6 +40,8 @@ jobs:
           node --test tests/vi-lyrics-translation.test.js
       - name: Locale catalogs, stable IDs, in-app switching and audio-safe rendering
         run: node --test tests/vi-i18n.test.js
+      - name: GitHub release update validation tests
+        run: node --test tests/github-vn-auto-update.test.js
       - name: Original Mineradio playback UI regression tests
         run: |
           node --test tests/playback-audio-graph-recovery.test.js
