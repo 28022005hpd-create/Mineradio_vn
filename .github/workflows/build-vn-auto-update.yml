@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   publish:
-    if: github.repository == '28022005hpd-create/Mineradio_vn'
+    if: github.repository == '28022005hpd-create/Mineradio_vn' && github.ref == 'refs/heads/feature/vi-vn-non-invasive-localization'
     runs-on: windows-latest
     timeout-minutes: 70
     steps:

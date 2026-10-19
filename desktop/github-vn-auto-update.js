@@ -44,7 +44,13 @@ async function download(url,file,a,onProgress){
     fd=await fs.promises.open(part,'w',0o600);
     for await(const chunk of response.body){
       count+=chunk.length;if(count>a.size)throw Error('UPDATE_SIZE_MISMATCH');
-      await fd.write(chunk);hash.update(chunk);
+      let written=0;
+      while(written<chunk.length){
+        const result=await fd.write(chunk,written,chunk.length-written,null);
+        if(!result.bytesWritten)throw Error('UPDATE_DISK_WRITE_FAILED');
+        written+=result.bytesWritten;
+      }
+      hash.update(chunk);
       if(onProgress)onProgress(Math.floor(100*count/a.size));
     }
     await fd.close();fd=null;

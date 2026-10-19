@@ -45,3 +45,12 @@ test('auto-update is enabled only for installed Vietnamese Windows build',()=>{
  assert.match(electron,/app\.quit\(\)/);
  assert.match(preload,/getVnGithubUpdateStatus/);
 });
+
+
+test('Windows release workflow cannot publish from a different branch',()=>{
+ const workflow=fs.readFileSync(path.join(__dirname,'../.github/workflows/build-vn-auto-update.yml'),'utf8');
+ assert.match(workflow,/github\.ref == 'refs\/heads\/feature\/vi-vn-non-invasive-localization'/);
+ assert.match(workflow,/--publish never/);
+ assert.match(workflow,/Get-FileHash/);
+ assert.match(workflow,/gh release upload \$tag latest-vn\.json/);
+});
