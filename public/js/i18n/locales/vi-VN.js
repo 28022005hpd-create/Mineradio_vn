@@ -797,6 +797,13 @@
   "ui.1nvc4vl": "Nhấn vào khoảng trống để hoàn tất hướng dẫn",
   "ui.fjkw91": "Hỗ trợ bìa gốc và ảnh/video tải lên; có thể cắt lại nội dung đã đặt",
   "ui.bloomlyricsname": "Hoa ánh sáng vũ trụ",
-  "ui.bloomlyricsdesc": "Hạt hoa biến thành lời đang hát, sáng theo tiến độ karaoke"
+  "ui.bloomlyricsdesc": "Hạt hoa biến thành lời đang hát, sáng theo tiến độ karaoke",
+  "settings.language.hint": "Chọn ngôn ngữ hiển thị trong ứng dụng",
+  "settings.console.home": "Thường dùng",
+  "settings.console.interface": "Giao diện",
+  "settings.console.lyrics": "Lời bài hát",
+  "settings.console.motion": "Chuyển động",
+  "settings.console.shelf": "Kệ danh sách nhạc",
+  "settings.console.system": "Hệ thống"
 });
 })(typeof window !== 'undefined' ? window : globalThis);
