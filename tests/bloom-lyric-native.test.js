@@ -114,3 +114,15 @@ test('Separate GLSL interpolation and karaoke light progress, not a text overlay
   assert.doesNotMatch(js,/requestAnimationFrame\s*\(|new THREE\.WebGLRenderer|new AudioContext/);
   assert.ok(read('public/js/modules/02-visual/16-bloom-lyric-glyphs.js').includes("documentRef.createElement('canvas')"));
 });
+
+test('Language selector is a visible System settings item and original bilingual resources ship',()=>{
+ const ui=read('public/js/modules/07-fx/09-console-workspace.js');
+ assert.match(ui,/key: 'language', title: '界面语言'[\s\S]*?fxConsoleItem\('mineradio-language-settings'/);
+ const html=read('public/index.html');
+ assert.match(html,/id="mineradio-language-select"/);
+ assert.match(html,/js\/i18n\/locales\/vi-VN\.js/);
+ assert.match(html,/js\/i18n\/locales\/zh-CN\.js/);
+ const loader=read('public/js/index-loader.js');
+ assert.match(loader,/02-visual\/16-bloom-lyric-glyphs\.js/);
+ assert.match(loader,/07-fx\/04a-bloom-lyrics-native\.js/);
+});
