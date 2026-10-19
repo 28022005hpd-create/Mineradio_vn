@@ -796,7 +796,7 @@
   "ui.1iti5bx": "Nghe vài bài để có gợi ý phù hợp",
   "ui.1nvc4vl": "Nhấn vào khoảng trống để hoàn tất hướng dẫn",
   "ui.fjkw91": "Hỗ trợ bìa gốc và ảnh/video tải lên; có thể cắt lại nội dung đã đặt",
-  "bloomLyrics.name": "Hoa ánh sáng vũ trụ",
-  "bloomLyrics.desc": "Hạt hoa biến thành lời đang hát, sáng theo tiến độ karaoke"
+  "ui.bloomlyricsname": "Hoa ánh sáng vũ trụ",
+  "ui.bloomlyricsdesc": "Hạt hoa biến thành lời đang hát, sáng theo tiến độ karaoke"
 });
 })(typeof window !== 'undefined' ? window : globalThis);
