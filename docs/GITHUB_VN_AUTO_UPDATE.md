@@ -21,3 +21,7 @@ cảnh báo; chỉ chạy khi đã xác minh nguồn. Nếu GitHub lỗi, giữ 
 cài. GitHub Actions cần quyền contents:write để tải installer lên Releases.
 
 Kiểm thử: node --test tests/github-vn-auto-update.test.js
+
+Trạng thái: mặc định tự kiểm tra mỗi 25 phút, tải ngay khi có bản mới.
+Chỉ thực thi bộ cài sau khi người dùng bấm xác nhận. Phiên bản phát triển
+và môi trường QA không tự tải cập nhật.

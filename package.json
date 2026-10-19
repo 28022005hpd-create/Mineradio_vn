@@ -94,6 +94,16 @@
         "https://ghfast.top/",
         "https://gh-proxy.com/"
       ]
+    },
+    "githubAutoUpdate": {
+      "enabled": true,
+      "channel": "vi-VN",
+      "owner": "28022005hpd-create",
+      "repo": "Mineradio_vn",
+      "releaseTag": "mineradio-vn-auto",
+      "checkIntervalMinutes": 25,
+      "autoDownload": true,
+      "confirmBeforeInstall": true
     }
   },
   "dependencies": {

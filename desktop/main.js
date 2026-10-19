@@ -102,34 +102,6 @@ const APP_PACKAGE_INFO = (() => {
   }
 })();
 const APP_METADATA = APP_PACKAGE_INFO.mineradio || {};
-const VN_BUILD_METADATA = (() => {
-  try { return require('./vn-update-build.json'); }
-  catch (_) { return {}; }
-})();
-const VN_AUTO_UPDATE_CONFIG = APP_METADATA.githubAutoUpdate || {};
-let pendingVnInstaller = null;
-const vnAutoUpdater = new GithubVnAutoUpdater({
-  enabled: process.platform === 'win32' && app.isPackaged && APP_METADATA.internalBeta !== true &&
-    VN_AUTO_UPDATE_CONFIG.enabled === true && VN_BUILD_METADATA.channel === 'vi-VN',
-  owner: '28022005hpd-create',
-  repo: 'Mineradio_vn',
-  buildNumber: VN_BUILD_METADATA.buildNumber || 0,
-  userData: path.join(app.getPath('appData'), APP_METADATA.runtimeName || APP_PACKAGE_INFO.productName || 'Mineradio'),
-  onStatus: (status) => {
-    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents &&
-        !mainWindow.webContents.isDestroyed()) {
-      mainWindow.webContents.send('mineradio-vn-github-update-status', status);
-    }
-  }
-});
-function startVnAutoUpdatePolling() {
-  if (!vnAutoUpdater.enabled) return;
-  const initial = setTimeout(() => vnAutoUpdater.check(), 14000);
-  if (initial.unref) initial.unref();
-  const interval = setInterval(() => vnAutoUpdater.check(), 25 * 60 * 1000);
-  if (interval.unref) interval.unref();
-}
-
 const APP_NAME = process.env.MINERADIO_RUNTIME_NAME || APP_METADATA.runtimeName || APP_PACKAGE_INFO.productName || 'Mineradio';
 const APP_USER_MODEL_ID = process.env.MINERADIO_APP_USER_MODEL_ID || APP_METADATA.appUserModelId || (APP_PACKAGE_INFO.build && APP_PACKAGE_INFO.build.appId) || 'com.mineradio.desktop';
 const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico');
@@ -177,6 +149,35 @@ const STARTUP_QA_USER_DATA_PATH = (() => {
 const STABLE_USER_DATA_PATH = STARTUP_QA_USER_DATA_PATH || path.join(app.getPath('appData'), APP_NAME);
 fs.mkdirSync(STABLE_USER_DATA_PATH, { recursive: true });
 app.setPath('userData', STABLE_USER_DATA_PATH);
+const VN_BUILD_METADATA = (() => {
+  try { return require('./vn-update-build.json'); }
+  catch (_) { return {}; }
+})();
+const VN_AUTO_UPDATE_CONFIG = APP_METADATA.githubAutoUpdate || {};
+let pendingVnInstaller = null;
+const vnAutoUpdater = new GithubVnAutoUpdater({
+  enabled: process.platform === 'win32' && app.isPackaged && APP_METADATA.internalBeta !== true &&
+    VN_AUTO_UPDATE_CONFIG.enabled === true && VN_BUILD_METADATA.channel === 'vi-VN' && !STARTUP_QA_USER_DATA_PATH,
+  owner: '28022005hpd-create',
+  repo: 'Mineradio_vn',
+  buildNumber: VN_BUILD_METADATA.buildNumber || 0,
+  userData: STABLE_USER_DATA_PATH,
+  onStatus: (status) => {
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents &&
+        !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('mineradio-vn-github-update-status', status);
+    }
+  }
+});
+function startVnAutoUpdatePolling() {
+  if (!vnAutoUpdater.enabled) return;
+  const initial = setTimeout(() => vnAutoUpdater.check(), 14000);
+  if (initial.unref) initial.unref();
+  const interval = setInterval(() => vnAutoUpdater.check(), 25 * 60 * 1000);
+  if (interval.unref) interval.unref();
+}
+
+
 
 // One language preference shared by the Electron window and native tray menu.
 const UI_LANGUAGE_SETTINGS_FILE = path.join(STABLE_USER_DATA_PATH, 'ui-language.json');

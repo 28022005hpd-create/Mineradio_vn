@@ -30,3 +30,18 @@ test('disable and stale builds',async t=>{
 });
 test('restart helper awaits process exit',()=>{const s=installerLaunchScript("C:\\O'Brien\\u.exe",'D:\\Mineradio','D:\\Mineradio\\Mineradio.exe',123);
  assert.match(s,/Get-Process -Id \$oldProcessId/);assert.match(s,/O''Brien/);assert.match(s,/Start-Process/);});
+
+
+test('auto-update is enabled only for installed Vietnamese Windows build',()=>{
+ const root=path.join(__dirname,'..');
+ const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+ const electron=fs.readFileSync(path.join(root,'desktop/main.js'),'utf8');
+ const preload=fs.readFileSync(path.join(root,'desktop/preload.js'),'utf8');
+ assert.equal(pkg.mineradio.githubAutoUpdate.enabled,true);
+ assert.match(electron,/process\.platform === 'win32' && app\.isPackaged/);
+ assert.match(electron,/VN_BUILD_METADATA\.channel === 'vi-VN'/);
+ assert.match(electron,/userData: STABLE_USER_DATA_PATH/);
+ assert.match(electron,/app\.on\('quit'/);
+ assert.match(electron,/app\.quit\(\)/);
+ assert.match(preload,/getVnGithubUpdateStatus/);
+});
