@@ -175,8 +175,8 @@
   // keeps the translated name inside the ORIGINAL Mineradio FX panel.
   function syncBloomLabels() {
     if (PRESET < 0 || !presetMeta[PRESET] || !root.MineradioI18n) return;
-    presetMeta[PRESET].name = MineradioI18n.t('bloomLyrics.name');
-    presetMeta[PRESET].desc = MineradioI18n.t('bloomLyrics.desc');
+    presetMeta[PRESET].name = MineradioI18n.t('ui.bloomlyricsname');
+    presetMeta[PRESET].desc = MineradioI18n.t('ui.bloomlyricsdesc');
     if (typeof buildPresetGrid === 'function') buildPresetGrid();
   }
   if (root.MineradioI18n && MineradioI18n.onChange) {
