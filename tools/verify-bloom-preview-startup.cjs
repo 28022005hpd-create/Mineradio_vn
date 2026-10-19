@@ -31,7 +31,7 @@ while (stack.length) {
   let m;
   while ((m=regex.exec(content))) {
     const id=m[1];
-    if (builtin.has(id.replace(/^node:/,''))) continue;
+    if (builtin.has(id.replace(/^node:/,'')) || id === 'electron') continue; // Electron injects its own builtin
     try {
       const target=req.resolve(id);
       if (id.startsWith('.') && target.endsWith('.js') && target.startsWith(appRoot+path.sep)) {
