@@ -32,7 +32,7 @@ var presetIcons = [
   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"><path d="M12 21c-2-4-8-7-8-12 4-1 6 1 8 5 2-4 4-6 8-5 0 5-6 8-8 12z"/><path d="M12 14V3M7 16c2-2 8-2 10 0"/></svg>',
 ];
 var MINERADIO_BLOOM_LYRICS_PRESET = 13;
-var presetDisplayOrder = [0, 9, 10, 11, 12, 13, 6, 7, 8, 5, 4, 2, 1, 3];
+var presetDisplayOrder = [13, 0, 9, 10, 11, 12, 6, 7, 8, 5, 4, 2, 1, 3];
 var lyricColorPresets = [
   { name: '雾蓝', color: '#a9b8c8' },
   { name: '银蓝', color: '#9db8cf' },
