@@ -796,7 +796,7 @@
   "ui.1iti5bx": "播放几首后生成你的偏好",
   "ui.1nvc4vl": "点击空白处完成引导",
   "ui.fjkw91": "支持封面原图、图片 / 视频上传，已设置媒体可重复裁切",
-  "bloomLyrics.name": "星花歌词",
-  "bloomLyrics.desc": "真实花瓣粒子变成当前歌词，随节拍和卡拉OK进度闪耀"
+  "ui.bloomlyricsname": "星花歌词",
+  "ui.bloomlyricsdesc": "真实花瓣粒子变成当前歌词，随节拍和卡拉OK进度闪耀"
 });
 })(typeof window !== 'undefined' ? window : globalThis);
