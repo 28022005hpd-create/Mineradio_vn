@@ -82,3 +82,22 @@ npm start
 Bản Linux CI kiểm tra tính nhất quán khóa, nhãn tĩnh, cập nhật giao diện, độ an toàn với tên bài hát và hồi quy phát nhạc. Chưa có kiểm thử thực tế GPU/khay hệ thống Windows hoặc rà soát toàn bộ thông báo sinh động từ JS. Một số hộp thoại native Electron và nhãn UI chưa chuyển sang khóa i18n vẫn còn tiếng Trung: đây là công việc cần hoàn thiện, không nên tuyên bố đã Việt hóa tuyệt đối.
 
 **Giữ PR Draft, không merge vào main hay phát hành Windows cho đến khi kiểm thử trực tiếp.**
+
+## Dịch lời bài hát theo ngôn ngữ hệ thống
+
+Khi chọn Tiếng Việt và bật dịch song ngữ, lời chính vẫn là nguyên bản,
+còn dòng phụ chỉ hiển thị lời dịch máy tiếng Việt. Dữ liệu tlyric/ytlrc do
+nền tảng nhạc cung cấp không tự động được coi là tiếng Việt (thường là tiếng Trung).
+Chuyển về 简体中文 tiếp tục dùng bản dịch gốc do nền tảng cung cấp.
+
+Module 00a-localized-lyric-translation.js giữ cache theo bài hát và thời điểm
+và không sửa originalLyricsState. Máy chủ có endpoint POST /api/lyrics/translate,
+dịch máy bằng dịch vụ Google Translate công khai không chính thức; dịch vụ
+có thể bị giới hạn hoặc không sẵn sàng. Nếu thất bại, hệ thống ẩn dòng dịch
+thay vì hiển thị nhầm bản tiếng Trung. Bản dịch máy có thể không chính xác.
+
+Quyền riêng tư: Khi bật dịch ở chế độ tiếng Việt, văn bản lời bài hát gốc
+được gửi đến dịch vụ Google bên ngoài để xử lý; không gửi cookie đăng nhập
+hay dữ liệu âm thanh. Người dùng có thể tắt chế độ dịch để tránh việc gửi lời.
+
+Kiểm tra bằng: node --test tests/vi-lyrics-translation.test.js

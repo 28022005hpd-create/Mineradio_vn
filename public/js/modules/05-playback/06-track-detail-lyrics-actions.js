@@ -877,7 +877,8 @@ function applyLyricsState(lines, hasNativeKaraoke, timingSource, translationLine
 }
 function applyOriginalLyricsState(renderOptions) {
   lyricSourceMode = 'original';
-  applyLyricsState(originalLyricsState.lines, originalLyricsState.hasNativeKaraoke, originalLyricsState.timingSource, originalLyricsState.translationLines, originalLyricsState.translationSource, renderOptions);
+  var display = typeof preferredLocalizedLyricsForDisplay === 'function' ? preferredLocalizedLyricsForDisplay(originalLyricsState) : originalLyricsState;
+  applyLyricsState(display.lines, display.hasNativeKaraoke, display.timingSource, display.translationLines, display.translationSource, renderOptions);
 }
 function parseCustomLyricText(text) {
   var raw = String(text || '').trim();
@@ -1034,6 +1035,7 @@ function setLyricDisplayMode(mode) {
 function setLyricTranslationMode(mode) {
   fx.lyricTranslationMode = normalizeLyricTranslationMode(mode);
   updateLyricTranslationModeControls();
+  if (lyricSourceMode !== 'custom') applyOriginalLyricsState({ preserveSame: true, reason: 'lyric-translation-mode' });
   refreshStageLyricDisplayMode();
   saveLyricLayout({ user: true, reason: 'lyricTranslationMode' });
   showToast('双语翻译已切换');

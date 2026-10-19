@@ -30,6 +30,13 @@ jobs:
           node --check public/js/index-loader.js
           node --check public/js/modules/11-main-loop.js
           node --check public/js/modules/05-playback/08-audio-graph-controls.js
+      - name: Vietnamese subtitle syntax and service tests
+        run: |
+          node --check lyric-translation-service.js
+          node --check public/js/modules/06-lyrics/00a-localized-lyric-translation.js
+          node --check server.js
+          node --check public/js/modules/05-playback/06-track-detail-lyrics-actions.js
+          node --test tests/vi-lyrics-translation.test.js
       - name: Locale catalogs, stable IDs, in-app switching and audio-safe rendering
         run: node --test tests/vi-i18n.test.js
       - name: Original Mineradio playback UI regression tests
