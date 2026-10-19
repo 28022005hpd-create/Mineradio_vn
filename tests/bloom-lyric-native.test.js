@@ -57,7 +57,7 @@ function mocks(){
 test('Bloom is a real first-class Mineradio preset with no Wand import',()=>{
   let src=read('public/js/modules/07-fx/00-preset-archive-data.js');
   assert.match(src,/MINERADIO_BLOOM_LYRICS_PRESET = 13/);
-  assert.match(src,/presetDisplayOrder = \[0, 9, 10, 11, 12, 13/);
+  assert.match(src,/presetDisplayOrder = \[13, 0, 9, 10, 11, 12/);
   assert.doesNotMatch(src,/WAND HELIX|WAND AURORA|wandfx-import/);
   let main=read('public/js/modules/11-main-loop.js');
   assert.match(main,/MineradioBloomLyrics\.update/);
