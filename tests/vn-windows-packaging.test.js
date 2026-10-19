@@ -10,6 +10,8 @@ test('all packagers include the required lyrics module',()=>{
  assert.ok(pkg.build.files.includes('lyric-translation-service.js'));
  assert.ok(beta.files.includes('lyric-translation-service.js'));
  assert.equal(pkg.build.appId,'com.mineradio.vn.desktop');
+ assert.equal(pkg.mineradio.runtimeName,'Mineradio_vn');
+ assert.equal(pkg.mineradio.appUserModelId,'com.mineradio.vn.desktop');
  assert.equal(pkg.build.productName,'Mineradio_vn');
  assert.equal(pkg.build.nsis.include,'build/installer-vn.nsh');
  assert.equal(pkg.build.win.executableName,'Mineradio_vn');
