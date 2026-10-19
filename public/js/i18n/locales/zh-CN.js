@@ -4,6 +4,7 @@
   const locales = root.MineradioLocales || (root.MineradioLocales = {});
   locales["zh-CN"] = Object.freeze({
   "settings.language": "界面语言",
+  "settings.language.short": "语言",
   "ui.1ybnnw9": "默认",
   "ui.g0fanx": "关闭",
   "ui.1589w37": "取消",

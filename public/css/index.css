@@ -18574,3 +18574,114 @@ body.desktop-shell.desktop-wallpaper-mode.diy-mode #bottom-bar.stage-mode {
     width: calc(100vw - var(--desktop-safe-left) - var(--desktop-safe-right) - 24px);
   }
 }
+
+
+/* vi-VN: compact-label layouts; protect controls from Vietnamese text growth.
+   Keep this locale-specific: the original zh-CN layout remains unchanged. */
+html[lang="vi-VN"] #mineradio-language-settings {
+  grid-template-columns: minmax(92px, 1fr) minmax(150px, 1.6fr);
+  gap: 12px;
+}
+html[lang="vi-VN"] #mineradio-language-settings label {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 0;
+  white-space: nowrap;
+}
+#mineradio-language-settings #mineradio-language-select {
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  color: inherit;
+  background: #111b2c;
+  border: 1px solid #637e99;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font: inherit;
+}
+html[lang="vi-VN"] #playlist-panel {
+  box-sizing: border-box;
+  max-width: calc(100vw - 28px);
+  overflow-x: hidden;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head > div:first-child {
+  min-width: 0;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head .fx-title {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head .fx-sub {
+  font-size: 10px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head-act {
+  flex-shrink: 0;
+}
+html[lang="vi-VN"] #playlist-panel .panel-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+html[lang="vi-VN"] #playlist-panel .panel-tab {
+  min-width: 0;
+  padding: 8px 5px;
+  text-align: center;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+html[lang="vi-VN"] #playlist-panel .queue-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  gap: 7px;
+  padding: 8px;
+}
+html[lang="vi-VN"] #playlist-panel .queue-toolbar .queue-chip {
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: 26px;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+html[lang="vi-VN"] #playlist-panel .queue-toolbar > div:last-child:not(.queue-chip) {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  gap: 6px;
+}
+html[lang="vi-VN"] #playlist-panel .queue-toolbar .fx-mini-btn {
+  min-width: 0;
+  max-width: 100%;
+  height: auto !important;
+  min-height: 28px;
+  padding: 6px 7px !important;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-align: center;
+}
+html[lang="vi-VN"] #playlist-panel .pl-card > div,
+html[lang="vi-VN"] #playlist-panel .queue-item .qi-info {
+  min-width: 0;
+}
+@media (max-width: 380px) {
+  html[lang="vi-VN"] #mineradio-language-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}
