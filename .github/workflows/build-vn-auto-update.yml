@@ -41,7 +41,7 @@ jobs:
       - name: Prepare immutable update assets
         shell: pwsh
         run: |
-          $file = Get-ChildItem -LiteralPath 'dist' -Filter 'Mineradio-*-Setup.exe' | Select-Object -First 1
+          $file = Get-ChildItem -LiteralPath 'dist' -Filter 'Mineradio_vn-*-Setup.exe' | Select-Object -First 1
           if (-not $file) { throw 'Installer missing' }
           $name = "Mineradio-VN-$($env:GITHUB_SHA.Substring(0,12))-Setup.exe"
           Copy-Item -LiteralPath $file.FullName -Destination $name

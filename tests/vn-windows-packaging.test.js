@@ -35,3 +35,10 @@ test('reject an incomplete unpacked Windows app',t=>{
  fs.unlinkSync(path.join(dir,'lyric-translation-service.js'));
  assert.throws(()=>verifyWindowsPackage(dir),/lyric-translation-service.js/);
 });
+
+
+test('release pipeline locates the VN installer filename after rebranding',()=>{
+ const workflow=fs.readFileSync(path.join(root,'.github/workflows/build-vn-auto-update.yml'),'utf8');
+ assert.match(workflow,/Mineradio_vn-\*-Setup\.exe/);
+ assert.doesNotMatch(workflow,/Mineradio-\*-Setup\.exe/);
+});
