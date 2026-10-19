@@ -256,6 +256,9 @@ var FX_CONSOLE_LAYOUT = [
   {
     key: 'system',
     groups: [
+      { key: 'language', title: '界面语言', hint: 'Tiếng Việt / 简体中文', open: true, items: [
+        fxConsoleItem('mineradio-language-settings', '界面语言', 'Tiếng Việt 简体中文 ngôn ngữ language', false)
+      ] },
       // Native bilingual selector must have an explicit home; otherwise the
       // task-first workspace moves it to "Other settings" as an orphan.
       { key: 'language', title: '界面语言',
