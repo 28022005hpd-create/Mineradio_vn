@@ -25,7 +25,7 @@ jobs:
           cache: npm
       - name: Verify updater and other key components
         run: |
-          node --test tests/github-vn-auto-update.test.js tests/vi-i18n.test.js tests/vi-lyrics-translation.test.js
+          node --test tests/github-vn-auto-update.test.js tests/vi-i18n.test.js tests/vi-lyrics-translation.test.js tests/vn-windows-packaging.test.js
           node --test tests/playback-single-repeat-loop.test.js tests/playback-audio-graph-recovery.test.js
       - name: Install dependencies
         run: npm ci
@@ -36,6 +36,8 @@ jobs:
           Set-Content -LiteralPath 'desktop/vn-update-build.json' -Value $info -Encoding utf8
       - name: Build full Windows installer
         run: npx electron-builder --win nsis --publish never
+      - name: Verify packaged Windows runtime before publishing
+        run: node scripts/verify-vn-windows-package.js dist/win-unpacked/resources/app
       - name: Prepare immutable update assets
         shell: pwsh
         run: |
