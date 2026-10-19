@@ -256,6 +256,12 @@ var FX_CONSOLE_LAYOUT = [
   {
     key: 'system',
     groups: [
+      // Native bilingual selector must have an explicit home; otherwise the
+      // task-first workspace moves it to "Other settings" as an orphan.
+      { key: 'language', title: '界面语言',
+        hint: '选择应用界面使用的语言', open: true, items: [
+          fxConsoleItem('mineradio-language-settings', '界面语言', 'Ngôn ngữ giao diện 中文 Tiếng Việt language', false)
+        ] },
       { key: 'startup', title: '启动与退出', hint: '关闭窗口行为和恢复播放方式', open: true, items: [
         fxConsoleItem('close-behavior-seg', '关闭窗口', '直接退出 后台托盘'),
         fxConsoleItem('t-startupAutoplay', '启动自动播放', '打开软件继续播放'),
