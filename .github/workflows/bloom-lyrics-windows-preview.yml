@@ -34,6 +34,8 @@ jobs:
           node --check public/js/modules/11-main-loop.js
           node --check public/js/index-loader.js
           node --check electron-builder.bloom-preview.cjs
+          node --check tools/verify-bloom-preview-startup.cjs
+          node --check lyric-translation-service.js
       - name: Real Unicode particle glyph and karaoke logic
         run: |
           node --test tests/bloom-lyric-native.test.js
@@ -56,6 +58,11 @@ jobs:
           assert.equal(c.nsis.include,undefined);
           assert.equal(c.nsis.allowToChangeInstallationDirectory,true);
           assert.equal(c.publish,null);
+          assert.ok(c.files.includes('lyric-translation-service.js'),
+            'startup requires lyric-translation-service.js in the app payload');
+          assert.ok(require('node:fs').existsSync('lyric-translation-service.js'));
+          assert.match(require('node:fs').readFileSync('server.js','utf8'),
+            /require\(['"]\.\/lyric-translation-service['"]\)/);
           NODE
           ! grep -qi 'wand-plugin-loader' public/index.html
   windows-preview:
@@ -82,6 +89,11 @@ jobs:
         run: |
           .\node_modules\.bin\electron-builder.cmd --config electron-builder.bloom-preview.cjs --win nsis --publish never
           if ($LASTEXITCODE -ne 0) {throw 'NSIS build failed'}
+      - name: Boot smoke-test exact packaged API server (MR-BOOT-SERVER-START)
+        shell: pwsh
+        run: |
+          node tools/verify-bloom-preview-startup.cjs dist-bloom-lyrics-preview/win-unpacked/resources/app
+          if ($LASTEXITCODE -ne 0) {throw 'Packaged local server failed to start; do not publish installer'}
       - name: Audit exact shipped renderer and create SHA256
         shell: pwsh
         run: |
@@ -96,6 +108,10 @@ jobs:
             'js/i18n/locales/zh-CN.js'
           )
           foreach($f in $files){if(!(Test-Path (Join-Path $base $f))){throw "Renderer not shipped: $f"}}
+          $serverRoot='dist-bloom-lyrics-preview/win-unpacked/resources/app'
+          if(!(Test-Path (Join-Path $serverRoot 'lyric-translation-service.js'))){
+            throw 'MR-BOOT-SERVER-START: lyric-translation-service.js missing from the installer'
+          }
           $shader=Get-Content (Join-Path $base 'js/modules/07-fx/04a-bloom-lyrics-native.js') -Raw
           if($shader -notmatch 'vec3 p=mix\(flower,letter,uMorph\)' -or
              $shader -notmatch 'uKaraoke' -or
@@ -107,6 +123,7 @@ jobs:
           @"
           UNSIGNED BETA — NOT A STABLE MINERADIO RELEASE.
           Original application and userData are not overwritten.
+          Includes lyric-translation-service.js; the packed API server passed a real boot smoke test.
           Bloom Lyrics maps actual LRC characters to its own GPU vertices.
           GPU visual acceptance on real Windows hardware is still required.
           Build: $env:GITHUB_SHA
