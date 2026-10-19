@@ -4934,10 +4934,10 @@ ipcMain.handle('mineradio-vn-update-install', async (event) => {
   if (process.platform !== 'win32' || !vnAutoUpdater.enabled) return { ok: false, error: 'UPDATER_DISABLED' };
   const exe = app.getPath('exe');
   const dir = path.dirname(exe);
-  const marker = path.join(dir, '.mineradio-install-root');
+  const marker = path.join(dir, '.mineradio-vn-install-root');
   let markerText = '';
   try { markerText = fs.readFileSync(marker, 'utf8'); } catch (_) {}
-  if (!markerText.includes('appId=com.mineradio.desktop')) {
+  if (!markerText.includes('appId=com.mineradio.vn.desktop')) {
     return { ok: false, error: 'INSTALL_MARKER_MISSING' };
   }
   const installer = await vnAutoUpdater.verifiedFile();
