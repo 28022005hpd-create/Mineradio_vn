@@ -12,7 +12,7 @@ function mocks(){
     return {clearRect(){},fillText(){glyphRenders++;},set font(_) {},set fillStyle(_) {},set textAlign(_) {},
       set textBaseline(_) {},getImageData(x,y,w,h){
         let data=new Uint8ClampedArray(w*h*4);
-        for(let yy=100;yy<153;yy++)for(let xx=265;xx<768;xx+=2)data[4*(yy*w+xx)+3]=255;
+        for(let yy=100;yy<153;yy++)for(let xx=265;xx<768;xx++)data[4*(yy*w+xx)+3]=255;
         return {data};
       }};
   }};
