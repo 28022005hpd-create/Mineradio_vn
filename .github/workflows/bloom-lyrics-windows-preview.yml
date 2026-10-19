@@ -39,6 +39,7 @@ jobs:
       - name: Real Unicode particle glyph and karaoke logic
         run: |
           node --test tests/bloom-lyric-native.test.js
+          node --test tests/preview-bilingual-bloom-ui.test.js
           node --test tests/vi-i18n.test.js
           node tests/curated-visual-presets.test.js
       - name: Original Mineradio audio and visual regression
@@ -94,6 +95,13 @@ jobs:
         run: |
           node tools/verify-bloom-preview-startup.cjs dist-bloom-lyrics-preview/win-unpacked/resources/app
           if ($LASTEXITCODE -ne 0) {throw 'Packaged local server failed to start; do not publish installer'}
+      - name: Validate bilingual selection and Bloom preset in packaged UI
+        shell: pwsh
+        env:
+          MINERADIO_PREVIEW_PUBLIC_ROOT: dist-bloom-lyrics-preview/win-unpacked/resources/app/public
+        run: |
+          node --test tests/preview-bilingual-bloom-ui.test.js
+          if ($LASTEXITCODE -ne 0) {throw 'Installed UI is missing language selector or Bloom card'}
       - name: Audit exact shipped renderer and create SHA256
         shell: pwsh
         run: |
@@ -124,6 +132,7 @@ jobs:
           UNSIGNED BETA — NOT A STABLE MINERADIO RELEASE.
           Original application and userData are not overwritten.
           Includes lyric-translation-service.js; the packed API server passed a real boot smoke test.
+          Installed bilingual language picker and Bloom preset grid were rendered and checked by CI.
           Bloom Lyrics maps actual LRC characters to its own GPU vertices.
           GPU visual acceptance on real Windows hardware is still required.
           Build: $env:GITHUB_SHA
