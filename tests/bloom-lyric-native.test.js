@@ -40,7 +40,7 @@ function mocks(){
     buildPresetGrid(){},
     lyricsLines:[{t:1,text:'Não te para tudo',duration:3,charCount:17},{t:4,text:'Những ngôi sao',duration:4,charCount:13}],
     audio:{src:'blob://test',ended:false,currentTime:2,paused:false},
-    stageLyricPlaybackSeconds(){return this.audio?2:0},
+    stageLyricPlaybackSeconds(){return ctx.audio?ctx.audio.currentTime:0},
     getAdjustedLyricPlaybackTime(time){return time},
     findStageLyricIndexAtTime(time){return time<1?-1:time<4?0:1},
     getLyricLineProgress(line,next,time){return (time-line.t)/Math.max(1,(next?next.t:line.t+4)-line.t)},
