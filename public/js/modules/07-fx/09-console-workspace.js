@@ -303,6 +303,37 @@ var FX_CONSOLE_LAYOUT = [
   }
 ];
 
+function fxConsoleLocalizedText(text, tabKey) {
+  if (typeof MineradioI18n === 'undefined') return String(text || '');
+  if (tabKey) return MineradioI18n.t('settings.console.' + tabKey);
+  if (text === '界面语言') return MineradioI18n.t('settings.language');
+  if (text === '选择应用界面使用的语言') return MineradioI18n.t('settings.language.hint');
+  return MineradioI18n.source(text || '');
+}
+function refreshFxConsoleLanguage() {
+  if (typeof MineradioI18n === 'undefined') return;
+  FX_CONSOLE_TABS.forEach(function (tab) {
+    var button = document.getElementById('fx-console-tab-' + tab.key);
+    if (button) button.textContent = fxConsoleLocalizedText(tab.label, tab.key);
+  });
+  FX_CONSOLE_LAYOUT.forEach(function (tab) {
+    tab.groups.forEach(function (group) {
+      var node = document.querySelector('[data-fx-console-tab="' + tab.key +
+        '"][data-fx-console-group="' + group.key + '"].fx-console-group');
+      if (!node) return;
+      var strong = node.querySelector('.fx-fold-title strong');
+      var small = node.querySelector('.fx-fold-title small');
+      if (strong) strong.textContent = fxConsoleLocalizedText(group.title);
+      if (small) small.textContent = fxConsoleLocalizedText(group.hint);
+    });
+  });
+  var panel = document.getElementById('fx-panel');
+  if (panel && MineradioI18n.bind) MineradioI18n.bind(panel);
+}
+if (typeof MineradioI18n !== 'undefined' && MineradioI18n.onChange) {
+  MineradioI18n.onChange(refreshFxConsoleLanguage);
+}
+
 var fxConsoleRegistry = [];
 var fxConsoleGroups = {};
 
@@ -529,6 +560,7 @@ function organizeFxConsoleWorkspace() {
   });
   panel._fxConsoleWorkspaceOrganized = true;
   panel.setAttribute('data-console-layout', 'task-first-v2');
+  refreshFxConsoleLanguage();
   setFxPanelTab(fxPanelTab);
 }
 
