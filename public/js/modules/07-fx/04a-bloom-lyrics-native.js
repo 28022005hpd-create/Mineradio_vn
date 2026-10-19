@@ -141,12 +141,12 @@
       state.morph=Math.min(state.morph,0.22); // show the particles going somewhere
     }
     var time=clamp(dt,0,0.10),target=state.hasGlyph?1:0;
-    state.morph+=(target-state.morph)*(1-Math.exp(-time/(target?.32:.48)));
+    state.morph+=(target-state.morph)*(1-Math.exp(-time/(target ? 0.32 : 0.48)));
     var u=state.mat.uniforms;
     var audioState=context.audio||{};
     ['bass','mid','treble','beat'].forEach(function(k){
       var dest=clamp(audioState[k],0,1.5),prev=state.smooth[k];
-      state.smooth[k]+= (dest-prev)*(1-Math.exp(-time/(dest>prev?.06:.30)));
+      state.smooth[k]+= (dest-prev)*(1-Math.exp(-time/(dest>prev ? 0.06 : 0.30)));
     });
     u.uTime.value=clamp(context.time,0,1e8);
     u.uMorph.value=state.morph;
@@ -171,7 +171,19 @@
     state.mesh.visible=true;state.frames++;
     return true;
   }
-  root.MineradioBloomLyrics=Object.freeze({
+  // Catalog-driven preset labels. Rebuilding the card list on language switch
+  // keeps the translated name inside the ORIGINAL Mineradio FX panel.
+  function syncBloomLabels() {
+    if (PRESET < 0 || !presetMeta[PRESET] || !root.MineradioI18n) return;
+    presetMeta[PRESET].name = MineradioI18n.t('bloomLyrics.name');
+    presetMeta[PRESET].desc = MineradioI18n.t('bloomLyrics.desc');
+    if (typeof buildPresetGrid === 'function') buildPresetGrid();
+  }
+  if (root.MineradioI18n && MineradioI18n.onChange) {
+    MineradioI18n.onChange(syncBloomLabels);
+    syncBloomLabels();
+  }
+    root.MineradioBloomLyrics=Object.freeze({
     isActive:active,update:update,dispose:cleanup,
     status:function(){return {preset:PRESET,active:!!state.mesh,ready:state.ready,
       count:state.count,hasLyric:state.hasGlyph,morph:state.morph,text:state.text,frames:state.frames};}
