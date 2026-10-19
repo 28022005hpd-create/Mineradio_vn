@@ -32,6 +32,13 @@ while (stack.length) {
   while ((m=regex.exec(content))) {
     const id=m[1];
     if (builtin.has(id.replace(/^node:/,'')) || id === 'electron') continue; // Electron injects its own builtin
+    // The upstream Vietnamese auto-updater intentionally wraps this build-time
+    // metadata in try/catch with an empty-object fallback. A preview (updates
+    // disabled) does not generate it. Never skip any OTHER missing dependency.
+    if (id === './vn-update-build.json' &&
+        path.relative(appRoot, entry).replace(/\\/g, '/') === 'desktop/main.js' &&
+        /try\s*\{\s*return\s+require\(['"]\.\/vn-update-build\.json['"]\)/.test(content) &&
+        /catch\s*\(_\)\s*\{\s*return\s*\{\}/.test(content)) continue;
     try {
       const target=req.resolve(id);
       if (id.startsWith('.') && target.endsWith('.js') && target.startsWith(appRoot+path.sep)) {
