@@ -21,7 +21,7 @@ test('Chinese and Vietnamese are two native locale catalogs with exactly the sam
   assert.ok(keys.length >= 740, 'at least 740 curated interface messages');
   assert.deepEqual(Object.keys(catalogs['vi-VN']).sort(), keys.slice().sort());
   for (const key of keys) {
-    assert.match(key, /^(ui\.[0-9a-z]+|settings\.language)$/);
+    assert.match(key, /^(ui\.[0-9a-z]+|settings\.language(?:\.short)?)$/);
     assert.ok(catalogs['zh-CN'][key]);
     assert.ok(catalogs['vi-VN'][key]);
   }
@@ -148,4 +148,20 @@ test('original visualizer and WebAudio source modules have not been edited for t
   assert.ok(fs.existsSync(path.join(__dirname,'../public/js/modules/02-visual/00-pointer-cover-particles.js')));
   assert.ok(fs.existsSync(path.join(__dirname,'../public/js/modules/03-beat/06-sonic-audio-monitor.js')));
   assert.ok(fs.existsSync(path.join(__dirname,'../public/js/modules/05-playback/08-audio-graph-controls.js')));
+});
+
+
+test('Vietnamese settings and playlist use bounded, language-specific layouts', () => {
+  const html = fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
+  const css = fs.readFileSync(path.join(__dirname,'../public/css/index.css'),'utf8');
+  assert.match(html, /id="mineradio-language-settings"/);
+  assert.match(html, /data-i18n="settings\.language\.short"/);
+  assert.equal(catalogs['vi-VN']['settings.language.short'], 'Ngôn ngữ');
+  assert.equal(catalogs['zh-CN']['settings.language.short'], '语言');
+  assert.equal(catalogs['vi-VN']['ui.vuata3'], 'Nhạc của tôi');
+  assert.equal(catalogs['vi-VN']['ui.1r2rmpv'], 'Hàng đợi');
+  assert.match(css, /html\[lang="vi-VN"\] #mineradio-language-settings\s*\{/);
+  assert.match(css, /html\[lang="vi-VN"\] #playlist-panel \.panel-tabs\s*\{/);
+  assert.match(css, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(css, /html\[lang="vi-VN"\] #playlist-panel \.queue-toolbar\s*\{/);
 });
