@@ -190,6 +190,7 @@ function readNativeUiLanguage() {
 let nativeUiLanguage = readNativeUiLanguage();
 const INITIAL_CACHE_SETTINGS = ensureCacheDirectories(readCacheSettings());
 const loginEasterEggGate = new LoginEasterEggGate({
+  disabled: APP_METADATA.loginEasterEggEnabled === false && APP_METADATA.internalBeta !== true,
   userDataPath: STABLE_USER_DATA_PATH,
   credentialRoots: () => [
     chromiumSessionDataPath(cacheSettings || INITIAL_CACHE_SETTINGS),
@@ -5138,7 +5139,8 @@ function configureLocalServerEnvironment(port) {
   process.env.QISHUI_TOKEN_FILE = path.join(STABLE_USER_DATA_PATH, '.qishui-token');
   process.env.QISHUI_QR_CONFIG_FILE = path.join(STABLE_USER_DATA_PATH, '.qishui-qr-login.json');
   process.env.MINERADIO_LISTEN_SYNC_FILE = path.join(STABLE_USER_DATA_PATH, 'listen-sync-journal.json');
-  process.env.MINERADIO_LOGIN_EASTER_EGG_GATE_FILE = path.join(STABLE_USER_DATA_PATH, LOGIN_EASTER_EGG_STATE_FILE);
+  process.env.MINERADIO_LOGIN_EASTER_EGG_GATE_FILE = loginEasterEggGate.disabled
+    ? '' : path.join(STABLE_USER_DATA_PATH, LOGIN_EASTER_EGG_STATE_FILE);
   process.env.MINERADIO_LOGIN_EASTER_EGG_GATE_VERSION = LOGIN_EASTER_EGG_GATE_VERSION;
   if (!process.env.QISHUI_OAUTH_CONFIG_FILE) {
     process.env.QISHUI_OAUTH_CONFIG_FILE = path.join(STABLE_USER_DATA_PATH, '.qishui-oauth.json');
