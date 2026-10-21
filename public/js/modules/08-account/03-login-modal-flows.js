@@ -575,14 +575,12 @@ async function showLoginModal(opts) {
   opts = opts || {};
   loginProvider = opts.provider ? normalizeLoginProviderKey(opts.provider) : 'netease';
   var modal = document.getElementById('login-modal');
-  if (typeof setLoginEasterEggMode === 'function' &&
-      (!loginEasterEggState || !loginEasterEggState.ready || !loginEasterEggState.unlocked)) {
-    setLoginEasterEggMode(true);
-  }
-  openGsapModal(modal);
+  // Resolve the native login state before presenting the modal. The vi-VN
+  // release bypasses the wish gate; do not flash the locked screen on startup.
   var unlocked = typeof prepareLoginEasterEggGate === 'function'
     ? await prepareLoginEasterEggGate()
     : true;
+  openGsapModal(modal);
   if (!unlocked) return;
   resumeLoginModalAfterGate();
 }

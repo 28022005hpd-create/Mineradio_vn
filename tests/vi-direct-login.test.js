@@ -34,3 +34,14 @@ test('only Vietnamese desktop build disables gate while backend is unlocked',()=
  assert.match(main,/MINERADIO_LOGIN_EASTER_EGG_GATE_FILE = loginEasterEggGate\.disabled/);
  assert.match(logout,/result\.bypassed/);
 });
+
+
+test('login modal resolves gate state before opening to avoid wish-screen flash',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../public/js/modules/08-account/03-login-modal-flows.js'),'utf8');
+ const start=source.indexOf('async function showLoginModal(opts)');
+ const end=source.indexOf('function resumeLoginModalAfterGate()',start);
+ const section=source.slice(start,end);
+ assert.ok(section.indexOf('await prepareLoginEasterEggGate()')>=0);
+ assert.ok(section.indexOf('openGsapModal(modal)')>section.indexOf('await prepareLoginEasterEggGate()'));
+ assert.doesNotMatch(section,/setLoginEasterEggMode\(true\)/);
+});
