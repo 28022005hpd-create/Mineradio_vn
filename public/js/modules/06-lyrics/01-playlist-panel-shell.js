@@ -270,10 +270,12 @@ function renderMiniQueuePanel(opts) {
   if (!$list || !$count) return;
   var total = playQueue.length;
   var expectedTotal = queueHydrationExpectedTotal();
-  $count.textContent = total ? ((expectedTotal > total ? (total + '/' + expectedTotal) : total) + ' 首' + (currentIdx >= 0 ? ' · 正在播放 ' + (currentIdx + 1) : '')) : '0 首';
+  var queueCount = expectedTotal > total ? (total + '/' + expectedTotal) : String(total);
+  var queueVi = window.MineradioI18n && window.MineradioI18n.locale === 'vi-VN';
+  $count.textContent = total ? (queueCount + (queueVi ? ' bài' : ' 首') + (currentIdx >= 0 ? (queueVi ? ' · Đang phát ' : ' · 正在播放 ') + (currentIdx + 1) : '')) : (queueVi ? '0 bài' : '0 首');
   if (!miniQueueOpen && !opts.animate && !opts.scrollCurrent) return;
   if (!total) {
-    $list.innerHTML = '<div class="mini-queue-empty">队列为空，先搜索或打开歌单</div>';
+    $list.innerHTML = '<div class="mini-queue-empty">' + MineradioI18n.ui('队列为空，先搜索或打开歌单') + '</div>';
     return;
   }
   var windowInfo = queuePanelVirtualWindow($list, $list, total, true, opts.scrollCurrent ? currentIdx : -1);
@@ -449,7 +451,7 @@ function renderQueuePanel(opts) {
   var $ql = document.getElementById('queue-list');
   var seq = ++queueRenderSeq;
   if (!playQueue.length) {
-    $ql.innerHTML = '<div style="text-align:center;padding:24px 0;color:rgba(255,255,255,.32);font-size:11.5px">队列为空，搜索后点 + 设为下一首</div>';
+    $ql.innerHTML = '<div style="text-align:center;padding:24px 0;color:rgba(255,255,255,.32);font-size:11.5px">' + MineradioI18n.ui('队列为空，搜索后点 + 设为下一首') + '</div>';
     renderMiniQueuePanel();
     var panel = document.getElementById('playlist-panel');
     if (panel && (panel.classList.contains('show') || panel.classList.contains('peek')) && queueViewTab === 'queue') switchPlaylistTab('playlists', { save: false });
@@ -613,7 +615,7 @@ async function refreshUserPlaylists(force) {
     playlistCatalogRevision += 1;
     renderUserPlaylistsList({ animate: isPlaylistPanelVisibleForRender(), preserveScroll: true });
     var podcastListLoggedOut = document.getElementById('podcast-list');
-    if (podcastListLoggedOut) podcastListLoggedOut.innerHTML = '<div style="text-align:center;padding:14px 0;color:rgba(255,255,255,.28);font-size:11.5px">登录后显示我的播客</div>';
+    if (podcastListLoggedOut) podcastListLoggedOut.innerHTML = '<div style="text-align:center;padding:14px 0;color:rgba(255,255,255,.28);font-size:11.5px">' + MineradioI18n.ui('登录后显示我的播客') + '</div>';
     return;
   }
   var catalogNeedsNewProvider = playlistCatalogSyncState.loading && ['netease', 'qq', 'kugou', 'qishui', 'spotify'].some(function (provider) {

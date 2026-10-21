@@ -65,6 +65,7 @@ function updateUserModalUi() {
   if (hint) hint.textContent = dualAccountMode
     ? '右上角已切换为多平台并排展示。'
     : '可切换右上角展示的平台；“我两个都要”会并排显示当前已登录的平台。';
+  if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('user-modal'));
 }
 function showUserModal() {
   if (!hasAnyPlatformLogin()) return showLoginModal();
@@ -190,11 +191,17 @@ async function logoutAllAccountsAndResetEasterEgg() {
       apiJson('/api/qishui/logout')
     ]);
     var result = await requestLoginEasterEggReplayReset();
-    if (!result || !result.ok || result.unlocked || result.resetComplete === false) {
+    if (!result || !result.ok || (result.unlocked && !result.bypassed) || result.resetComplete === false) {
       throw new Error(result && (result.error || result.message) || 'LOGIN_EASTER_EGG_REPLAY_RESET_FAILED');
     }
     resetAllProviderRendererLoginState();
-    resetLoginEasterEggUiForReplay();
+    if (result.bypassed) {
+      loginEasterEggState.ready = true;
+      loginEasterEggState.unlocked = true;
+      setLoginEasterEggMode(false);
+    } else {
+      resetLoginEasterEggUiForReplay();
+    }
     closeCollectModal();
     closeUserModal();
     closeLoginModal();
@@ -207,7 +214,7 @@ async function logoutAllAccountsAndResetEasterEgg() {
     if (typeof setHomeControlsLocked === 'function') setHomeControlsLocked(true);
     if (typeof updateEmptyHomeVisibility === 'function') updateEmptyHomeVisibility({ forceLoad: false });
     if (typeof renderHomeDashboard === 'function') renderHomeDashboard();
-    showToast('已退出全部账号，登录彩蛋已重新开启');
+    showToast(result.bypassed ? 'Đã đăng xuất tất cả tài khoản' : '已退出全部账号，登录彩蛋已重新开启');
   } catch (error) {
     console.warn('Logout all accounts and reset easter egg failed:', error);
     showToast('清理未完成，请重启后重试');

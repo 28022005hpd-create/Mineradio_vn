@@ -40,6 +40,7 @@ function securePasswordMatch(input) {
 
 class LoginEasterEggGate {
   constructor(options = {}) {
+    this.disabled = options.disabled === true;
     this.userDataPath = path.resolve(String(options.userDataPath || '.'));
     this.credentialRoots = options.credentialRoots || [];
     this.stateFile = path.join(this.userDataPath, LOGIN_EASTER_EGG_STATE_FILE);
@@ -68,6 +69,8 @@ class LoginEasterEggGate {
   }
 
   publicStatus() {
+    if (this.disabled) return { ok: true, gateVersion: LOGIN_EASTER_EGG_GATE_VERSION,
+      unlocked: true, resetComplete: true, bypassed: true };
     return {
       ok: true,
       gateVersion: LOGIN_EASTER_EGG_GATE_VERSION,
@@ -112,6 +115,8 @@ class LoginEasterEggGate {
   }
 
   async initialize(clearProviderSessions) {
+    // The Vietnamese build goes directly to login without resetting saved accounts.
+    if (this.disabled) return Object.assign({ resetPerformed: false }, this.publicStatus());
     this.state = this.readState();
     if (
       this.state.gateVersion === LOGIN_EASTER_EGG_GATE_VERSION &&
@@ -164,6 +169,14 @@ class LoginEasterEggGate {
   }
 
   async resetForReplay(clearProviderSessions) {
+    if (this.disabled) {
+      try {
+        await this.clearCredentialState(clearProviderSessions);
+        return Object.assign({ resetPerformed: true, replayReset: true }, this.publicStatus());
+      } catch (error) {
+        return { ok: false, unlocked: true, resetComplete: false, error: String(error && error.message || error) };
+      }
+    }
     this.state = this.readState();
     let resetError = '';
     try {
@@ -194,6 +207,7 @@ class LoginEasterEggGate {
   }
 
   unlock(input) {
+    if (this.disabled) return this.publicStatus();
     this.state = this.readState();
     if (!this.state.resetComplete || this.state.gateVersion !== LOGIN_EASTER_EGG_GATE_VERSION) {
       return { ok: false, unlocked: false, error: 'LOGIN_EASTER_EGG_RESET_INCOMPLETE' };

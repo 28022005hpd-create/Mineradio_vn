@@ -1,3 +1,11 @@
+// Built-in locale updates only owned UI controls; playback and GPU state are untouched.
+if (typeof MineradioI18n !== 'undefined' && MineradioI18n.onChange) {
+  MineradioI18n.onChange(function () {
+    if (typeof updateSearchModeTabs === 'function') updateSearchModeTabs();
+    if (typeof updateDevelopmentFxControls === 'function') updateDevelopmentFxControls();
+    if (typeof renderHomeDiscover === 'function') renderHomeDiscover();
+  });
+}
 applyDiyMode(diyPlayerMode, { save: false });
 bindFxPanel();
 applySavedLyricPaletteState();
@@ -89,6 +97,16 @@ updateCustomCoverButton();
 updateCustomLyricControls();
 updateLikeButtons();
 setTimeout(initUpdatePreview, 9000);
+initVnGithubUpdatePanel();
+if (typeof MineradioI18n !== 'undefined' && MineradioI18n.bindDynamicUi) {
+  function refreshLocalizedDynamicPanels() {
+    ['login-modal','user-modal','update-modal'].forEach(function (id) {
+      MineradioI18n.bindDynamicUi(document.getElementById(id));
+    });
+  }
+  refreshLocalizedDynamicPanels();
+  MineradioI18n.onChange(refreshLocalizedDynamicPanels);
+}
 window.addEventListener('beforeunload', function () {
   saveLastPlaybackSnapshot(true, 'beforeunload');
 });

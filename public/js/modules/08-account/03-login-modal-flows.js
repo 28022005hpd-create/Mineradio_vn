@@ -575,14 +575,12 @@ async function showLoginModal(opts) {
   opts = opts || {};
   loginProvider = opts.provider ? normalizeLoginProviderKey(opts.provider) : 'netease';
   var modal = document.getElementById('login-modal');
-  if (typeof setLoginEasterEggMode === 'function' &&
-      (!loginEasterEggState || !loginEasterEggState.ready || !loginEasterEggState.unlocked)) {
-    setLoginEasterEggMode(true);
-  }
-  openGsapModal(modal);
+  // Resolve the native login state before presenting the modal. The vi-VN
+  // release bypasses the wish gate; do not flash the locked screen on startup.
   var unlocked = typeof prepareLoginEasterEggGate === 'function'
     ? await prepareLoginEasterEggGate()
     : true;
+  openGsapModal(modal);
   if (!unlocked) return;
   resumeLoginModalAfterGate();
 }
@@ -591,6 +589,7 @@ function resumeLoginModalAfterGate() {
   setLoginAuthDrawerOpen(false);
   updateLoginProviderUi();
   scheduleLoginWorkflowEdges('open');
+  if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('login-modal'));
 }
 function closeLoginModal() {
   stopQrPoll();
@@ -980,6 +979,7 @@ function updateLoginProviderUi() {
     renderSpotifySetupWizard();
     scheduleSpotifySetupAutoCheck();
     updateLoginNodeGraphUi();
+    if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('login-modal'));
     return;
   }
   if (qqPanel) qqPanel.classList.remove('spotify-guide-panel');
@@ -1044,6 +1044,7 @@ function updateLoginProviderUi() {
     refreshBtn.onclick = isQishui ? openQishuiWebLogin : (isQQ ? (qqNeedsAuthRefresh ? openQQWebLogin : (qqLoginStatus.loggedIn ? refreshQr : openQQWebLogin)) : (isKugou ? openKugouWebLogin : (canOpenNeteaseWeb ? openNeteaseWebLogin : refreshQr)));
   }
   updateLoginNodeGraphUi();
+  if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('login-modal'));
 }
 async function refreshQr() {
   stopQrPoll();

@@ -8,6 +8,14 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   toggleFullscreen: () => ipcRenderer.invoke('desktop-window-toggle-fullscreen'),
   exitFullscreenWindowed: () => ipcRenderer.invoke('desktop-window-exit-fullscreen-windowed'),
   getState: () => ipcRenderer.invoke('desktop-window-get-state'),
+  getUiLanguage: () => ipcRenderer.invoke('mineradio-ui-language-get'),
+  setUiLanguage: (locale) => ipcRenderer.invoke('mineradio-ui-language-set', locale),
+  onUiLanguageChanged: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, locale) => callback(locale);
+    ipcRenderer.on('mineradio-ui-language-changed', listener);
+    return () => ipcRenderer.removeListener('mineradio-ui-language-changed', listener);
+  },
   getGpuDiagnostics: () => ipcRenderer.invoke('mineradio-get-gpu-diagnostics'),
   getMemorySnapshot: () => ipcRenderer.invoke('mineradio-memory-get-snapshot'),
   configureMemoryReduct: (payload) => ipcRenderer.invoke('mineradio-memory-configure-auto', payload || {}),
@@ -84,6 +92,16 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   clearKugouMusicLogin: () => ipcRenderer.invoke('kugou-music-clear-login'),
   clearQishuiMusicLogin: () => ipcRenderer.invoke('qishui-music-clear-login'),
   openUpdatePage: (url) => ipcRenderer.invoke('mineradio-open-update-page', String(url || '')),
+  getVnGithubUpdateStatus: () => ipcRenderer.invoke('mineradio-vn-update-status'),
+  checkVnGithubUpdate: () => ipcRenderer.invoke('mineradio-vn-update-check'),
+  installVnGithubUpdate: () => ipcRenderer.invoke('mineradio-vn-update-install'),
+  onVnGithubUpdateStatus: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const fn = (_event, status) => callback(status || {});
+    ipcRenderer.on('mineradio-vn-github-update-status', fn);
+    return () => ipcRenderer.removeListener('mineradio-vn-github-update-status', fn);
+  },
+
   restartApp: () => ipcRenderer.invoke('mineradio-restart-app'),
   configureGlobalHotkeys: (bindings) => ipcRenderer.invoke('mineradio-hotkeys-configure-global', bindings || []),
   copyText: (text) => {
