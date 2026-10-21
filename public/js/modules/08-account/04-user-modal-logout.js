@@ -65,6 +65,7 @@ function updateUserModalUi() {
   if (hint) hint.textContent = dualAccountMode
     ? '右上角已切换为多平台并排展示。'
     : '可切换右上角展示的平台；“我两个都要”会并排显示当前已登录的平台。';
+  if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('user-modal'));
 }
 function showUserModal() {
   if (!hasAnyPlatformLogin()) return showLoginModal();

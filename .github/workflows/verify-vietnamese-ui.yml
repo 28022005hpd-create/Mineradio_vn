@@ -39,7 +39,7 @@ jobs:
           node --check public/js/modules/05-playback/06-track-detail-lyrics-actions.js
           node --test tests/vi-lyrics-translation.test.js
       - name: Locale catalogs, stable IDs, in-app switching and audio-safe rendering
-        run: node --test tests/vi-i18n.test.js
+        run: node --test tests/vi-i18n.test.js tests/vi-dynamic-ui.test.js tests/vi-direct-login.test.js
       - name: GitHub release update validation tests
         run: node --test tests/github-vn-auto-update.test.js
       - name: Original Mineradio playback UI regression tests

@@ -165,3 +165,12 @@ test('Vietnamese settings and playlist use bounded, language-specific layouts', 
   assert.match(css, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(css, /html\[lang="vi-VN"\] #playlist-panel \.queue-toolbar\s*\{/);
 });
+
+
+test('dynamic Vietnamese UI exposes opt-in translations without a DOM observer', () => {
+  const service = read('i18n.js');
+  assert.match(service,/function bindDynamicUi\(rootNode\)/);
+  assert.match(service,/const dynamicTextCache = new WeakMap/);
+  assert.match(service,/get locale\(\) \{ return locale; \}/);
+  assert.doesNotMatch(service,/new MutationObserver/);
+});

@@ -591,6 +591,7 @@ function resumeLoginModalAfterGate() {
   setLoginAuthDrawerOpen(false);
   updateLoginProviderUi();
   scheduleLoginWorkflowEdges('open');
+  if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('login-modal'));
 }
 function closeLoginModal() {
   stopQrPoll();
@@ -980,6 +981,7 @@ function updateLoginProviderUi() {
     renderSpotifySetupWizard();
     scheduleSpotifySetupAutoCheck();
     updateLoginNodeGraphUi();
+    if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('login-modal'));
     return;
   }
   if (qqPanel) qqPanel.classList.remove('spotify-guide-panel');
@@ -1044,6 +1046,7 @@ function updateLoginProviderUi() {
     refreshBtn.onclick = isQishui ? openQishuiWebLogin : (isQQ ? (qqNeedsAuthRefresh ? openQQWebLogin : (qqLoginStatus.loggedIn ? refreshQr : openQQWebLogin)) : (isKugou ? openKugouWebLogin : (canOpenNeteaseWeb ? openNeteaseWebLogin : refreshQr)));
   }
   updateLoginNodeGraphUi();
+  if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('login-modal'));
 }
 async function refreshQr() {
   stopQrPoll();

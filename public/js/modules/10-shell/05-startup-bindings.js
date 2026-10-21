@@ -98,6 +98,15 @@ updateCustomLyricControls();
 updateLikeButtons();
 setTimeout(initUpdatePreview, 9000);
 initVnGithubUpdatePanel();
+if (typeof MineradioI18n !== 'undefined' && MineradioI18n.bindDynamicUi) {
+  function refreshLocalizedDynamicPanels() {
+    ['login-modal','user-modal','update-modal'].forEach(function (id) {
+      MineradioI18n.bindDynamicUi(document.getElementById(id));
+    });
+  }
+  refreshLocalizedDynamicPanels();
+  MineradioI18n.onChange(refreshLocalizedDynamicPanels);
+}
 window.addEventListener('beforeunload', function () {
   saveLastPlaybackSnapshot(true, 'beforeunload');
 });

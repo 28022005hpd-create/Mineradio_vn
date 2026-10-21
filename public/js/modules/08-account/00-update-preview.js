@@ -248,6 +248,7 @@ function syncUpdatePreviewStateClass() {
     else if (downloadPages.length || updatePreviewState.externalUrl) foot.textContent = '请使用本次公告中的最新网盘链接，旧收藏链接可能不是最新版。软件不会在本地下载或应用补丁。';
     else foot.textContent = '将在浏览器打开 GitHub 更新页面；软件不会在本地下载或应用补丁。';
   }
+  if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('update-modal'));
 }
 
 function updateUpdatePreviewProgress() {
