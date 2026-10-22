@@ -1,0 +1,150 @@
+name: Bloom Lyrics native GPU morph (Windows preview only)
+on:
+  push:
+    branches: [feature/bloom-lyrics-native-visual]
+  pull_request:
+    paths:
+      - 'public/js/modules/02-visual/16-bloom-lyric-glyphs.js'
+      - 'public/js/modules/07-fx/04a-bloom-lyrics-native.js'
+      - 'public/js/modules/11-main-loop.js'
+      - 'public/js/modules/07-fx/00-preset-archive-data.js'
+      - 'tests/bloom-lyric-native.test.js'
+      - '.github/workflows/bloom-lyrics-windows-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  renderer-tests:
+    name: Validate flower to karaoke-glyph GPU morph
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and single-renderer smoke
+        run: |
+          set -euo pipefail
+          node --check public/js/modules/02-visual/16-bloom-lyric-glyphs.js
+          node --check public/js/modules/07-fx/04a-bloom-lyrics-native.js
+          node --check public/js/modules/02-visual/14-stage-lyrics-rendering.js
+          node --check public/js/modules/11-main-loop.js
+          node --check public/js/index-loader.js
+          node --check electron-builder.bloom-preview.cjs
+          node --check tools/verify-bloom-preview-startup.cjs
+          node --check lyric-translation-service.js
+      - name: Real Unicode particle glyph and karaoke logic
+        run: |
+          node --test tests/bloom-lyric-native.test.js
+          node --test tests/preview-bilingual-bloom-ui.test.js
+          node --test tests/vi-i18n.test.js
+          node tests/curated-visual-presets.test.js
+      - name: Original Mineradio audio and visual regression
+        run: |
+          node --test tests/playback-audio-graph-recovery.test.js
+          node --test tests/playback-source-fallback-transaction.test.js
+          node --test tests/playback-single-repeat-loop.test.js
+          node --test tests/visual-performance-controls.test.js
+      - name: Isolated packaging configuration and no WandFX importer
+        run: |
+          node - <<'NODE'
+          const assert=require('node:assert/strict');
+          const c=require('./electron-builder.bloom-preview.cjs');
+          assert.equal(c.appId,'com.mineradio.bloom.lyrics.preview');
+          assert.equal(c.extraMetadata.mineradio.runtimeName,c.productName);
+          assert.equal(c.extraMetadata.mineradio.appUserModelId,c.appId);
+          assert.equal(c.nsis.include,undefined);
+          assert.equal(c.nsis.allowToChangeInstallationDirectory,true);
+          assert.equal(c.publish,null);
+          assert.ok(c.files.includes('lyric-translation-service.js'),
+            'startup requires lyric-translation-service.js in the app payload');
+          assert.ok(require('node:fs').existsSync('lyric-translation-service.js'));
+          assert.match(require('node:fs').readFileSync('server.js','utf8'),
+            /require\(['"]\.\/lyric-translation-service['"]\)/);
+          NODE
+          ! grep -qi 'wand-plugin-loader' public/index.html
+  windows-preview:
+    name: Produce unsigned, separate Windows x64 NSIS preview
+    needs: renderer-tests
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked native Electron dependencies
+        shell: pwsh
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) {throw 'npm ci failed'}
+      - name: Build isolated NSIS (NO release)
+        shell: pwsh
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          .\node_modules\.bin\electron-builder.cmd --config electron-builder.bloom-preview.cjs --win nsis --publish never
+          if ($LASTEXITCODE -ne 0) {throw 'NSIS build failed'}
+      - name: Boot smoke-test exact packaged API server (MR-BOOT-SERVER-START)
+        shell: pwsh
+        run: |
+          node tools/verify-bloom-preview-startup.cjs dist-bloom-lyrics-preview/win-unpacked/resources/app
+          if ($LASTEXITCODE -ne 0) {throw 'Packaged local server failed to start; do not publish installer'}
+      - name: Validate bilingual selection and Bloom preset in packaged UI
+        shell: pwsh
+        env:
+          MINERADIO_PREVIEW_PUBLIC_ROOT: dist-bloom-lyrics-preview/win-unpacked/resources/app/public
+        run: |
+          node --test tests/preview-bilingual-bloom-ui.test.js
+          if ($LASTEXITCODE -ne 0) {throw 'Installed UI is missing language selector or Bloom card'}
+      - name: Audit exact shipped renderer and create SHA256
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='dist-bloom-lyrics-preview/win-unpacked/resources/app/public'
+          $files=@(
+            'js/modules/02-visual/16-bloom-lyric-glyphs.js',
+            'js/modules/07-fx/04a-bloom-lyrics-native.js',
+            'js/modules/02-visual/14-stage-lyrics-rendering.js',
+            'js/modules/11-main-loop.js',
+            'js/i18n/locales/vi-VN.js',
+            'js/i18n/locales/zh-CN.js'
+          )
+          foreach($f in $files){if(!(Test-Path (Join-Path $base $f))){throw "Renderer not shipped: $f"}}
+          $serverRoot='dist-bloom-lyrics-preview/win-unpacked/resources/app'
+          if(!(Test-Path (Join-Path $serverRoot 'lyric-translation-service.js'))){
+            throw 'MR-BOOT-SERVER-START: lyric-translation-service.js missing from the installer'
+          }
+          $shader=Get-Content (Join-Path $base 'js/modules/07-fx/04a-bloom-lyrics-native.js') -Raw
+          if($shader -notmatch 'vec3 p=mix\(flower,letter,uMorph\)' -or
+             $shader -notmatch 'uKaraoke' -or
+             $shader -notmatch 'MineradioBloomGlyphs'){throw 'Incorrect flower-to-lyrics engine was packaged'}
+          $installer=@(Get-ChildItem 'dist-bloom-lyrics-preview' -Filter 'Mineradio-Bloom-Lyrics-Preview-*-Setup.exe' -File)
+          if($installer.Count -ne 1){throw "Expected exactly one preview installer, found $($installer.Count)"}
+          $hash=(Get-FileHash $installer[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($installer[0].Name)" | Set-Content 'dist-bloom-lyrics-preview/SHA256SUMS.txt' -Encoding ascii
+          @"
+          UNSIGNED BETA — NOT A STABLE MINERADIO RELEASE.
+          Original application and userData are not overwritten.
+          Includes lyric-translation-service.js; the packed API server passed a real boot smoke test.
+          Installed bilingual language picker and Bloom preset grid were rendered and checked by CI.
+          Bloom Lyrics maps actual LRC characters to its own GPU vertices.
+          GPU visual acceptance on real Windows hardware is still required.
+          Build: $env:GITHUB_SHA
+          SHA256: $hash
+          "@ | Set-Content 'dist-bloom-lyrics-preview/README-PREVIEW.txt' -Encoding utf8
+      - name: Upload preview artifact only
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mineradio-Bloom-Lyrics-Windows-x64-Preview
+          path: |
+            dist-bloom-lyrics-preview/Mineradio-Bloom-Lyrics-Preview-*-Setup.exe
+            dist-bloom-lyrics-preview/SHA256SUMS.txt
+            dist-bloom-lyrics-preview/README-PREVIEW.txt
+          if-no-files-found: error
+          retention-days: 14

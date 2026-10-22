@@ -795,6 +795,15 @@
   "ui.1pp3evj": "歌手偏好 · ",
   "ui.1iti5bx": "播放几首后生成你的偏好",
   "ui.1nvc4vl": "点击空白处完成引导",
-  "ui.fjkw91": "支持封面原图、图片 / 视频上传，已设置媒体可重复裁切"
+  "ui.fjkw91": "支持封面原图、图片 / 视频上传，已设置媒体可重复裁切",
+  "ui.bloomlyricsname": "星花歌词",
+  "ui.bloomlyricsdesc": "真实花瓣粒子变成当前歌词，随节拍和卡拉OK进度闪耀",
+  "settings.language.hint": "选择应用界面使用的语言",
+  "settings.console.home": "常用",
+  "settings.console.interface": "界面",
+  "settings.console.lyrics": "歌词",
+  "settings.console.motion": "动效",
+  "settings.console.shelf": "歌单架",
+  "settings.console.system": "系统"
 });
 })(typeof window !== 'undefined' ? window : globalThis);

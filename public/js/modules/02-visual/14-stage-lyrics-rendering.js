@@ -3081,7 +3081,9 @@ function markStageLyricsPlaybackResume(reason) {
 }
 
 function tickLyricsParticles() {
-  if (!fx.particleLyrics) {
+  // Bloom converts the flower's own vertices into real glyphs. Do not build
+  // a second independent text sprite on top of the particle characters.
+  if ((window.MineradioBloomLyrics && MineradioBloomLyrics.isActive(fx)) || !fx.particleLyrics) {
     if (stageLyrics.current || stageLyrics.currentText || (stageLyrics.outgoing && stageLyrics.outgoing.length)) clearStageLyrics();
     return;
   }
