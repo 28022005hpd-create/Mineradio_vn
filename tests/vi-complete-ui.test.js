@@ -46,3 +46,20 @@ test('localized dynamic panels do not touch WebAudio, WebGL or arbitrary metadat
  assert.doesNotMatch(src,/new MutationObserver/);
  assert.doesNotMatch(startup,/renderLyricTexture|HTMLAudioElement|requestAnimationFrame/);
 });
+
+
+test('Vietnamese viewport audit measures actual control overflow',()=>{
+ const cls=()=>{const values=new Set();return{add:x=>values.add(x),remove:x=>values.delete(x),contains:x=>values.has(x)};};
+ const wide={id:'wide',tagName:'BUTTON',clientWidth:88,scrollWidth:160,classList:cls(),getClientRects(){return[{}]}};
+ const fit={id:'fit',tagName:'BUTTON',clientWidth:125,scrollWidth:100,classList:cls(),getClientRects(){return[{}]}};
+ const i=getI18n(),rootNode={querySelectorAll(){return[wide,fit]}};
+ assert.equal(i.auditLayout(rootNode).length,1);
+ assert.equal(i.getLayoutIssues()[0].id,'wide');
+ assert.equal(wide.classList.contains('vi-copy-overflow'),true);
+ assert.equal(fit.classList.contains('vi-copy-overflow'),false);
+ wide.scrollWidth=70;
+ assert.equal(i.auditLayout(rootNode).length,0);
+ assert.equal(wide.classList.contains('vi-copy-overflow'),false);
+ i.setLanguage('zh-CN');
+ assert.equal(i.auditLayout(rootNode).length,0);
+});

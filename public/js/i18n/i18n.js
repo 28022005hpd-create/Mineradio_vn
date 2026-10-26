@@ -522,7 +522,7 @@
         // lyric, playlist, account, and user-generated content nodes.
         if (node.hasAttribute && (node.hasAttribute('data-song-id') ||
             node.hasAttribute('data-playlist-title') || node.hasAttribute('data-podcast-title'))) return;
-        if (/(?:^|\s)(?:song-name|song-artist|song-title|qi-name|qi-artist|mini-queue-name|mini-queue-sub|pl-name|pl-sub|detail-song-title|detail-artist|lyric-text|lyrics-line|user-name|track-title|track-artist)(?:\s|$)/.test(String(node.className || ''))) return;
+        if (/(?:^|\s)(?:song-name|song-artist|song-title|qi-name|qi-artist|mini-queue-name|mini-queue-sub|pl-name|pl-sub|detail-song-title|detail-artist|detail-title|detail-value|artist-song-name|artist-song-meta|comment-text|comment-meta|home-next-title|home-today-artist|home-listen-value|home-platform-recommend-copy|lyric-text|lyrics-line|user-name|track-title|track-artist)(?:\s|$)/.test(String(node.className || ''))) return;
         if (node.hasAttribute && node.hasAttribute('data-i18n') && !(node.childElementCount > 0)) return;
         bindUiAttributes(node);
       }
@@ -561,6 +561,46 @@
     }
   }
 
+
+  const overflowSelector = [
+    '#fx-panel button','#fx-panel label','#fx-panel .fx-title','#fx-panel .fx-sub',
+    '#playlist-panel button','#playlist-panel .panel-tab','#playlist-panel .queue-head',
+    '#login-modal button','#login-modal .login-auth-copy','#user-modal button',
+    '#user-modal .account-hint','#track-detail-modal button',
+    '#wallpaper-engine-modal button','#wallpaper-engine-modal .wallpaper-engine-status',
+    '#update-modal button','#update-modal .update-item-text',
+    '#collect-modal button','#local-beat-modal button','#custom-lyric-modal button',
+    '.home-platform-recommend-modal button'
+  ].join(',');
+  let recentLayoutIssues = [];
+  function auditLayout(rootNode) {
+    if (locale !== VIETNAMESE || !rootNode || typeof rootNode.querySelectorAll !== 'function') {
+      recentLayoutIssues = [];
+      return [];
+    }
+    const controls = Array.from(rootNode.querySelectorAll(overflowSelector));
+    if (rootNode.matches && rootNode.matches(overflowSelector)) controls.unshift(rootNode);
+    const issues = [];
+    for (const control of controls.slice(0,700)) {
+      if (!control || !control.classList || !control.getClientRects ||
+          !control.getClientRects().length) continue;
+      const available = Number(control.clientWidth) || 0;
+      const needed = Number(control.scrollWidth) || 0;
+      if (available > 0 && needed > available + 2) {
+        control.classList.add('vi-copy-overflow');
+        issues.push({ id:String(control.id || ''), tag:String(control.tagName || ''), available, needed });
+      } else control.classList.remove('vi-copy-overflow');
+    }
+    recentLayoutIssues = issues;
+    return issues.slice();
+  }
+  function scheduleLayoutAudit(rootNode) {
+    if (locale !== VIETNAMESE || !rootNode) return;
+    if (typeof root.requestAnimationFrame === 'function')
+      root.requestAnimationFrame(() => auditLayout(rootNode));
+    else auditLayout(rootNode);
+  }
+
   function setLanguage(next) {
     if (!ALLOWED.includes(next)) return locale;
     if (locale === next) return locale;
@@ -574,6 +614,7 @@
     if (doc) {
       doc.documentElement.lang = locale;
       bind(doc);
+      scheduleLayoutAudit(doc);
       const picker = doc.getElementById && doc.getElementById('mineradio-language-select');
       if (picker) picker.value = locale;
     }
@@ -623,12 +664,14 @@
     const picker = doc.getElementById && doc.getElementById('mineradio-language-select');
     if (picker) picker.value = locale;
     bind(doc);
+    scheduleLayoutAudit(doc);
   }
 
   const api = Object.freeze({
     locales: ALLOWED,
     get locale() { return locale; },
-    t, source, ui, bind, bindDynamicUi, setLanguage, onChange,
+    t, source, ui, bind, bindDynamicUi, auditLayout, scheduleLayoutAudit,
+    getLayoutIssues: () => recentLayoutIssues.slice(), setLanguage, onChange,
     getMissingKeys: () => Array.from(missingIds).sort(),
     has: id => Object.prototype.hasOwnProperty.call(zh, id) &&
       Object.prototype.hasOwnProperty.call(vi, id)

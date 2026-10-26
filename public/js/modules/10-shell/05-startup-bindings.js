@@ -123,7 +123,10 @@ if (typeof MineradioI18n !== 'undefined' && MineradioI18n.bindDynamicUi) {
       var result = original.apply(this, arguments);
       function apply() {
         var target = document.getElementById(targetId);
-        if (target) MineradioI18n.bindDynamicUi(target);
+        if (target) {
+          MineradioI18n.bindDynamicUi(target);
+          MineradioI18n.scheduleLayoutAudit(target);
+        }
       }
       if (result && typeof result.then === 'function') {
         return result.then(function (value) { apply(); return value; });
@@ -157,7 +160,10 @@ if (typeof MineradioI18n !== 'undefined' && MineradioI18n.bindDynamicUi) {
       'home-platform-recommend-modal', 'local-beat-modal', 'custom-lyric-modal',
       'source-fallback-modal'].forEach(function (id) {
       var node = document.getElementById(id);
-      if (node) MineradioI18n.bindDynamicUi(node);
+      if (node) {
+        MineradioI18n.bindDynamicUi(node);
+        MineradioI18n.scheduleLayoutAudit(node);
+      }
     });
   });
 }

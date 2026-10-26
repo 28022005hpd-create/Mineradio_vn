@@ -18824,3 +18824,16 @@ html[lang="vi-VN"] :is(.login-node-providers, .login-mode-nodes, .panel-tabs) > 
     padding-inline: 11px;
   }
 }
+
+
+/* Wrap only controls proven to overflow by Vietnamese viewport measurement. */
+html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
+ #track-detail-modal,#wallpaper-engine-modal,#update-modal,#collect-modal,
+ #local-beat-modal,#custom-lyric-modal) .vi-copy-overflow {
+ white-space: normal !important;
+ overflow-wrap: anywhere !important;
+ word-break: normal;
+ min-width: 0;
+ max-width: 100%;
+ height: auto !important;
+}
