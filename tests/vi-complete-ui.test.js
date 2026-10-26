@@ -78,3 +78,17 @@ test('3D visual controls, wallpaper previews and song detail labels are localize
  i.setLanguage('zh-CN');
  assert.equal(i.ui('歌手'),'歌手');
 });
+
+
+test('two-line Vietnamese buttons are detected when fixed height clips the second line',()=>{
+ const state=new Set();
+ const item={id:'two-line',tagName:'BUTTON',clientWidth:180,scrollWidth:180,
+   clientHeight:26,scrollHeight:49,
+   classList:{add:x=>state.add(x),remove:x=>state.delete(x)},
+   getClientRects(){return[{}]}};
+ const i=getI18n(),rootNode={querySelectorAll(){return[item]}};
+ const problems=i.auditLayout(rootNode);
+ assert.equal(problems.length,1);
+ assert.equal(problems[0].neededHeight,49);
+ assert.equal(state.has('vi-copy-overflow'),true);
+});

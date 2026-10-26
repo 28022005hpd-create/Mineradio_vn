@@ -705,9 +705,13 @@
           !control.getClientRects().length) continue;
       const available = Number(control.clientWidth) || 0;
       const needed = Number(control.scrollWidth) || 0;
-      if (available > 0 && needed > available + 2) {
+      const availableHeight = Number(control.clientHeight) || 0;
+      const neededHeight = Number(control.scrollHeight) || 0;
+      if ((available > 0 && needed > available + 2) ||
+          (availableHeight > 0 && neededHeight > availableHeight + 2)) {
         control.classList.add('vi-copy-overflow');
-        issues.push({ id:String(control.id || ''), tag:String(control.tagName || ''), available, needed });
+        issues.push({ id:String(control.id || ''), tag:String(control.tagName || ''),
+          available, needed, availableHeight, neededHeight });
       } else control.classList.remove('vi-copy-overflow');
     }
     recentLayoutIssues = issues;
