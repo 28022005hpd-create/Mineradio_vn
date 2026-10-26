@@ -25,7 +25,7 @@ jobs:
           cache: npm
       - name: Verify updater and other key components
         run: |
-          node --test tests/github-vn-auto-update.test.js tests/vi-i18n.test.js tests/vi-lyrics-translation.test.js tests/vn-windows-packaging.test.js tests/vi-dynamic-ui.test.js tests/vi-direct-login.test.js tests/vi-queue-localization.test.js
+          node --test tests/github-vn-auto-update.test.js tests/vi-i18n.test.js tests/vi-lyrics-translation.test.js tests/vn-windows-packaging.test.js tests/vi-dynamic-ui.test.js tests/vi-direct-login.test.js tests/vi-queue-localization.test.js tests/vi-complete-ui.test.js
           node --test tests/playback-single-repeat-loop.test.js tests/playback-audio-graph-recovery.test.js
       - name: Install dependencies
         run: npm ci

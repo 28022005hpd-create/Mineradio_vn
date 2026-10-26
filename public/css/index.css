@@ -18719,3 +18719,108 @@ html[lang="vi-VN"] #playlist-panel .queue-item .qi-info {
   font-size: 10px;
   color: rgba(255,255,255,.55);
 }
+
+
+/* Vietnamese copy can be 1.5–3x wider than Chinese copy. Keep visible
+   controls usable instead of clipping text or shrinking the whole app. */
+html[lang="vi-VN"] :is(#fx-panel, #playlist-panel, #login-modal .dual-login-modal,
+  #user-modal .modal, #track-detail-modal .modal, #wallpaper-engine-modal .modal,
+  #update-modal .update-modal, #collect-modal .modal, #local-beat-modal .modal,
+  #custom-lyric-modal .modal, .home-platform-recommend-modal) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: calc(100vw - 24px);
+}
+html[lang="vi-VN"] :is(#fx-panel, #playlist-panel, #login-modal, #user-modal,
+  #track-detail-modal, #wallpaper-engine-modal, #update-modal, #collect-modal,
+  #local-beat-modal, #custom-lyric-modal) :is(
+  .fx-row, .fx-title, .fx-sub, .fx-section-label, .fx-section-title,
+  .fx-settings-row, .fx-control-row, .fx-control-label, .fx-tab,
+  .panel-tab, .panel-tabs, .queue-head, .queue-chip, .queue-toolbar,
+  .login-panel-head, .login-auth-copy, .login-auth-actions, .login-node-copy,
+  .login-provider-capsule, .login-platform-tabs, .login-mode-nodes,
+  .account-hint, .account-provider-chip, .detail-sub, .detail-chip,
+  .update-item, .update-item-text, .update-footnote, .wallpaper-engine-status
+) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+html[lang="vi-VN"] :is(#fx-panel, #playlist-panel, #login-modal, #user-modal,
+  #track-detail-modal, #wallpaper-engine-modal, #update-modal, #collect-modal,
+  #local-beat-modal, #custom-lyric-modal) :is(
+  button, .fx-mini-btn, .panel-tab, .login-mode-node, .login-provider-node,
+  .login-reset-all-btn, .queue-chip, .update-download-source
+) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  height: auto;
+  min-height: 28px;
+  text-align: center;
+}
+html[lang="vi-VN"] :is(#fx-panel, #login-modal, #user-modal, #track-detail-modal,
+  #wallpaper-engine-modal, #update-modal, #collect-modal, #local-beat-modal,
+  #custom-lyric-modal) :is(.fx-row, .fx-control-row, .login-auth-actions,
+    .update-download-sources, .detail-actions, .modal-actions) {
+  flex-wrap: wrap;
+}
+html[lang="vi-VN"] :is(.fx-panel, .dual-login-modal, .wallpaper-engine-modal,
+  .home-platform-recommend-modal, .update-modal) :is(
+  input, select, textarea, .login-cookie-input, .fx-input
+) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+html[lang="vi-VN"] #fx-panel :is(.fx-section-label, .fx-sub, label, small),
+html[lang="vi-VN"] #login-modal :is(.login-auth-copy, .login-node-copy, .desc, small),
+html[lang="vi-VN"] #wallpaper-engine-modal :is(.wallpaper-engine-status, .wallpaper-engine-details-empty),
+html[lang="vi-VN"] .home-platform-recommend-modal :is(h3, small) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+html[lang="vi-VN"] #login-modal .dual-login-modal,
+html[lang="vi-VN"] #user-modal .modal,
+html[lang="vi-VN"] #wallpaper-engine-modal .modal,
+html[lang="vi-VN"] #track-detail-modal .modal {
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+html[lang="vi-VN"] :is(.login-node-providers, .login-mode-nodes, .panel-tabs) > * {
+  min-width: 0;
+}
+@media (max-width: 680px) {
+  html[lang="vi-VN"] #mineradio-language-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+  html[lang="vi-VN"] #login-modal .login-auth-drawer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[lang="vi-VN"] #login-modal .login-node-graph,
+  html[lang="vi-VN"] #wallpaper-engine-modal .wallpaper-engine-details {
+    min-width: 0;
+    max-width: 100%;
+  }
+  html[lang="vi-VN"] :is(#fx-panel, #login-modal, #playlist-panel) :is(
+    .fx-tabs, .login-platform-tabs, .login-auth-actions
+  ) {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+}
+@media (max-width: 390px) {
+  html[lang="vi-VN"] #playlist-panel .panel-tab {
+    padding-inline: 3px;
+    font-size: 10px;
+  }
+  html[lang="vi-VN"] #login-modal .dual-login-modal {
+    padding-inline: 11px;
+  }
+}
