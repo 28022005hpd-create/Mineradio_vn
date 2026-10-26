@@ -18574,3 +18574,266 @@ body.desktop-shell.desktop-wallpaper-mode.diy-mode #bottom-bar.stage-mode {
     width: calc(100vw - var(--desktop-safe-left) - var(--desktop-safe-right) - 24px);
   }
 }
+
+
+/* vi-VN: compact-label layouts; protect controls from Vietnamese text growth.
+   Keep this locale-specific: the original zh-CN layout remains unchanged. */
+html[lang="vi-VN"] #mineradio-language-settings {
+  grid-template-columns: minmax(92px, 1fr) minmax(150px, 1.6fr);
+  gap: 12px;
+}
+html[lang="vi-VN"] #mineradio-language-settings label {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 0;
+  white-space: nowrap;
+}
+#mineradio-language-settings #mineradio-language-select {
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  color: inherit;
+  background: #111b2c;
+  border: 1px solid #637e99;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font: inherit;
+}
+html[lang="vi-VN"] #playlist-panel {
+  box-sizing: border-box;
+  max-width: calc(100vw - 28px);
+  overflow-x: hidden;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head > div:first-child {
+  min-width: 0;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head .fx-title {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head .fx-sub {
+  font-size: 10px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+html[lang="vi-VN"] #playlist-panel .queue-head-act {
+  flex-shrink: 0;
+}
+html[lang="vi-VN"] #playlist-panel .panel-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+html[lang="vi-VN"] #playlist-panel .panel-tab {
+  min-width: 0;
+  padding: 8px 5px;
+  text-align: center;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+html[lang="vi-VN"] #playlist-panel .queue-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  gap: 7px;
+  padding: 8px;
+}
+html[lang="vi-VN"] #playlist-panel .queue-toolbar .queue-chip {
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  min-height: 26px;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+html[lang="vi-VN"] #playlist-panel .queue-toolbar > div:last-child:not(.queue-chip) {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  gap: 6px;
+}
+html[lang="vi-VN"] #playlist-panel .queue-toolbar .fx-mini-btn {
+  min-width: 0;
+  max-width: 100%;
+  height: auto !important;
+  min-height: 28px;
+  padding: 6px 7px !important;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-align: center;
+}
+html[lang="vi-VN"] #playlist-panel .pl-card > div,
+html[lang="vi-VN"] #playlist-panel .queue-item .qi-info {
+  min-width: 0;
+}
+@media (max-width: 380px) {
+  html[lang="vi-VN"] #mineradio-language-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}
+
+
+/* Dedicated Vietnamese GitHub update section: no overlays or layout jumps. */
+.vn-github-update {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 7px 0 15px;
+  padding: 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(8,13,22,.5);
+  overflow-wrap: anywhere;
+}
+.vn-github-update #vn-github-update-status {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255,255,255,.9);
+}
+.vn-github-update #vn-github-update-action {
+  align-self: stretch;
+  min-width: 0;
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 30px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.vn-github-update #vn-github-update-caption {
+  line-height: 1.4;
+  font-size: 10px;
+  color: rgba(255,255,255,.55);
+}
+
+
+/* Vietnamese copy can be 1.5–3x wider than Chinese copy. Keep visible
+   controls usable instead of clipping text or shrinking the whole app. */
+html[lang="vi-VN"] :is(#fx-panel, #playlist-panel, #login-modal .dual-login-modal,
+  #user-modal .modal, #track-detail-modal .modal, #wallpaper-engine-modal .modal,
+  #update-modal .update-modal, #collect-modal .modal, #local-beat-modal .modal,
+  #custom-lyric-modal .modal, .home-platform-recommend-modal) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: calc(100vw - 24px);
+}
+html[lang="vi-VN"] :is(#fx-panel, #playlist-panel, #login-modal, #user-modal,
+  #track-detail-modal, #wallpaper-engine-modal, #update-modal, #collect-modal,
+  #local-beat-modal, #custom-lyric-modal) :is(
+  .fx-row, .fx-title, .fx-sub, .fx-section-label, .fx-section-title,
+  .fx-settings-row, .fx-control-row, .fx-control-label, .fx-tab,
+  .panel-tab, .panel-tabs, .queue-head, .queue-chip, .queue-toolbar,
+  .login-panel-head, .login-auth-copy, .login-auth-actions, .login-node-copy,
+  .login-provider-capsule, .login-platform-tabs, .login-mode-nodes,
+  .account-hint, .account-provider-chip, .detail-sub, .detail-chip,
+  .update-item, .update-item-text, .update-footnote, .wallpaper-engine-status
+) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+html[lang="vi-VN"] :is(#fx-panel, #playlist-panel, #login-modal, #user-modal,
+  #track-detail-modal, #wallpaper-engine-modal, #update-modal, #collect-modal,
+  #local-beat-modal, #custom-lyric-modal) :is(
+  button, .fx-mini-btn, .panel-tab, .login-mode-node, .login-provider-node,
+  .login-reset-all-btn, .queue-chip, .update-download-source
+) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  height: auto;
+  min-height: 28px;
+  text-align: center;
+}
+html[lang="vi-VN"] :is(#fx-panel, #login-modal, #user-modal, #track-detail-modal,
+  #wallpaper-engine-modal, #update-modal, #collect-modal, #local-beat-modal,
+  #custom-lyric-modal) :is(.fx-row, .fx-control-row, .login-auth-actions,
+    .update-download-sources, .detail-actions, .modal-actions) {
+  flex-wrap: wrap;
+}
+html[lang="vi-VN"] :is(.fx-panel, .dual-login-modal, .wallpaper-engine-modal,
+  .home-platform-recommend-modal, .update-modal) :is(
+  input, select, textarea, .login-cookie-input, .fx-input
+) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+html[lang="vi-VN"] #fx-panel :is(.fx-section-label, .fx-sub, label, small),
+html[lang="vi-VN"] #login-modal :is(.login-auth-copy, .login-node-copy, .desc, small),
+html[lang="vi-VN"] #wallpaper-engine-modal :is(.wallpaper-engine-status, .wallpaper-engine-details-empty),
+html[lang="vi-VN"] .home-platform-recommend-modal :is(h3, small) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+html[lang="vi-VN"] #login-modal .dual-login-modal,
+html[lang="vi-VN"] #user-modal .modal,
+html[lang="vi-VN"] #wallpaper-engine-modal .modal,
+html[lang="vi-VN"] #track-detail-modal .modal {
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+html[lang="vi-VN"] :is(.login-node-providers, .login-mode-nodes, .panel-tabs) > * {
+  min-width: 0;
+}
+@media (max-width: 680px) {
+  html[lang="vi-VN"] #mineradio-language-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+  }
+  html[lang="vi-VN"] #login-modal .login-auth-drawer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[lang="vi-VN"] #login-modal .login-node-graph,
+  html[lang="vi-VN"] #wallpaper-engine-modal .wallpaper-engine-details {
+    min-width: 0;
+    max-width: 100%;
+  }
+  html[lang="vi-VN"] :is(#fx-panel, #login-modal, #playlist-panel) :is(
+    .fx-tabs, .login-platform-tabs, .login-auth-actions
+  ) {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+}
+@media (max-width: 390px) {
+  html[lang="vi-VN"] #playlist-panel .panel-tab {
+    padding-inline: 3px;
+    font-size: 10px;
+  }
+  html[lang="vi-VN"] #login-modal .dual-login-modal {
+    padding-inline: 11px;
+  }
+}
+
+
+/* Wrap only controls proven to overflow by Vietnamese viewport measurement. */
+html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
+ #track-detail-modal,#wallpaper-engine-modal,#update-modal,#collect-modal,
+ #local-beat-modal,#custom-lyric-modal) .vi-copy-overflow {
+ white-space: normal !important;
+ overflow-wrap: anywhere !important;
+ word-break: normal;
+ min-width: 0;
+ max-width: 100%;
+ height: auto !important;
+}

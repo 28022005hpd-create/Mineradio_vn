@@ -1,0 +1,70 @@
+name: Build Mineradio_vn automatic Windows updates
+
+on:
+  push:
+    branches: [feature/vi-vn-non-invasive-localization]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mineradio-vn-auto-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == '28022005hpd-create/Mineradio_vn' && github.ref == 'refs/heads/feature/vi-vn-non-invasive-localization'
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify updater and other key components
+        run: |
+          node --test tests/github-vn-auto-update.test.js tests/vi-i18n.test.js tests/vi-lyrics-translation.test.js tests/vn-windows-packaging.test.js tests/vi-dynamic-ui.test.js tests/vi-direct-login.test.js tests/vi-queue-localization.test.js tests/vi-complete-ui.test.js
+          node --test tests/playback-single-repeat-loop.test.js tests/playback-audio-graph-recovery.test.js
+      - name: Install dependencies
+        run: npm ci
+      - name: Embed GitHub build information in installed app
+        shell: pwsh
+        run: |
+          $info = @{channel='vi-VN';buildNumber=[int]$env:GITHUB_RUN_NUMBER;commit=$env:GITHUB_SHA} | ConvertTo-Json -Compress
+          Set-Content -LiteralPath 'desktop/vn-update-build.json' -Value $info -Encoding utf8
+      - name: Build full Windows installer
+        run: npx electron-builder --win nsis --publish never
+      - name: Verify packaged Windows runtime before publishing
+        run: node scripts/verify-vn-windows-package.js dist/win-unpacked/resources/app
+      - name: Prepare immutable update assets
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem -LiteralPath 'dist' -Filter 'Mineradio_vn-*-Setup.exe' | Select-Object -First 1
+          if (-not $file) { throw 'Installer missing' }
+          $name = "Mineradio-VN-$($env:GITHUB_SHA.Substring(0,12))-Setup.exe"
+          Copy-Item -LiteralPath $file.FullName -Destination $name
+          $item = Get-Item $name
+          $hash = (Get-FileHash -LiteralPath $name -Algorithm SHA256).Hash.ToLowerInvariant()
+          $manifest = @{
+            schema=1;channel='vi-VN';buildNumber=[int]$env:GITHUB_RUN_NUMBER;commit=$env:GITHUB_SHA
+            artifact=@{name=$name;size=[long]$item.Length;sha256=$hash}
+          } | ConvertTo-Json -Depth 5
+          Set-Content -LiteralPath 'latest-vn.json' -Value $manifest -Encoding utf8
+      - name: Publish only to Mineradio_vn GitHub prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag='mineradio-vn-auto'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --prerelease --title 'Mineradio_vn tự cập nhật' --notes 'Bản xây dựng tự động từ nhánh tiếng Việt.' --target $env:GITHUB_SHA
+            if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }
+          }
+          $file=Get-ChildItem -Filter 'Mineradio-VN-*-Setup.exe' | Select-Object -First 1
+          gh release upload $tag $file.Name --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Installer upload failed' }
+          gh release upload $tag latest-vn.json --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Manifest upload failed' }

@@ -56,6 +56,7 @@ const {
 } = require('NeteaseCloudMusicApi');
 const http = require('http');
 const https = require('https');
+const { translateLyricLines } = require('./lyric-translation-service');
 const fs   = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -6420,6 +6421,23 @@ const server = http.createServer(async (req, res) => {
       if (!lyricNodeText(merged, key) && fallback && fallback[key]) merged[key] = fallback[key];
     });
     return merged;
+  }
+
+  // Language-aware subtitle route, separate from the provider's tlyric.
+  if (pn === '/api/lyrics/translate') {
+    if (req.method !== 'POST') {
+      sendJSON(res, { error: 'Use POST' }, 405);
+      return;
+    }
+    try {
+      const body = await readRequestBody(req);
+      const translations = await translateLyricLines(body.lines, body.locale);
+      sendJSON(res, { locale: 'vi-VN', translations });
+    } catch (error) {
+      const invalid = error instanceof RangeError;
+      sendJSON(res, { error: invalid ? 'Invalid translation request' : 'Subtitle translation unavailable' }, invalid ? 400 : 503);
+    }
+    return;
   }
 
   if (pn === '/api/lyric') {

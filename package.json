@@ -1,6 +1,6 @@
 {
   "name": "mineradio",
-  "productName": "Mineradio",
+  "productName": "Mineradio_vn",
   "version": "2.2.0",
   "description": "Windows 沉浸式音乐播放器，融合桌面模式、歌词舞台、粒子视觉和 3D 歌单架。",
   "author": "Mineradio",
@@ -14,8 +14,8 @@
     "build:win:internal-beta": "electron-builder --config electron-builder.internal-beta.json --win nsis --publish never"
   },
   "build": {
-    "appId": "com.mineradio.desktop",
-    "productName": "Mineradio",
+    "appId": "com.mineradio.vn.desktop",
+    "productName": "Mineradio_vn",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -30,6 +30,7 @@
       "build/**/*",
       "cuefield/**/*",
       "server.js",
+      "lyric-translation-service.js",
       "*-api.js",
       "qishui-auth-v6.js",
       "qishui-qr-login.js",
@@ -47,7 +48,7 @@
     ],
     "asar": false,
     "win": {
-      "executableName": "Mineradio",
+      "executableName": "Mineradio_vn",
       "icon": "build/icon.ico",
       "signAndEditExecutable": false,
       "target": [
@@ -65,36 +66,44 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Mineradio",
+      "shortcutName": "Mineradio_vn",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerSidebar": "build/installerSidebar.bmp",
       "uninstallerSidebar": "build/installerSidebar.bmp",
       "installerHeader": "build/installerHeader.bmp",
-      "include": "build/installer.nsh",
-      "artifactName": "Mineradio-${version}-Setup.${ext}"
+      "include": "build/installer-vn.nsh",
+      "artifactName": "Mineradio_vn-${version}-Setup.${ext}"
     },
     "publish": [
       {
         "provider": "github",
-        "owner": "XxHuberrr",
-        "repo": "Mineradio"
+        "owner": "28022005hpd-create",
+        "repo": "Mineradio_vn"
       }
     ]
   },
   "mineradio": {
     "update": {
-      "provider": "github",
-      "owner": "XxHuberrr",
-      "repo": "Mineradio",
+      "disabled": true,
+      "provider": "none",
       "preview": false,
-      "preferMirrors": true,
-      "mirrors": [
-        "https://gh.llkk.cc/",
-        "https://ghfast.top/",
-        "https://gh-proxy.com/"
-      ]
-    }
+      "preferMirrors": false,
+      "mirrors": []
+    },
+    "githubAutoUpdate": {
+      "enabled": true,
+      "channel": "vi-VN",
+      "owner": "28022005hpd-create",
+      "repo": "Mineradio_vn",
+      "releaseTag": "mineradio-vn-auto",
+      "checkIntervalMinutes": 25,
+      "autoDownload": true,
+      "confirmBeforeInstall": true
+    },
+    "runtimeName": "Mineradio_vn",
+    "appUserModelId": "com.mineradio.vn.desktop",
+    "loginEasterEggEnabled": false
   },
   "dependencies": {
     "gsap": "^3.15.0",
