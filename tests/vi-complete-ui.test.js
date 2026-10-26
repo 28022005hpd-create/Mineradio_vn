@@ -63,3 +63,18 @@ test('Vietnamese viewport audit measures actual control overflow',()=>{
  i.setLanguage('zh-CN');
  assert.equal(i.auditLayout(rootNode).length,0);
 });
+
+
+test('3D visual controls, wallpaper previews and song detail labels are localized',()=>{
+ const i=getI18n();
+ const messages=[
+  ['音频监视器','Trình giám sát âm thanh'],
+  ['3D 播客','Podcast 3D'],
+  ['WE 音频强度','Cường độ âm thanh WE'],
+  ['Scene · Wallpaper Engine 原生实时运行','Scene · chạy trực tiếp bằng Wallpaper Engine'],
+  ['歌手','Nghệ sĩ'],['评论','Bình luận'],['预设与存档','Cấu hình và kho lưu']
+ ];
+ for(const [a,b] of messages)assert.equal(i.ui(a),b);
+ i.setLanguage('zh-CN');
+ assert.equal(i.ui('歌手'),'歌手');
+});
