@@ -57,6 +57,7 @@ const {
 const http = require('http');
 const https = require('https');
 const { translateLyricLines } = require('./lyric-translation-service');
+const { resolveFallbackLyrics } = require('./lyric-fallback-service');
 const QRCode = require('qrcode'); // NCM can return a QR URL without qrimg.
 const fs   = require('fs');
 const path = require('path');
@@ -6448,6 +6449,30 @@ const server = http.createServer(async (req, res) => {
       if (!lyricNodeText(merged, key) && fallback && fallback[key]) merged[key] = fallback[key];
     });
     return merged;
+  }
+
+  // Fallback for songs with no usable timed lyrics on their home provider.
+  // Never serve guessed text or artificially timed karaoke captions.
+  if (pn === '/api/lyrics/fallback') {
+    if (req.method !== 'GET') { sendJSON(res, { error: 'Use GET' }, 405); return; }
+    const title = String(url.searchParams.get('title') || '').slice(0, 220).trim();
+    const artist = String(url.searchParams.get('artist') || '').slice(0, 220).trim();
+    const album = String(url.searchParams.get('album') || '').slice(0, 220).trim();
+    const duration = Math.max(0, Math.min(36000, Number(url.searchParams.get('duration')) || 0));
+    if (!title || !artist) {
+      sendJSON(res, { error: 'Missing song title or artist', lyric: '' }, 400);
+      return;
+    }
+    try {
+      const lyrics = await resolveFallbackLyrics({ title, artist, album, duration });
+      sendJSON(res, lyrics || { lyric: '', source: 'no-verified-lyrics',
+        message: 'Chưa tìm được lời có thời gian khớp với bài hát' });
+    } catch (err) {
+      console.warn('[LyricFallback]', err && err.message);
+      sendJSON(res, { lyric: '', source: 'fallback-unavailable',
+        message: 'Không thể tìm lời bài hát lúc này' });
+    }
+    return;
   }
 
   // Language-aware subtitle route, separate from the provider's tlyric.
