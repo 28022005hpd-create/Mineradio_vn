@@ -10,7 +10,7 @@ test('dynamic account and login UI copy follows active selected locale',()=>{
  const i=ctx.MineradioI18n;
  assert.equal(i.locale,'vi-VN');
  assert.equal(i.ui('扫码登录酷狗音乐'),'Đăng nhập bằng QR KuGou Music');
- assert.equal(i.ui('QQ 音乐登录已失效'),'QQ Music登录已失效');
+ assert.equal(i.ui('QQ 音乐登录已失效'),'Phiên đăng nhập QQ Music đã hết hạn');
  assert.equal(i.ui('UID: 2048 / 普通用户'),'UID: 2048 / Tài khoản thường');
  i.setLanguage('zh-CN');
  assert.equal(i.ui('扫码登录酷狗音乐'),'扫码登录酷狗音乐');
