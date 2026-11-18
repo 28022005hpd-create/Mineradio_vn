@@ -6277,7 +6277,11 @@ const server = http.createServer(async (req, res) => {
       const requestedOffset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0);
       if (requestedLimit || requestedOffset || url.searchParams.has('paged')) {
         const pageData = await fetchNeteaseUserPlaylistsPage(info.userId, requestedLimit || 48, requestedOffset);
-        const pageList = pageData.playlists.map(pl => mapNeteasePlaylistMeta(pl, pl && pl.id));
+        const pageList = pageData.playlists.map(pl => {
+          const row = mapNeteasePlaylistMeta(pl, pl && pl.id);
+          row.owned = !!row.ownerId && row.ownerId === String(info.userId);
+          return row;
+        });
         sendJSON(res, {
           loggedIn: true,
           userId: info.userId,
@@ -6292,7 +6296,11 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const rawPlaylists = await fetchAllNeteaseUserPlaylists(info.userId, requestedLimit);
-      const list = rawPlaylists.map(pl => mapNeteasePlaylistMeta(pl, pl && pl.id));
+      const list = rawPlaylists.map(pl => {
+        const row = mapNeteasePlaylistMeta(pl, pl && pl.id);
+        row.owned = !!row.ownerId && row.ownerId === String(info.userId);
+        return row;
+      });
       sendJSON(res, { loggedIn: true, userId: info.userId, playlists: list });
     } catch (err) {
       console.error('[UserPlaylists]', err);
