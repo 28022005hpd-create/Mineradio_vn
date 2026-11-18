@@ -19135,3 +19135,24 @@ html[lang="vi-VN"] #fx-panel .fx-console-group-body
     width: 30px; padding-inline: 0;
   }
 }
+
+
+/* Keep the header's localized keyboard-shortcut label intact. */
+html[lang="vi-VN"] #fx-panel #hotkey-settings-btn {
+  box-sizing: border-box;
+  min-width: 65px;
+  width: max-content;
+  max-width: none;
+  height: 28px !important;
+  padding: 0 9px;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: keep-all !important;
+}
+#track-detail-modal .comment-vi-translation.comment-vi-unavailable,
+#track-detail-modal .comment-vi-translation[data-comment-state="pending"] {
+  border-left-color: rgba(255,255,255,.22);
+  color: rgba(235,246,250,.56);
+  background: rgba(255,255,255,.025);
+  font-size: 10.5px;
+}
