@@ -333,6 +333,34 @@ function scheduleTrackSwitchFallbackLyrics(song, token, delay) {
     applyPreferredLyricsForCurrent(true);
   }, Math.max(multiLineDelay, Number(delay) || 720));
 }
+// Recovery only: do not replace provider lyrics or locally edited lyrics.
+// LRCLIB results must be timed LRC verified against song name, artist and duration.
+var lyricAlternateLookupMiss = Object.create(null);
+async function resolveMissingLyricsForSong(song, token) {
+  if (!song || token !== trackSwitchToken) return false;
+  var key = persistentLyricCacheKey(song);
+  if (lyricAlternateLookupMiss[key] && Date.now() - lyricAlternateLookupMiss[key] < 15 * 60 * 1000) return false;
+  var title = String(song.name || song.title || '').trim();
+  var artist = String(song.artist || song.singer || '').trim();
+  if (!title || !artist || song.type === 'podcast') return false;
+  var query = new URLSearchParams({ title: title, artist: artist,
+    album: String(song.album || ''), duration: String(Math.round(playbackDurationFromSong(song) || 0)) });
+  try {
+    var result = await apiJson('/api/lyrics/fallback?' + query.toString(), { timeoutMs: 12000 });
+    if (token !== trackSwitchToken || !result || !result.timingVerified || !result.lyric) return false;
+    var state = parseLyricResponseToOriginalState(song, result);
+    if (!state || !state.usableLyric || !state.lines || state.lines.length < 2) return false;
+    // Respect a manual lyric that the listener selected while lookup ran.
+    if (lyricSourceMode !== 'custom') applyFetchedLyricResponse(song, token, result);
+    else writePersistentLyricCache(song, result);
+    return true;
+  } catch (e) {
+    console.warn('[SyncedLyricsFallback]', e && e.message || e);
+  }
+  lyricAlternateLookupMiss[key] = Date.now();
+  return false;
+}
+
 async function fetchLyric(songOrId, token, attempt) {
   attempt = Math.max(0, Number(attempt) || 0);
   var song;
@@ -349,13 +377,20 @@ async function fetchLyric(songOrId, token, attempt) {
     var r = await apiJson(lyricEndpointForSong(song || songOrId));
     var state = applyFetchedLyricResponse(song, token, r);
     if (!state) return;
-    if (!state.usableLyric && shouldRetryStartupLyricFetch(song, token, attempt)) scheduleStartupLyricFetchRetry(song, token, attempt);
+    if (!state.usableLyric) {
+      if (song) {
+        const recovered = await resolveMissingLyricsForSong(song, token);
+        if (recovered) return;
+      }
+      if (shouldRetryStartupLyricFetch(song, token, attempt)) scheduleStartupLyricFetchRetry(song, token, attempt);
+    }
   } catch (e) {
     if (token !== trackSwitchToken) return;
     cancelPendingTrackFallbackLyrics();
     var fallbackLines = withLyricFallbackForSong(song || currentLyricSong(), []);
     setOriginalLyricsState(fallbackLines, false, 'fallback', [], 'none');
     applyPreferredLyricsForCurrent(true);
+    if (song && await resolveMissingLyricsForSong(song, token)) return;
     if (shouldRetryStartupLyricFetch(song, token, attempt)) scheduleStartupLyricFetchRetry(song, token, attempt);
   }
 }
