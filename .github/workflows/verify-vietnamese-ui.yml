@@ -34,10 +34,12 @@ jobs:
       - name: Vietnamese subtitle syntax and service tests
         run: |
           node --check lyric-translation-service.js
+          node --check lyric-fallback-service.js
+          node --check public/js/modules/06-lyrics/00-lyrics-fetch-parse.js
           node --check public/js/modules/06-lyrics/00a-localized-lyric-translation.js
           node --check server.js
           node --check public/js/modules/05-playback/06-track-detail-lyrics-actions.js
-          node --test tests/vi-lyrics-translation.test.js
+          node --test tests/vi-lyrics-translation.test.js tests/lyric-fallback-and-comments.test.js
       - name: Locale catalogs, stable IDs, in-app switching and audio-safe rendering
         run: node --test tests/vi-i18n.test.js tests/vi-dynamic-ui.test.js tests/vi-direct-login.test.js tests/vi-queue-localization.test.js
       - name: Vietnamese layout and interactive label regression tests
