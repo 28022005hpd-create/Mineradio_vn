@@ -100,3 +100,51 @@ test('re-rendering FX preset and archive panels triggers scoped Vietnamese local
     assert.ok(js.includes(func+' = afterLocalizedUiRender('+func+', \'fx-panel\')'), func);
   assert.doesNotMatch(js,/new MutationObserver/);
 });
+
+test('all visual-console action toasts have Vietnamese wording', () => {
+  const names = [
+    'public/js/modules/07-fx/07-bindings-shelf-immersive.js',
+    'public/js/modules/07-fx/05-fx-panel-performance.js'
+  ];
+  let checked = 0;
+  for (const name of names) {
+    for (const line of read(name).split('\n')) {
+      if (!line.includes('showFxUiToast(')) continue;
+      for (const m of line.matchAll(/'([^'\n]*[\u3400-\u9fff][^'\n]*)'/g)) {
+        ++checked;
+        assert.equal(hasHan(lang.ui(m[1])), false, 'Untranslated FX toast: ' + m[1]);
+      }
+    }
+  }
+  assert.ok(checked >= 80, 'All visual effects and toggles must be covered');
+});
+
+test('system memory and cache paths keep user data intact while notices are Vietnamese', () => {
+  const memory=read('public/js/modules/00-state/11-system-memory-controls.js');
+  const cache=read('public/js/modules/07-fx/08-cache-storage-settings.js');
+  assert.match(memory, /'RAM hệ thống ' \+ used/);
+  assert.match(memory, /'quyền quản trị'/);
+  assert.match(memory, /memoryUiToast\(/);
+  for(const txt of ['系统内存读取失败','播放器压缩未完成','正在统计...','缓存设置不可用'])
+    assert.equal(hasHan(lang.ui(txt)), false, txt);
+  assert.match(cache, /id === 'cache-storage-total' \|\| id === 'cache-storage-note'/);
+  assert.match(cache, /copy = MineradioI18n.ui\(copy\)/);
+  const pathStore={ textContent: '' };
+  const statusStore={ textContent: '' };
+  const ctx={ MineradioI18n:lang,
+    mineradioCacheStorageNode(id) { return id==='cache-storage-root' ? pathStore : statusStore; } };
+  const snippet=cache.slice(cache.indexOf('function setMineradioCacheStorageText('),
+    cache.indexOf('function applyMineradioCacheSettings('));
+  vm.runInNewContext(snippet + '\nsetMineradioCacheStorageText("cache-storage-root", "C:\\\\音乐\\\\星河");\n' +
+    'setMineradioCacheStorageText("cache-storage-total", "已占用 20 MB");',ctx);
+  assert.equal(pathStore.textContent,'C:\\音乐\\星河');
+  assert.equal(statusStore.textContent,'Đã sử dụng 20 MB');
+});
+
+test('NetEase key-based QR fallback survives a failed upstream image request', () => {
+  const server=read('server.js');
+  assert.match(server, /catch \(serviceError\)/);
+  assert.match(server, /https:\/\/music\.163\.com\/login\?codekey=/);
+  assert.match(server, /await QRCode\.toDataURL\(qrurl/);
+  assert.match(server, /sendJSON\(res, \{ img: qrimg, url: qrurl \}\)/);
+});
