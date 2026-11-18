@@ -41,7 +41,7 @@ jobs:
       - name: Locale catalogs, stable IDs, in-app switching and audio-safe rendering
         run: node --test tests/vi-i18n.test.js tests/vi-dynamic-ui.test.js tests/vi-direct-login.test.js tests/vi-queue-localization.test.js
       - name: Vietnamese layout and interactive label regression tests
-        run: node --test tests/vi-complete-ui.test.js tests/vi-full-lyrics-and-layout.test.js tests/vi-design-craft.test.js
+        run: node --test tests/vi-complete-ui.test.js tests/vi-login-qr-restoration.test.js tests/vi-full-lyrics-and-layout.test.js tests/vi-design-craft.test.js
       - name: GitHub release update validation tests
         run: node --test tests/github-vn-auto-update.test.js
       - name: Original Mineradio playback UI regression tests
