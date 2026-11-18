@@ -84,7 +84,7 @@ function liveMvSetCover(prefix,source) {
   var url=liveMvText(source);
   if(image.getAttribute('data-cover-url') === url) return;
   image.setAttribute('data-cover-url',url);
-  if (url && /^(https?:|data:image\/|blob:|file:)/i.test(url)) {
+  if (url && /^(https?:|data:image\/|blob:|file:|\/[^\/])/i.test(url)) {
     image.src=url; blur.src=url;
     image.hidden=false;
     blur.hidden=false;
@@ -168,7 +168,11 @@ function liveMvUpdateControls() {
 }
 function liveMvSetEnabled(enabled) {
   liveMvEnabled=!!enabled;
-  if(liveMvEnabled) liveMvMiniEnabled=false;
+  if(liveMvEnabled && liveMvMiniEnabled) {
+    liveMvMiniEnabled=false;
+    if(window.desktopWindow && window.desktopWindow.setMiniPlayerEnabled)
+      window.desktopWindow.setMiniPlayerEnabled(false).catch(function(){});
+  }
   liveMvUpdateControls();
   liveMvSavePrefs();
 }
@@ -231,7 +235,8 @@ function liveMvUpdateFrame() {
         title:state.title.slice(0,180), artist:state.artist.slice(0,160),
         lyric:state.lyric.slice(0,300), translation:state.translation.slice(0,300),
         cover:state.cover.slice(0,1200),paused:state.paused,
-        time:liveMvTime(state.current),duration:liveMvTime(state.duration)
+        time:liveMvTime(state.current),duration:liveMvTime(state.duration),
+        percent:100*state.current/Math.max(1,state.duration)
       });
     }
   }
