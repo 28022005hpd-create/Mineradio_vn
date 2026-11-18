@@ -810,12 +810,15 @@
       }
       if (node.nodeType !== 1 && node.nodeType !== 9 && node.nodeType !== 11) return;
       if (node.nodeType === 1) {
+        // Translate static attribute hints even on input/textarea elements;
+        // never change their value or the user's typed content.
+        if (!excludedIds.has(node.id || '')) bindUiAttributes(node);
         if (excluded.test(String(node.nodeName || '').toUpperCase()) || excludedIds.has(node.id || '')) return;
         // Do not run translations through dynamically supplied artist / title,
         // lyric, playlist, account, and user-generated content nodes.
         if (node.hasAttribute && (node.hasAttribute('data-song-id') ||
             node.hasAttribute('data-playlist-title') || node.hasAttribute('data-podcast-title'))) return;
-        if (/(?:^|\s)(?:song-name|song-artist|song-title|qi-name|qi-artist|mini-queue-name|mini-queue-sub|pl-name|pl-sub|detail-song-title|detail-artist|detail-title|detail-value|artist-song-name|artist-song-meta|comment-text|comment-meta|home-next-title|home-today-artist|home-listen-value|home-platform-recommend-copy|lyric-text|lyrics-line|user-name|track-title|track-artist)(?:\s|$)/.test(String(node.className || ''))) return;
+        if (/(?:^|\s)(?:song-name|song-artist|song-title|qi-name|qi-artist|mini-queue-name|mini-queue-sub|pl-name|pl-sub|detail-song-title|detail-artist|detail-title|detail-value|artist-song-name|artist-song-meta|comment-text|comment-meta|home-next-title|home-today-artist|home-listen-value|home-platform-recommend-copy|lyric-text|lyrics-line|user-name|track-title|track-artist|user-archive-name|user-archive-input|custom-preset-name)(?:\s|$)/.test(String(node.className || ''))) return;
         if (node.hasAttribute && node.hasAttribute('data-i18n') && !(node.childElementCount > 0)) return;
         bindUiAttributes(node);
       }
