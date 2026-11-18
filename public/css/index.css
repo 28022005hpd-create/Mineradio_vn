@@ -19003,3 +19003,28 @@ html[lang="vi-VN"] #fx-panel :is(.fx-console-search-result, .fx-console-breadcru
 @media (max-width: 430px) {
   html[lang="vi-VN"] #fx-panel .preset-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+
+/* User comments remain unmodified, with optional Vietnamese translation below. */
+#track-detail-modal .comment-main,
+#track-detail-modal .comment-text,
+#track-detail-modal .comment-vi-translation { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+#track-detail-modal .comment-vi-translation:not([hidden]) {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-left: 2px solid rgba(var(--fc-accent-rgb), .56);
+  border-radius: 0 7px 7px 0;
+  background: rgba(var(--fc-accent-rgb), .045);
+  color: rgba(235, 246, 250, .93);
+  font-size: 12px;
+  line-height: 1.65;
+}
+#track-detail-modal .comment-vi-translation[hidden] { display: none; }
+#track-detail-modal .comment-vi-label {
+  display: block;
+  margin-bottom: 3px;
+  color: rgba(var(--fc-accent-rgb), .90);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .02em;
+}
