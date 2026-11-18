@@ -194,6 +194,51 @@ function liveMvHandleMiniCommand(command) {
   else if(command==='previous'){if(typeof prevTrack==='function')prevTrack(true);}
   else if(command==='mv'){liveMvSetEnabled(true);}
 }
+// Mobile-browser lock-screen/playback controls where Media Session is supported.
+// This complements the in-app mini UI; it does not claim system PiP.
+var liveMvMediaSessionTrack = '';
+var liveMvMediaSessionBound = false;
+var liveMvMediaSessionUpdatedAt = 0;
+function liveMvUpdateMobileMediaSession(state) {
+  if(typeof navigator==='undefined' || !navigator.mediaSession ||
+      typeof window.MediaMetadata!=='function') return;
+  if(!liveMvMediaSessionBound) {
+    liveMvMediaSessionBound=true;
+    for(var pair of [
+      ['play','toggle'], ['pause','toggle'],
+      ['nexttrack','next'], ['previoustrack','previous']
+    ]) {
+      try {
+        (function (action,cmd) {
+          navigator.mediaSession.setActionHandler(action,function(){
+            liveMvHandleMiniCommand(cmd);
+          });
+        })(pair[0],pair[1]);
+      } catch (_) { /* Not supported by this mobile browser. */ }
+    }
+  }
+  if(state.trackKey !== liveMvMediaSessionTrack) {
+    liveMvMediaSessionTrack=state.trackKey;
+    try {
+      var art=state.cover && /^(https?:|data:image\/|blob:|\/[^\/])/i.test(state.cover)
+        ? [{src:state.cover,sizes:'512x512'}] : [];
+      navigator.mediaSession.metadata=new window.MediaMetadata({
+        title:state.title,artist:state.artist,artwork:art
+      });
+    } catch (_) {}
+  }
+  try {navigator.mediaSession.playbackState=state.paused?'paused':'playing';} catch (_) {}
+  var now=Date.now();
+  if(now-liveMvMediaSessionUpdatedAt>850 && state.duration>0) {
+    liveMvMediaSessionUpdatedAt=now;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration:state.duration,playbackRate:1,
+        position:liveMvClamp(state.current,0,state.duration)
+      });
+    } catch (_) {}
+  }
+}
 function liveMvUpdateFrame() {
   if(!liveMvEnabled && !liveMvMiniEnabled) return;
   var state=liveMvSongSnapshot();
@@ -220,6 +265,7 @@ function liveMvUpdateFrame() {
     if(stage)stage.style.setProperty('--live-beat',String(state.beat));
   }
   if(liveMvMiniEnabled) {
+    liveMvUpdateMobileMediaSession(state);
     liveMvSetText('mr-mini-title',state.title);
     liveMvSetText('mr-mini-lyric',state.lyric);
     liveMvSetText('mr-mini-toggle',state.paused?'▶':'Ⅱ');
