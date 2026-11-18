@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mineradio — Trình phát nổi</title>
+<style>
+  :root { color-scheme:dark; }
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden}
+  body{font:12px/1.5 Inter,"Segoe UI",system-ui,sans-serif;color:#ebfff8;background:transparent}
+  .mini{
+    width:100%;height:100%;display:flex;align-items:center;gap:10px;
+    border:1px solid rgba(133,229,202,.38);border-radius:17px;
+    background:linear-gradient(115deg,rgba(20,51,47,.97),rgba(6,13,22,.985));
+    box-shadow:inset 0 1px rgba(255,255,255,.07);padding:11px;
+    -webkit-app-region:drag;
+  }
+  .cover{width:72px;height:72px;flex:0 0 72px;border-radius:12px;object-fit:cover;background:rgba(255,255,255,.09)}
+  .info{flex:1 1 0;min-width:0;display:grid;align-content:center;gap:3px}
+  #title,#artist,#lyric {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  #title{font-size:12px;font-weight:800}
+  #artist{font-size:10px;color:rgba(230,252,242,.61)}
+  #lyric{font-size:11px;color:#b1f1d8}
+  .time{display:flex;gap:5px;align-items:center;color:rgba(240,252,244,.47);font-size:9px}
+  .bar{height:3px;flex:1 1 0;border-radius:99px;background:rgba(255,255,255,.13);overflow:hidden}
+  #fill{display:block;width:0;height:100%;background:linear-gradient(90deg,#75d6ba,#d7ffe5)}
+  .actions{display:flex;flex-direction:column;gap:4px;-webkit-app-region:no-drag}
+  button{height:26px;min-width:30px;border:1px solid rgba(255,255,255,.12);
+    border-radius:9px;background:rgba(255,255,255,.07);color:#f4fff9;
+    cursor:pointer;font-size:13px;line-height:1;padding:0 5px}
+  button:hover{background:rgba(106,221,182,.21)}
+  button:focus-visible{outline:2px solid #8ef0d3;outline-offset:2px}
+  .primary{background:rgba(63,188,143,.26);border-color:rgba(112,236,189,.35)}
+  .control-row{display:flex;gap:4px}
+  @media(max-width:325px){.cover{width:54px;height:54px;flex-basis:54px}.mini{padding:8px;gap:8px}}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<section class="mini" aria-label="Trình phát Mineradio thu nhỏ">
+  <img class="cover" id="cover" alt="Ảnh bìa">
+  <div class="info">
+    <strong id="title">Mineradio</strong>
+    <span id="artist">Nhạc của bạn</span>
+    <span id="lyric" aria-live="off">Lời bài hát đang phát</span>
+    <div class="time"><span id="time">0:00</span><div class="bar"><span id="fill"></span></div>
+      <span id="duration">0:00</span></div>
+  </div>
+  <div class="actions">
+    <div class="control-row">
+      <button data-cmd="restore" title="Mở Mineradio" aria-label="Mở Mineradio">⛶</button>
+      <button data-cmd="mv" title="Xem MV lời hát" aria-label="Xem MV lời hát">♫</button>
+    </div>
+    <div class="control-row">
+      <button data-cmd="previous" aria-label="Bài trước">‹</button>
+      <button data-cmd="toggle" id="toggle" class="primary" aria-label="Phát / tạm dừng">▶</button>
+      <button data-cmd="next" aria-label="Bài tiếp">›</button>
+    </div>
+  </div>
+</section>
+<script>
+'use strict';
+(function() {
+  const bridge = window.mineradioMiniBridge;
+  if (!bridge) return;
+  const at = name => document.getElementById(name);
+  document.querySelectorAll('[data-cmd]').forEach(btn => {
+    btn.addEventListener('click', () => bridge.command(btn.dataset.cmd));
+  });
+  bridge.onState(payload => {
+    at('title').textContent = String(payload.title || 'Mineradio').slice(0,180);
+    at('artist').textContent = String(payload.artist || '').slice(0,160);
+    at('lyric').textContent = String(payload.translation || payload.lyric || '').slice(0,300);
+    at('time').textContent = String(payload.time || '0:00');
+    at('duration').textContent = String(payload.duration || '0:00');
+    at('toggle').textContent = payload.paused ? '▶' : 'Ⅱ';
+    const img = at('cover');
+    const cover = String(payload.cover || '');
+    if (img.dataset.cover !== cover) {
+      img.dataset.cover = cover;
+      if (/^(https?:|data:image\/|blob:|file:|\/[^\/])/i.test(cover)) img.src = cover;
+      else img.removeAttribute('src');
+    }
+    const percent = Math.max(0,Math.min(100,Number(payload.percent)||0));
+    at('fill').style.width = percent+'%';
+  });
+  bridge.ready();
+})();
+</script>
+</body>
+</html>
