@@ -19432,3 +19432,138 @@ html[lang="vi-VN"] #fx-panel #hotkey-settings-btn {
     transition: none !important;
   }
 }
+
+
+/* Live MV + responsive compact playback: no separate audio element. */
+#mineradio-live-mv {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: none;
+  isolation: isolate;
+  overflow: hidden;
+  background: #070e17;
+  color: #f5fafb;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+}
+#mineradio-live-mv.active { display: flex; flex-direction: column; }
+#mineradio-live-mv .live-mv-backdrop,
+#mineradio-live-mv .live-mv-sheen { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+#mineradio-live-mv .live-mv-backdrop { overflow: hidden; background: radial-gradient(circle at 40% 45%,#19352f,#07101a 70%); }
+#mineradio-live-mv .live-mv-backdrop img {
+  width: 110%;height: 110%;position:absolute;inset:-5%;
+  object-fit:cover;filter: blur(58px) brightness(.38) saturate(1.6);
+  transform: scale(calc(1.06 + var(--live-beat,0) * .04));
+  transition: transform .16s ease;
+}
+#mineradio-live-mv .live-mv-sheen {
+  background: linear-gradient(145deg,rgba(2,7,13,.60),transparent 52%,rgba(4,15,17,.69)),
+    radial-gradient(circle at 50% 65%,rgba(104,228,195,.15),transparent 57%);
+}
+.live-mv-top,.live-mv-foot { display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:2; }
+.live-mv-top { padding: clamp(18px,4vw,42px); }
+.live-mv-brand { color:rgba(239,255,250,.62);font-size:11px;font-weight:750;letter-spacing:.17em; }
+.live-mv-brand b { color:#b6ffe6;font-weight:800; }
+.live-mv-tools {display:flex;gap:8px}
+.live-mv-tools button {
+  width:38px;height:38px;display:grid;place-items:center;border-radius:13px;
+  border:1px solid rgba(218,255,249,.19);background:rgba(9,22,29,.56);color:#ebfff7;
+  cursor:pointer;font-size:20px;
+}
+.live-mv-tools button:hover,.live-mv-tools button:focus-visible { background:rgba(87,184,158,.25); outline-color:#8fe9d1; }
+.live-mv-body {
+  position:relative;z-index:1;flex:1;min-height:0;display:grid;
+  grid-template-columns:minmax(180px,.85fr) minmax(0,1.3fr);
+  align-items:center;gap:clamp(24px,5vw,90px);width:min(1180px,90vw);
+  margin:0 auto;padding:10px 0;
+}
+.live-mv-art-wrap {
+  position:relative;aspect-ratio:1;max-height: min(55vh,500px);width:100%;
+  max-width:500px;justify-self:center;filter:drop-shadow(0 32px 42px rgba(0,0,0,.45));
+}
+.live-mv-art-wrap img {
+  width:100%;height:100%;object-fit:cover;border-radius:24px;box-shadow:
+  inset 0 1px rgba(255,255,255,.20),0 0 0 1px rgba(255,255,255,.12);
+  animation: live-mv-cover-float 7s ease-in-out infinite;
+}
+.live-mv-art-rings {
+  position:absolute;inset:-12px;border-radius:30px;pointer-events:none;
+  border:1px solid rgba(167,252,220,.25);box-shadow:0 0 calc(18px + var(--live-beat,0) * 32px) rgba(84,219,165,.26);
+  transform:scale(calc(1 + var(--live-beat,0) * .014));
+}
+@keyframes live-mv-cover-float {
+  0%,100% { transform:translateY(0) rotate(-1.2deg); }
+  50% { transform:translateY(-10px) rotate(1.2deg); }
+}
+.live-mv-captions { min-width:0; display:flex;flex-direction:column;justify-content:center; }
+.live-mv-kicker { color:rgba(181,255,222,.65);letter-spacing:.14em;font-size:10px;font-weight:750;margin:0 0 24px; }
+.live-mv-current {
+  margin:0;max-width:100%;color:#fff;font-weight:800;
+  line-height:1.35;letter-spacing:-.022em;font-size:clamp(25px,3.5vw,54px);
+  overflow-wrap:anywhere;text-wrap:balance;text-shadow:0 3px 24px rgba(0,0,0,.22);
+  transition:opacity .2s,transform .25s;
+}
+.live-mv-translation {min-height:1em;color:#b8f2db;font-weight:500;font-size:clamp(13px,1.8vw,23px);line-height:1.65;overflow-wrap:anywhere;margin:18px 0 12px}
+.live-mv-next {color:rgba(240,255,248,.35);font-size:clamp(13px,1.5vw,20px);line-height:1.55;overflow-wrap:anywhere;min-height:1.4em;margin:12px 0}
+.live-mv-lyric-progress {width:min(390px,100%);height:3px;background:rgba(255,255,255,.11);border-radius:99px;overflow:hidden;margin-top:20px}
+.live-mv-lyric-progress span,.live-mv-track-progress span {display:block;height:100%;width:0;background:linear-gradient(90deg,#74d8c1,#e8ffe9);transition:width .13s linear}
+.live-mv-foot {padding:24px clamp(18px,4vw,42px) clamp(24px,4vw,46px);border-top:1px solid rgba(218,255,247,.08)}
+.live-mv-track {min-width:0;display:flex;flex-direction:column;gap:5px}
+.live-mv-track strong {font-size:15px;max-width:47vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-mv-track span {color:rgba(235,254,245,.56);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live-mv-timeline {display:flex;align-items:center;gap:12px;min-width:200px;color:rgba(235,254,245,.65);font-size:11px}
+.live-mv-track-progress {width:140px;height:3px;background:rgba(255,255,255,.16);border-radius:99px;overflow:hidden}
+#mineradio-mini-inapp {
+  position:fixed;right:14px;bottom:max(18px,env(safe-area-inset-bottom));z-index:1250;
+  display:none;align-items:center;gap:9px;box-sizing:border-box;padding:9px 10px;
+  border:1px solid rgba(142,229,205,.32);border-radius:17px;
+  width:min(370px,calc(100vw - 28px));color:#f2fff9;
+  background:linear-gradient(110deg,rgba(23,49,49,.95),rgba(4,12,22,.98));
+  box-shadow:0 16px 42px rgba(0,0,0,.55);backdrop-filter:blur(18px);
+  font-family:Inter,"Segoe UI",system-ui,sans-serif;
+}
+#mineradio-mini-inapp.active {display:flex}
+#mr-mini-cover {width:46px;height:46px;flex:0 0 46px;object-fit:cover;border-radius:11px;background:rgba(255,255,255,.08)}
+.mr-mini-info {min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;line-height:1.3}
+.mr-mini-info strong {max-width:100%;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:12px}
+.mr-mini-info span {max-width:100%;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:10.5px;color:rgba(210,250,231,.70)}
+.mr-mini-actions {flex:0 0 auto;display:flex;align-items:center;gap:3px}
+.mr-mini-actions button {border:0;border-radius:10px;background:rgba(255,255,255,.09);color:#f5fffb;width:29px;height:32px;cursor:pointer;font-size:16px}
+.mr-mini-actions button:focus-visible {outline:2px solid #95e8d1;outline-offset:2px}
+.mineradio-live-controls {display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0}
+.mineradio-live-controls-copy {flex:1 1 130px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.mineradio-live-controls-copy strong {color:#eafef7;font-size:12px;line-height:1.4}
+.mineradio-live-controls-copy small {color:rgba(224,247,236,.55);font-size:10px;line-height:1.5}
+.mineradio-live-controls-actions {display:flex;flex-wrap:wrap;gap:7px}
+.mineradio-live-controls-actions button {
+  min-width:66px;min-height:32px;border:1px solid rgba(130,235,204,.24);
+  border-radius:9px;background:rgba(58,114,96,.12);color:#e6fff2;font-size:11px;
+  font-weight:650;white-space:nowrap;cursor:pointer;
+}
+.mineradio-live-controls-actions button.active,
+.mineradio-live-controls-actions button[aria-pressed="true"] {background:rgba(69,181,137,.31);border-color:rgba(130,235,204,.7)}
+.mineradio-live-controls-actions button:focus-visible {outline:2px solid #95e8d1;outline-offset:2px}
+@media(max-width:720px) {
+  .live-mv-body {grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px;overflow-y:auto;padding:10px 0}
+  .live-mv-art-wrap {width:min(42vh,64vw);max-height:42vh}
+  .live-mv-captions {width:min(560px,90vw);text-align:center;align-items:center}
+  .live-mv-kicker {margin-bottom:12px}
+  .live-mv-current {font-size:clamp(20px,5.8vw,34px)}
+  .live-mv-translation {margin:6px 0;font-size:clamp(13px,3.5vw,19px)}
+  .live-mv-next {margin:5px 0;font-size:13px}
+  .live-mv-foot {padding:14px 18px max(18px,env(safe-area-inset-bottom))}
+  .live-mv-timeline {min-width:0}
+  .live-mv-track-progress {width:min(20vw,90px)}
+  .live-mv-track strong {font-size:12px;max-width:43vw}
+}
+@media(max-height:480px) and (orientation:landscape) {
+  .live-mv-top {padding:10px 20px}
+  .live-mv-foot {padding:8px 20px}
+  .live-mv-art-wrap {max-height:40vh}
+  .live-mv-kicker {margin-bottom:6px}
+  .live-mv-lyric-progress {margin-top:8px}
+}
+@media(prefers-reduced-motion:reduce) {
+  #mineradio-live-mv .live-mv-art-wrap img {animation:none}
+  #mineradio-live-mv *,#mineradio-mini-inapp * {transition:none!important}
+}
