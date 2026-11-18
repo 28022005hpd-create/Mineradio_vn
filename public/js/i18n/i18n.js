@@ -82,6 +82,9 @@
   // Localize only known interface copy; never translate titles, artists, lyrics
   // or provider-returned account names. Dynamic components opt in explicitly.
   const dynamicUiStrings = Object.freeze({
+  "热键": "Phím tắt",
+  "热键设置": "Thiết lập phím tắt",
+  "快捷键": "Phím tắt",
   "当前不是桌面版，系统内存优化不可用": "Không thể tối ưu RAM hệ thống ngoài bản desktop",
   "系统内存读取失败": "Không thể đọc RAM hệ thống",
   "系统内存读取失败: ": "Lỗi đọc RAM hệ thống: ",
