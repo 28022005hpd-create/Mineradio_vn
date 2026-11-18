@@ -307,7 +307,7 @@ function finishLoginProviderPointer(e) {
 function loginProviderVipLabel(provider, status) {
   if (!status || !status.loggedIn) return '';
   var level = providerVipLevel(provider, status);
-  return level === 'svip' ? 'SVIP' : (level === 'vip' ? 'VIP' : '普通');
+  return level === 'svip' ? 'SVIP' : (level === 'vip' ? 'VIP' : loginDisplayCopy('普通', 'Thường'));
 }
 function handleLoginProviderExternalSwitchEvent(e, provider) {
   if (e) {
@@ -330,8 +330,8 @@ function updateLoginProviderCapsuleStatus(provider, btn) {
     btn.insertBefore(handle, btn.firstChild);
   }
   handle.setAttribute('data-login-provider-sort', provider);
-  handle.setAttribute('title', 'Drag to sort');
-  handle.setAttribute('aria-label', 'Drag to sort');
+  handle.setAttribute('title', loginDisplayCopy('拖动调整顺序', 'Kéo để đổi thứ tự'));
+  handle.setAttribute('aria-label', loginDisplayCopy('拖动调整顺序', 'Kéo để đổi thứ tự'));
   var logo = btn.querySelector('.provider-logo');
   if (logo) {
     if (st.loggedIn) {
@@ -358,10 +358,11 @@ function updateLoginProviderCapsuleStatus(provider, btn) {
   externalSwitch.setAttribute('role', 'switch');
   externalSwitch.setAttribute('tabindex', '0');
   externalSwitch.setAttribute('data-login-provider-external', provider);
-  externalSwitch.setAttribute('aria-label', '展示到右上角账号胶囊');
+  externalSwitch.setAttribute('aria-label', loginDisplayCopy('展示到右上角账号胶囊', 'Hiện tài khoản ở góc trên bên phải'));
   externalSwitch.setAttribute('aria-checked', isAccountProviderExternallyVisible(provider) ? 'true' : 'false');
   if (!externalSwitch.querySelector('.login-provider-external-label')) {
-    externalSwitch.innerHTML = '<span class="login-provider-external-label">展示</span><i></i>';
+    externalSwitch.innerHTML = '<span class="login-provider-external-label">' +
+      loginDisplayCopy('展示', 'Hiện') + '</span><i></i>';
   }
   if (!externalSwitch.__loginProviderExternalBound) {
     externalSwitch.__loginProviderExternalBound = true;
@@ -376,7 +377,9 @@ function updateLoginProviderCapsuleStatus(provider, btn) {
       handleLoginProviderExternalSwitchEvent(e, externalSwitch.getAttribute('data-login-provider-external') || provider);
     });
   }
-  externalSwitch.title = isAccountProviderExternallyVisible(provider) ? '已在右上角展示，点击关闭' : '未在右上角展示，点击开启';
+  externalSwitch.title = isAccountProviderExternallyVisible(provider)
+    ? loginDisplayCopy('已在右上角展示，点击关闭', 'Đang hiện trên thanh tài khoản, nhấn để ẩn')
+    : loginDisplayCopy('未在右上角展示，点击开启', 'Nhấn để hiện trên thanh tài khoản');
   var label = loginProviderVipLabel(provider, st);
   var level = providerVipLevel(provider, st);
   badge.textContent = label;
@@ -1049,8 +1052,10 @@ function updateLoginProviderUi() {
       : loginDisplayCopy('Cookie 导入', 'Nhập cookie');
   }
   if (qqCookieInput) qqCookieInput.placeholder = isKugou ? 'KuGoo=...; token=...; userid=...; kg_mid=...' : (isNetease ? 'MUSIC_U=...; __csrf=...' : 'uin=...; qqmusic_key=...; qm_keyst=...');
-  if (qqCookieNote) qqCookieNote.textContent = isKugou ? '从 kugou.com 的登录会话导入。' : (isNetease ? '从 music.163.com 的登录会话导入。' : '从 y.qq.com 的登录会话导入。');
-  if (qqCookieSaveBtn) qqCookieSaveBtn.textContent = '保存 Cookie';
+  if (qqCookieNote) qqCookieNote.textContent = loginDisplayCopy(
+    isKugou ? '从 kugou.com 的登录会话导入。' : (isNetease ? '从 music.163.com 的登录会话导入。' : '从 y.qq.com 的登录会话导入。'),
+    'Chỉ nhập cookie của chính bạn từ ' + (isKugou ? 'kugou.com' : (isNetease ? 'music.163.com' : 'y.qq.com')) + '.');
+  if (qqCookieSaveBtn) qqCookieSaveBtn.textContent = loginDisplayCopy('保存 Cookie', 'Lưu cookie');
   if (qqCard) {
     qqCard.style.display = '';
     qqCard.disabled = isQishui ? (qishuiBusy || !canUseQishuiQrLogin) : (isQQ ? !!qqWebLoginBusy : (isKugou ? !!kugouWebLoginBusy : !!neteaseWebLoginBusy));
@@ -1067,13 +1072,14 @@ function updateLoginProviderUi() {
   }
   if (st) {
     st.className = isManualCookieProvider ? 'preview' : '';
-    st.textContent = isQQ
-      ? qqLoginStatusText(qqLoginStatus)
-      : (isKugou
-        ? (kugouLoginStatus.loggedIn ? ('已保存酷狗音乐会话 · ' + (kugouLoginStatus.nickname || '')) : '点击“登录”打开酷狗音乐官方窗口')
-        : (isQishui
-          ? qishuiLoginStatusText()
-        : loginDisplayCopy('正在生成二维码…', 'Đang tạo mã QR NetEase…')));
+    st.textContent = loginDisplayCopy(
+      isQQ ? qqLoginStatusText(qqLoginStatus) :
+        (isKugou ? (kugouLoginStatus.loggedIn ? ('已保存酷狗音乐会话 · ' + (kugouLoginStatus.nickname || '')) : '点击“登录”打开酷狗音乐官方窗口') :
+          (isQishui ? qishuiLoginStatusText() : '正在生成二维码…')),
+      isQQ ? (qqLoginStatus.loggedIn ? 'Đã kết nối QQ Music' : 'Chọn mở trang QQ Music để quét mã đăng nhập') :
+        (isKugou ? (kugouLoginStatus.loggedIn ? 'Đã kết nối KuGou Music' : 'Chọn mở trang KuGou để đăng nhập') :
+          (isQishui ? (qishuiLoginStatus.loggedIn ? 'Đã kết nối Qishui Music' : 'Dùng Douyin quét mã QR để xác nhận') :
+            'Đang tạo mã QR NetEase…')));
   }
   if (refreshBtn) {
     refreshBtn.disabled = isQishui ? (qishuiBusy || !canUseQishuiQrLogin) : (isQQ ? !!qqWebLoginBusy : (isKugou ? !!kugouWebLoginBusy : !!neteaseWebLoginBusy));
