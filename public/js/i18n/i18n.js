@@ -730,11 +730,23 @@
     recentLayoutIssues = issues;
     return issues.slice();
   }
+  // The Vietnamese font may load after first paint and Electron windows can
+  // be resized. Coalesce checks into one frame rather than racing layout/paint.
+  const pendingLayoutRoots = new Set();
+  let layoutAuditScheduled = false;
   function scheduleLayoutAudit(rootNode) {
     if (locale !== VIETNAMESE || !rootNode) return;
-    if (typeof root.requestAnimationFrame === 'function')
-      root.requestAnimationFrame(() => auditLayout(rootNode));
-    else auditLayout(rootNode);
+    pendingLayoutRoots.add(rootNode);
+    if (layoutAuditScheduled) return;
+    layoutAuditScheduled = true;
+    const run = () => {
+      layoutAuditScheduled = false;
+      const roots = Array.from(pendingLayoutRoots);
+      pendingLayoutRoots.clear();
+      for (const node of roots) auditLayout(node);
+    };
+    if (typeof root.requestAnimationFrame === 'function') root.requestAnimationFrame(run);
+    else run();
   }
 
   function setLanguage(next) {
@@ -801,6 +813,14 @@
     if (picker) picker.value = locale;
     bind(doc);
     scheduleLayoutAudit(doc);
+    // Readjust text whenever users change the Windows window size or fonts
+    // complete loading, without touching WebGL, lyrics or the music player.
+    if (typeof root.addEventListener === 'function') {
+      root.addEventListener('resize', () => scheduleLayoutAudit(doc));
+    }
+    if (doc.fonts && doc.fonts.ready && typeof doc.fonts.ready.then === 'function') {
+      Promise.resolve(doc.fonts.ready).then(() => scheduleLayoutAudit(doc)).catch(() => {});
+    }
   }
 
   const api = Object.freeze({
