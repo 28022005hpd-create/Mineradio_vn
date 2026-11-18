@@ -1,3 +1,8 @@
+// Translate only FX-owned action feedback; no provider title/artist enters here.
+function showFxUiToast(message) {
+  return showToast(typeof MineradioI18n !== 'undefined' && MineradioI18n.ui
+    ? MineradioI18n.ui(message) : message);
+}
 var homeWaveTrackState = { bars: 0, smooth: [] };
 function ensureHomeWaveTrackBars() {
   var el = document.getElementById('home-wave-track');
@@ -129,7 +134,7 @@ function setLyricTextureClarity(value, silent) {
   if (!changed) return;
   if (typeof invalidateLyricQualityTextures === 'function') invalidateLyricQualityTextures('texture-clarity-change', { release: next <= 1 });
   saveLyricLayout({ user: true, reason: 'lyricTextureClarity' });
-  if (!silent) showToast('歌词清晰度: ' + lyricTextureClarityLabel(next));
+  if (!silent) showFxUiToast('歌词清晰度: ' + lyricTextureClarityLabel(next));
 }
 function updatePerformanceControls() {
   fx.performanceBackground = normalizePerformanceBackgroundMode(fx.performanceBackground, fx.liveBackgroundKeep === true);
@@ -195,7 +200,7 @@ function setPerformanceBackgroundMode(mode, silent) {
   if (next === 'keep') recoverVisualsAfterBackground('performance-background-keep');
   else if (next === 'release' && isDeepBackgroundMode()) trimRuntimeCaches('performance-release', true);
   if (!silent) {
-    showToast(next === 'keep' ? '后台策略: 保持运行' : (next === 'release' ? '后台策略: 停止并释放' : '后台策略: 自动优化'));
+    showFxUiToast(next === 'keep' ? '后台策略: 保持运行' : (next === 'release' ? '后台策略: 停止并释放' : '后台策略: 自动优化'));
   }
 }
 function setPerformanceQualityMode(mode, silent) {
@@ -206,7 +211,7 @@ function setPerformanceQualityMode(mode, silent) {
   saveLyricLayout({ user: true, reason: 'performanceQuality' });
   if (!silent) {
     var label = next === 'eco' ? '低' : (next === 'balanced' ? '中' : (next === 'ultra' ? '超高' : '高'));
-    showToast('画质档位: ' + label);
+    showFxUiToast('画质档位: ' + label);
   }
 }
 function setForegroundFpsMode(mode, silent) {
@@ -218,7 +223,7 @@ function setForegroundFpsMode(mode, silent) {
   if (typeof syncWallpaperEngineCaptureFrameRate === 'function') {
     Promise.resolve(syncWallpaperEngineCaptureFrameRate()).catch(function () { });
   }
-  if (!silent) showToast(next === 'vsync' ? '前台帧率: 跟随屏幕垂直同步' : ('前台帧率上限: ' + next + ' FPS'));
+  if (!silent) showFxUiToast(next === 'vsync' ? '前台帧率: 跟随屏幕垂直同步' : ('前台帧率上限: ' + next + ' FPS'));
 }
 function updateFxInputs() {
   normalizeDevelopmentLockedFxState();
@@ -497,7 +502,7 @@ function resetFxSliderValue(id, key, btn) {
   syncLyricRealtimeFxChange(key);
   saveLyricLayout({ syncDisk: key === 'controlGlassChromaticOffset', user: true, reason: 'reset:' + key });
   animateFxResetButton(btn);
-  showToast(MineradioI18n.source('已恢复默认数值'));
+  showFxUiToast(MineradioI18n.source('已恢复默认数值'));
 }
 function ensureFxSliderResetButton(id, key) {
   var el = document.getElementById(id);
