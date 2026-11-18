@@ -175,6 +175,8 @@ function playlistPanelCloudRemovalAction(pl, provider) {
   }
   if (provider === 'qishui' && id === 'qishui-liked' && pl.virtual === true && pl.owned === true)
     return { kind: 'unlike', endpoint: '/api/qishui/song/like' };
+  if (provider === 'kugou' && pl.likedCollection === true)
+    return { kind: 'unlike', endpoint: '/api/kugou/song/like' };
   // QQ is read-only; other Qishui/KuGou lists do not yet have verified,
   // owner-checked removal APIs, so they must not expose a destructive button.
   return null;
@@ -224,6 +226,7 @@ async function removePlaylistPanelCloudTrack(index) {
       body: JSON.stringify(payload)
     });
     if (!result || result.error || result.success === false || result.ok === false ||
+        (result.code != null && Number(result.code) !== 200) ||
         (action.kind === 'unlike' && result.liked === true))
       throw new Error(result && (result.message || result.error) || 'CLOUD_REMOVE_FAILED');
     // Only change the local view *after* cloud confirmation. If the user
