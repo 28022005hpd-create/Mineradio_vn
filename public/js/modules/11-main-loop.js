@@ -624,12 +624,13 @@ function animate() {
   tickGestureRotation(dt);
   var skullPresetActive = fx && fx.preset === SKULL_PRESET_INDEX;
   var workshopPresetActive = window.MineradioSonicWorkshop && MineradioSonicWorkshop.isActive(fx);
+  var bloomLyricPresetActive = window.MineradioBloomLyrics && MineradioBloomLyrics.isActive(fx);
   var presetUsesStarRiverParticles = fx && (Number(fx.preset) === 5 || (typeof SONIC_PRESET_INDEX !== 'undefined' && Number(fx.preset) === SONIC_PRESET_INDEX));
   var presetStarRiverMuted = presetUsesStarRiverParticles && fx.backgroundStarRiver === false;
-  particles.visible = !skullPresetActive && !workshopPresetActive && !presetStarRiverMuted;
-  if (bloomParticles) bloomParticles.visible = !skullPresetActive && !workshopPresetActive && !presetStarRiverMuted && fx.bloom && fx.bloomStrength > 0.01;
-  if (floatGroup) floatGroup.visible = !skullPresetActive && !workshopPresetActive;
-  if (backCoverGroup) backCoverGroup.visible = !skullPresetActive && !workshopPresetActive;
+  particles.visible = !skullPresetActive && !workshopPresetActive && !bloomLyricPresetActive && !presetStarRiverMuted;
+  if (bloomParticles) bloomParticles.visible = !skullPresetActive && !workshopPresetActive && !bloomLyricPresetActive && !presetStarRiverMuted && fx.bloom && fx.bloomStrength > 0.01;
+  if (floatGroup) floatGroup.visible = !skullPresetActive && !workshopPresetActive && !bloomLyricPresetActive;
+  if (backCoverGroup) backCoverGroup.visible = !skullPresetActive && !workshopPresetActive && !bloomLyricPresetActive;
   var targetRotY = orbit.centerLocked ? 0 : (headParallax.active ? headParallax.x * 0.5 : 0) + gestureRotation.y;
   var targetRotX = orbit.centerLocked ? 0 : (headParallax.active ? -headParallax.y * 0.35 : 0) + gestureRotation.x;
   particles.rotation.y += (targetRotY - particles.rotation.y) * 0.055;
@@ -672,9 +673,19 @@ function animate() {
     });
   }
   if (perfProbe && perfProbe.markSince) perfProbe.markSince('visual.sonic-workshop', sonicWorkshopPerfStart);
-  var stageLyricsPerfStart = performance.now();
+  // Original Mineradio FFT + timed LRC drive the same GPU vertices, not a UI overlay.
+  if (window.MineradioBloomLyrics) MineradioBloomLyrics.update(dt, {
+    scene: scene, camera: camera, fx: fx,
+    tier: typeof getRenderLoadTier === 'function' ? getRenderLoadTier() : 0,
+    time: uniforms.uTime.value,
+    dpr: renderer.getPixelRatio ? renderer.getPixelRatio() : 1,
+    audio: { bass: bass, mid: mid, treble: treble, beat: beatPulse, energy: audioEnergy }
+  });
+    var stageLyricsPerfStart = performance.now();
   var stageLyricsStepDt = consumeFrameGate(mainFrameGates.stageLyrics, now, dt, targetMainStageLyricsFps(now), false, 'stage-lyrics');
   if (stageLyricsStepDt > 0) updateStageLyrics3D(stageLyricsStepDt);
+  if (stageLyrics && stageLyrics.group) stageLyrics.group.visible = !bloomLyricPresetActive;
+  if (stageLyrics && stageLyrics.starRiver) stageLyrics.starRiver.visible = !bloomLyricPresetActive;
   if (perfProbe && perfProbe.markSince) perfProbe.markSince('visual.stage-lyrics', stageLyricsPerfStart);
   var desktopOverlayPerfStart = performance.now();
   var desktopOverlayStepDt = consumeFrameGate(mainFrameGates.desktopOverlay, now, dt, targetMainDesktopOverlayFps(now), false, 'desktop-overlay');

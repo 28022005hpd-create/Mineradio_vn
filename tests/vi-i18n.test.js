@@ -21,7 +21,7 @@ test('Chinese and Vietnamese are two native locale catalogs with exactly the sam
   assert.ok(keys.length >= 740, 'at least 740 curated interface messages');
   assert.deepEqual(Object.keys(catalogs['vi-VN']).sort(), keys.slice().sort());
   for (const key of keys) {
-    assert.match(key, /^(ui\.[0-9a-z]+|settings\.language(?:\.short)?)$/);
+    assert.match(key, /^(ui\.[0-9a-z]+|settings\.language(?:\.short|\.hint)?|settings\.console\.[a-z]+)$/);
     assert.ok(catalogs['zh-CN'][key]);
     assert.ok(catalogs['vi-VN'][key]);
   }
