@@ -35,6 +35,10 @@ let mainWindow = null;
 let localServer = null;
 let mainServerPort = 0;
 let desktopLyricsWindow = null;
+let compactMusicWindow = null;
+let compactMusicEnabled = false;
+let compactMusicState = { title: 'Mineradio', artist: '', lyric: '', paused: true };
+
 let desktopLyricsState = {};
 let desktopLyricsUserBounds = null;
 let desktopLyricsProgrammaticMove = false;
@@ -3987,6 +3991,110 @@ function closeOverlayWindows(reason = 'overlay-close') {
   });
 }
 
+// Compact player reuses the existing audio renderer; it never opens an audio
+// stream. Only the trusted main window can publish display data or toggle it.
+function compactMusicClose() {
+  const win = compactMusicWindow;
+  compactMusicWindow = null;
+  if (win && !win.isDestroyed()) win.close();
+}
+function compactMusicSanitizeState(value) {
+  value = value && typeof value === 'object' ? value : {};
+  const shortText = (field, length) => String(value[field] || '').slice(0, length);
+  const image = shortText('cover', 1200);
+  return {
+    title: shortText('title', 180),
+    artist: shortText('artist', 160),
+    lyric: shortText('lyric', 300),
+    translation: shortText('translation', 300),
+    cover: /^(https?:|data:image\/|blob:|file:|\/[^\/])/i.test(image) ? image : '',
+    paused: value.paused !== false,
+    time: shortText('time', 16),
+    duration: shortText('duration', 16),
+    percent: Math.max(0, Math.min(100, Number(value.percent) || 0))
+  };
+}
+function compactMusicPublish() {
+  if (compactMusicWindow && !compactMusicWindow.isDestroyed() &&
+      !compactMusicWindow.webContents.isLoading()) {
+    compactMusicWindow.webContents.send('mineradio-mini-player-state', compactMusicState);
+  }
+}
+function compactMusicOpen() {
+  if (appQuitting || !compactMusicEnabled || !mainWindow || mainWindow.isDestroyed()) return null;
+  if (compactMusicWindow && !compactMusicWindow.isDestroyed()) {
+    compactMusicPublish();
+    return compactMusicWindow;
+  }
+  const display = screen.getDisplayMatching(mainWindow.getBounds());
+  const available = display.workArea;
+  compactMusicWindow = new BrowserWindow({
+    width: 340, height: 106, minWidth: 310, minHeight: 96,
+    x: available.x + Math.max(0, available.width - 360),
+    y: available.y + Math.max(0, available.height - 130),
+    resizable: true, movable: true, frame: false, transparent: true,
+    backgroundColor: '#00000000', hasShadow: true, show: false,
+    skipTaskbar: true, alwaysOnTop: true, title: 'Mineradio Mini',
+    webPreferences: {
+      preload: path.join(__dirname, 'mini-player-preload.js'),
+      contextIsolation: true, nodeIntegration: false, sandbox: false,
+      backgroundThrottling: false,
+    }
+  });
+  const win = compactMusicWindow;
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event, url) => {
+    if (url === overlayUrl('mini-player.html')) return;
+    event.preventDefault();
+  });
+  win.on('closed', () => { if (compactMusicWindow === win) compactMusicWindow = null; });
+  win.once('ready-to-show', () => {
+    if (!win.isDestroyed() && compactMusicWindow === win) win.showInactive();
+  });
+  win.webContents.once('did-finish-load', () => {
+    if (compactMusicWindow === win) {
+      win.showInactive();
+      compactMusicPublish();
+    }
+  });
+  win.loadURL(overlayUrl('mini-player.html')).catch(error => {
+    console.warn('[MiniPlayer] compact window load failed:', error.message);
+    if (!win.isDestroyed()) win.close();
+  });
+  return win;
+}
+ipcMain.handle('mineradio-mini-player-set-enabled', (event, enabled) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents) return { ok: false };
+  compactMusicEnabled = enabled === true;
+  if (!compactMusicEnabled) compactMusicClose();
+  else if (mainWindow.isMinimized()) compactMusicOpen();
+  return { ok: true, enabled: compactMusicEnabled };
+});
+ipcMain.on('mineradio-mini-player-state', (event, value) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents || !compactMusicEnabled) return;
+  compactMusicState = compactMusicSanitizeState(value);
+  compactMusicPublish();
+});
+ipcMain.on('mineradio-mini-player-ready', event => {
+  if (compactMusicWindow && event.sender === compactMusicWindow.webContents) compactMusicPublish();
+});
+ipcMain.on('mineradio-mini-player-command', (event, command) => {
+  if (!compactMusicWindow || event.sender !== compactMusicWindow.webContents) return;
+  if (!['toggle', 'previous', 'next', 'restore', 'mv'].includes(command)) return;
+  if (command === 'restore' || command === 'mv') {
+    compactMusicClose();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      clearMainWindowMinimizeIntent(mainWindow);
+      showMainWindowSafely(mainWindow, 'compact-music-restore');
+      mainWindow.focus();
+      if (command === 'mv') mainWindow.webContents.send('mineradio-mini-player-command', 'mv');
+    }
+    return;
+  }
+  if (mainWindow && !mainWindow.isDestroyed())
+    mainWindow.webContents.send('mineradio-mini-player-command', command);
+});
+
 ipcMain.handle('desktop-window-minimize', async (event) => {
   const win = getSenderWindow(event);
   if (win === mainWindow && fullDesktopModeRuntime.getStatus('window-minimize').enabled === true) {
@@ -5840,6 +5948,7 @@ async function createWindowOnce() {
       windowMinimizeReason: minimizeIntent.reason || 'unexpected',
     });
     sendWindowState(win);
+    if (minimizeIntent.intentional && compactMusicEnabled) compactMusicOpen();
     if (fullDesktopModeHostVisibilityTransitionDepth <= 0) suspendWallpaperEngineForHiddenHost(win, 'minimize');
     if (minimizeIntent.intentional) {
       scheduleAppMemoryTrim('minimize', 1600);
@@ -5852,6 +5961,7 @@ async function createWindowOnce() {
     }, MAIN_WINDOW_MINIMIZE_RECOVERY_DELAY_MS);
   });
   win.on('restore', () => {
+    compactMusicClose();
     if (mainWindowMinimizeRecoveryTimer) clearTimeout(mainWindowMinimizeRecoveryTimer);
     mainWindowMinimizeRecoveryTimer = null;
     clearMainWindowMinimizeIntent(win);
