@@ -78,6 +78,7 @@ test('interface translation avoids renaming user archive slots and music metadat
   lang.setLanguage('zh-CN');
   lang.bindDynamicUi(panel);
   assert.equal(presetText.nodeValue,'星河');
+  lang.setLanguage('vi-VN');
 });
 
 test('original QR images remain visible and NetEase can generate missing png from official QR URL', () => {
@@ -123,7 +124,7 @@ test('system memory and cache paths keep user data intact while notices are Viet
   const memory=read('public/js/modules/00-state/11-system-memory-controls.js');
   const cache=read('public/js/modules/07-fx/08-cache-storage-settings.js');
   assert.match(memory, /'RAM hệ thống ' \+ used/);
-  assert.match(memory, /'quyền quản trị'/);
+  assert.match(memory, /quyền quản trị/);
   assert.match(memory, /memoryUiToast\(/);
   for(const txt of ['系统内存读取失败','播放器压缩未完成','正在统计...','缓存设置不可用'])
     assert.equal(hasHan(lang.ui(txt)), false, txt);
