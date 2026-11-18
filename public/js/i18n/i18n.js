@@ -82,6 +82,7 @@
   // Localize only known interface copy; never translate titles, artists, lyrics
   // or provider-returned account names. Dynamic components opt in explicitly.
   const dynamicUiStrings = Object.freeze({
+  "QQ 音乐登录已失效": "Phiên đăng nhập QQ Music đã hết hạn",
   "常用": "Thông dụng",
   "界面": "Giao diện",
   "歌词": "Lời bài hát",
