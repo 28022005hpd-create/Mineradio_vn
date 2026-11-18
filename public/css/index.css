@@ -18901,3 +18901,45 @@ html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
   html[lang="vi-VN"] :is(#fx-panel,#login-modal,#playlist-panel)
     :is(.fx-tabs,.panel-tabs,.login-platform-tabs) { flex-wrap: wrap; }
 }
+
+
+/* Mineradio VN design-quality pass: keyboard focus and calmer panels. */
+/* Taste Skill: keep one visual hierarchy; Hallmark: visible focus and motion
+   fallbacks; Unslop: preserve the existing music stage as the focal point.
+   These rules touch only interface chrome, never lyric particles/Three.js. */
+html[lang="vi-VN"] :is(
+  #fx-panel, #playlist-panel, #login-modal, #user-modal,
+  #track-detail-modal, #wallpaper-engine-modal, #custom-lyric-modal,
+  #local-beat-modal, #update-modal, #desktop-mode-control-panel
+) :is(button, [role="button"], [role="tab"], input, select, textarea):focus-visible {
+  outline: 2px solid var(--fc-accent, #9ddfff);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(9, 16, 24, .72);
+}
+/* A translated instruction may be longer than its Mandarin counterpart. */
+html[lang="vi-VN"] :is(
+  #fx-panel, #playlist-panel, #login-modal, #user-modal,
+  #track-detail-modal, #wallpaper-engine-modal, #custom-lyric-modal,
+  #local-beat-modal, #update-modal, #desktop-mode-control-panel
+) :is(.panel-tab, .fx-tab, .modal-actions, .login-auth-actions, .queue-chip) {
+  min-width: 0;
+  max-width: 100%;
+}
+html[lang="vi-VN"] :is(
+  #fx-panel, #playlist-panel, #login-modal, #user-modal,
+  #track-detail-modal, #wallpaper-engine-modal, #custom-lyric-modal,
+  #local-beat-modal, #update-modal, #desktop-mode-control-panel
+) :is(button, [role="button"], [role="tab"]) {
+  overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[lang="vi-VN"] :is(
+    #fx-panel, #playlist-panel, #login-modal, #user-modal,
+    #track-detail-modal, #wallpaper-engine-modal, #custom-lyric-modal,
+    #local-beat-modal, #update-modal, #desktop-mode-control-panel
+  ) :is(button, [role="button"], [role="tab"], .modal, .panel-tab, .fx-tab) {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
