@@ -101,3 +101,15 @@ Quyền riêng tư: Khi bật dịch ở chế độ tiếng Việt, văn bản 
 hay dữ liệu âm thanh. Người dùng có thể tắt chế độ dịch để tránh việc gửi lời.
 
 Kiểm tra bằng: node --test tests/vi-lyrics-translation.test.js
+
+## Bổ sung: nội dung tiếng Việt và lời dịch đồng bộ
+
+- Bản hiển thị mặc định (trình phát, khởi động, lời trên desktop) được đánh dấu `vi-VN`. Các văn bản placeholder tĩnh trước đây còn tiếng Trung đã chuyển sang tiếng Việt. Chuỗi `data-i18n` vẫn được giữ để cho phép đổi locale mà không tải lại bài hát.
+- Trạng thái đăng nhập QR và bảng tài khoản được Việt hóa ngay khi nội dung được cập nhật, không dịch tên người dùng. Tên bài, nghệ sĩ, playlist nhập từ dịch vụ hoặc dữ liệu người dùng vẫn giữ nguyên.
+- Ở chế độ tiếng Việt và bật **Dịch song ngữ**, mỗi dòng lời gốc có mốc thời gian thật được ghép với dòng dịch máy tiếng Việt bằng cùng thời điểm `t`. Bài hát dài được dịch theo từng lô (tối đa 90 dòng/lô) để không mất lời sau dòng 180. Ứng dụng hiển thị dần bản dịch mà không thay đổi karaoke gốc hay đồng bộ phát nhạc.
+- Nếu dịch vụ không phản hồi, vẫn giữ lời gốc; bản dịch không được giả lập. Tính năng này sử dụng dịch vụ dịch trực tuyến không chính thức, nên phụ thuộc kết nối và có thể sai về ngữ nghĩa.
+- CSS tiếng Việt cho phép nhãn dài tự xuống dòng và giới hạn chiều rộng panel; tên bài và nghệ sĩ quá dài được thu gọn bằng dấu ba chấm thay vì sửa nội dung.
+
+**Hồi quy:** `node --test tests/vi-full-lyrics-and-layout.test.js`. Bài kiểm tra xác nhận bài 235 dòng được xử lý qua 3 yêu cầu, đúng thời gian và không thay đổi metadata/lyric gốc. CI còn kiểm tra JavaScript và hồi quy của Mineradio.
+
+**Giới hạn:** chưa xác thực mọi hộp thoại, mọi thiết bị Windows, mọi kích thước màn hình và lời dịch của mọi nguồn nhạc bằng thao tác thực tế. Không khẳng định 100% mọi thông báo runtime mới từ nhà cung cấp đều có bản dịch nếu chưa được đưa vào danh mục i18n.
