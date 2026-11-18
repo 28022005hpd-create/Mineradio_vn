@@ -6168,12 +6168,13 @@ const server = http.createServer(async (req, res) => {
       }
       const r = await login_qr_create({ key, qrimg: true, timestamp: Date.now() });
       const d = r.body && r.body.data || {};
-      const qrurl = typeof d.qrurl === 'string' ? d.qrurl : '';
+      // The QR login address is a documented official NetEase URL. Prefer
+      // the API result, but fall back to the key when qrimg/qrurl are omitted.
+      const apiUrl = typeof d.qrurl === 'string' ? d.qrurl : '';
+      const qrurl = /^https:\/\/music\.163\.com\/login\?codekey=/i.test(apiUrl)
+        ? apiUrl : 'https://music.163.com/login?codekey=' + encodeURIComponent(key);
       let qrimg = typeof d.qrimg === 'string' ? d.qrimg : '';
-      // NeteaseCloudMusicApi can return only qrurl when its upstream image
-      // endpoint is blocked. The official URL can be encoded locally.
-      if (!qrimg && qrurl && qrurl.length <= 2048 &&
-          /^(https?:\/\/|orpheus:\/\/)/i.test(qrurl)) {
+      if (!qrimg) {
         qrimg = await QRCode.toDataURL(qrurl, { width: 256, margin: 2,
           errorCorrectionLevel: 'M' });
       }
