@@ -962,7 +962,7 @@
         // lyric, playlist, account, and user-generated content nodes.
         if (node.hasAttribute && (node.hasAttribute('data-song-id') ||
             node.hasAttribute('data-playlist-title') || node.hasAttribute('data-podcast-title'))) return;
-        if (/(?:^|\s)(?:song-name|song-artist|song-title|qi-name|qi-artist|mini-queue-name|mini-queue-sub|pl-name|pl-sub|detail-song-title|detail-artist|detail-title|detail-value|artist-song-name|artist-song-meta|comment-text|comment-meta|home-next-title|home-today-artist|home-listen-value|home-platform-recommend-copy|lyric-text|lyrics-line|user-name|track-title|track-artist|user-archive-name|user-archive-input|custom-preset-name)(?:\s|$)/.test(String(node.className || ''))) return;
+        if (/(?:^|\s)(?:song-name|song-artist|song-title|qi-name|qi-artist|mini-queue-name|mini-queue-sub|pl-name|pl-sub|detail-song-title|detail-artist|detail-title|detail-value|artist-song-name|artist-song-meta|comment-text|comment-meta|comment-vi-translation|home-next-title|home-today-artist|home-listen-value|home-platform-recommend-copy|lyric-text|lyrics-line|user-name|track-title|track-artist|user-archive-name|user-archive-input|custom-preset-name)(?:\s|$)/.test(String(node.className || ''))) return;
         if (node.hasAttribute && node.hasAttribute('data-i18n') && !(node.childElementCount > 0)) return;
         bindUiAttributes(node);
       }
