@@ -3,7 +3,9 @@
 // translated. A long song is sent in bounded batches rather than truncating at
 // 180 lines. No song metadata is passed to the translator.
 var viLyricTranslationCache = new Map();
-var viLyricTranslationPending = new Set();
+var viLyricTranslationPending = new Map(); // state key -> track-switch token
+var viLyricTranslationRetries = new Map();
+var viLyricTranslationRetryTimers = new Map();
 var viLyricTranslationMisses = new Map();
 var viLyricTranslationFinished = new Set();
 
@@ -11,12 +13,11 @@ function viLyricTranslationLocale() {
   return window.MineradioI18n ? window.MineradioI18n.locale : 'zh-CN';
 }
 function viLyricTranslationKey(state) {
-  var song = typeof currentLyricSong === 'function' ? currentLyricSong() : null;
-  var identity = song && [
-    song.provider || song.source || '', song.id || song.mid || song.hash || '',
-    song.name || song.title || ''
-  ].join(':') || '';
-  return identity + '|' + (state.lines || []).map(function (line) {
+  // Only lyric text/timing define translation identity. On first playback the
+  // song may be hydrated/replaced after fetching lyrics. Coupling the key to
+  // mutable queue metadata silently cancelled the translation until replay.
+  // Track-switch token separately prevents old results reaching the next song.
+  return (state.lines || []).map(function (line) {
     return Math.round((Number(line.t) || 0) * 1000) + ':' + String(line.text || '');
   }).join('\u001e');
 }
@@ -27,7 +28,10 @@ function viLyricTranslatable(line) {
 function viLyricTranslationBatches(items) {
   var batches = [], current = [], charCount = 0;
   items.forEach(function (item) {
-    if (current.length >= 90 || (charCount + item.text.length > 9000 && current.length)) {
+    // The opening 24 lyric lines arrive in small, fast batches. Longer bulk
+    // batches continue concurrently and progressively fill the whole song.
+    var cap = batches.length < 2 ? 12 : 60;
+    if (current.length >= cap || (charCount + item.text.length > 9000 && current.length)) {
       batches.push(current);
       current = [];
       charCount = 0;
@@ -51,28 +55,54 @@ function viLyricTranslationStore(key, mapped) {
     viLyricTranslationCache.delete(oldest);
     viLyricTranslationFinished.delete(oldest);
     viLyricTranslationMisses.delete(oldest);
+    viLyricTranslationRetries.delete(oldest);
+    var timer = viLyricTranslationRetryTimers.get(oldest);
+    if (timer) clearTimeout(timer);
+    viLyricTranslationRetryTimers.delete(oldest);
   }
 }
+function viLyricTranslationScheduleRetry(key, token) {
+  if (!viLyricTranslationCurrent(key, token)) return;
+  var count = viLyricTranslationRetries.get(key) || 0;
+  if (count >= 3) {
+    viLyricTranslationMisses.set(key, Date.now());
+    return;
+  }
+  if (viLyricTranslationRetryTimers.has(key)) return;
+  viLyricTranslationRetries.set(key, count + 1);
+  // Retry transient translator outages without forcing the listener to
+  // reselect the song. All successful batches are retained.
+  var waitMs = [1400, 3000, 6000][count];
+  var id = setTimeout(function () {
+    viLyricTranslationRetryTimers.delete(key);
+    if (viLyricTranslationCurrent(key, token)) {
+      viLyricRequestTranslation(key, originalLyricsState);
+    }
+  }, waitMs);
+  viLyricTranslationRetryTimers.set(key, id);
+}
 function viLyricRequestTranslation(key, state) {
-  if (viLyricTranslationPending.has(key) || viLyricTranslationFinished.has(key)) return;
+  var token = trackSwitchToken;
+  if (viLyricTranslationPending.get(key) === token || viLyricTranslationFinished.has(key)) return;
   var failedAt = viLyricTranslationMisses.get(key) || 0;
   if (failedAt && Date.now() - failedAt < 60000) return;
+  var mapped = Object.assign({}, viLyricTranslationCache.get(key) || {});
   var items = [];
   (state.lines || []).forEach(function (line, index) {
-    if (viLyricTranslatable(line)) {
+    if (viLyricTranslatable(line) && !mapped[index]) {
       items.push({ index: index, text: String(line.text).slice(0, 300) });
     }
   });
   if (!items.length) {
     viLyricTranslationFinished.add(key);
+    viLyricTranslationRetries.delete(key);
     return;
   }
   var batches = viLyricTranslationBatches(items);
-  var token = trackSwitchToken;
-  var mapped = Object.assign({}, viLyricTranslationCache.get(key) || {});
   var anyFailure = false;
   var nextBatch = 0;
-  viLyricTranslationPending.add(key);
+  var completedBatches = 0;
+  viLyricTranslationPending.set(key, token);
   function worker() {
     return Promise.resolve().then(async function () {
       while (nextBatch < batches.length) {
@@ -101,6 +131,7 @@ function viLyricRequestTranslation(key, state) {
               }
             }
           });
+          completedBatches += 1;
           if (changed) {
             viLyricTranslationStore(key, Object.assign({}, mapped));
             // Render at most once per batch: one underlying timing timeline for
@@ -116,15 +147,20 @@ function viLyricRequestTranslation(key, state) {
     });
   }
   Promise.all([worker(), worker()]).then(function () {
-    if (anyFailure) viLyricTranslationMisses.set(key, Date.now());
-    else {
+    if (!viLyricTranslationCurrent(key, token)) return;
+    if (!anyFailure && completedBatches === batches.length) {
       viLyricTranslationFinished.add(key);
       viLyricTranslationMisses.delete(key);
+      viLyricTranslationRetries.delete(key);
+    } else {
+      viLyricTranslationScheduleRetry(key, token);
     }
   }).catch(function () {
-    viLyricTranslationMisses.set(key, Date.now());
+    if (viLyricTranslationCurrent(key, token)) viLyricTranslationScheduleRetry(key, token);
   }).finally(function () {
-    viLyricTranslationPending.delete(key);
+    // A previous song's late request must not clear a fresh song's pending
+    // task even if they share exactly the same timed lyric lines.
+    if (viLyricTranslationPending.get(key) === token) viLyricTranslationPending.delete(key);
   });
 }
 function preferredLocalizedLyricsForDisplay(original) {
