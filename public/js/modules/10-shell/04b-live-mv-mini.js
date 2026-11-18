@@ -205,13 +205,17 @@ function liveMvUpdateMobileMediaSession(state) {
   if(!liveMvMediaSessionBound) {
     liveMvMediaSessionBound=true;
     for(var pair of [
-      ['play','toggle'], ['pause','toggle'],
+      ['play','play'], ['pause','pause'],
       ['nexttrack','next'], ['previoustrack','previous']
     ]) {
       try {
         (function (action,cmd) {
           navigator.mediaSession.setActionHandler(action,function(){
-            liveMvHandleMiniCommand(cmd);
+            if (cmd === 'play') {
+              if (audio && audio.paused && typeof togglePlay === 'function') togglePlay();
+            } else if (cmd === 'pause') {
+              if (audio && !audio.paused && typeof togglePlay === 'function') togglePlay();
+            } else liveMvHandleMiniCommand(cmd);
           });
         })(pair[0],pair[1]);
       } catch (_) { /* Not supported by this mobile browser. */ }
