@@ -3,6 +3,7 @@ function hasUsableLyricLines(lines) {
     return line && !line.fallback && !isNoLyricText(line.text);
   });
 }
+var lastLyricDataSource = '';
 var lyricTranslationFallbackCache = {};
 var lyricTranslationFallbackMissCache = {};
 var lyricQueuePrefetchTimer = 0;
@@ -119,6 +120,7 @@ function applyFetchedLyricResponse(song, token, response, options) {
   options = options || {};
   if (token !== trackSwitchToken) return null;
   var mergedResponse = mergeInlineLyricResponseForSong(song, response || {});
+  lastLyricDataSource = String(mergedResponse.source || '');
   cancelPendingTrackFallbackLyrics();
   var state = parseLyricResponseToOriginalState(song, mergedResponse);
   setOriginalLyricsState(state.lines, state.hasNativeKaraoke, state.timingSource, state.translationLines, state.translationSource);
@@ -311,6 +313,7 @@ function cancelPendingTrackFallbackLyrics() {
   }
 }
 function resetLyricsForTrackSwitch() {
+  lastLyricDataSource = '';
   cancelPendingTrackFallbackLyrics();
   setOriginalLyricsState([], false, 'pending', [], 'none');
   lyricsHasNativeKaraoke = false;
