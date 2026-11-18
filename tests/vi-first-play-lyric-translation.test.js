@@ -68,7 +68,8 @@ test('hydrating current track metadata after fetching lyrics does not cancel fir
   let resolveRequest;
   const pending=new Promise(resolve=>{resolveRequest=resolve;});
   const {ctx,song,calls}=makePlayer({fetch:()=>pending});
-  ctx.originalLyricsState=originalLines(8);
+  // One five-line request isolates metadata hydration from parallel batching.
+  ctx.originalLyricsState=originalLines(4);
   ctx.preferredLocalizedLyricsForDisplay(ctx.originalLyricsState);
   await flushTicks(3);
   assert.equal(calls.length,1);
@@ -77,7 +78,7 @@ test('hydrating current track metadata after fetching lyrics does not cancel fir
     translations:calls[0].lines.map(x=>'Tiếng Việt: '+x)};}});
   await flushTicks();
   const translated=ctx.preferredLocalizedLyricsForDisplay(ctx.originalLyricsState);
-  assert.equal(translated.translationLines.length,8,
+  assert.equal(translated.translationLines.length,4,
     'The first playback should not require re-opening a song with updated metadata');
 });
 test('network failure automatically retries the current track, retaining successful batches',async () => {
