@@ -217,6 +217,7 @@ function selectLoginProviderNode(provider) {
     return;
   }
   provider = normalizeLoginProviderKey(provider);
+  setManualCookieOpenForProvider(provider, false); // Default to QR/web on provider selection.
   setLoginProvider(provider, true);
   // Provider selection is enough; the MR connector animation is optional.
   setLoginAuthDrawerOpen(true);
@@ -602,6 +603,7 @@ async function confirmCookieExportPrompt() {
 async function showLoginModal(opts) {
   opts = opts || {};
   loginProvider = opts.provider ? normalizeLoginProviderKey(opts.provider) : 'netease';
+  setManualCookieOpenForProvider(loginProvider, false); // Restore official QR/web on reopen.
   var modal = document.getElementById('login-modal');
   // Resolve the native login state before presenting the modal. The vi-VN
   // release bypasses the wish gate; do not flash the locked screen on startup.
