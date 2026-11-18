@@ -79,3 +79,20 @@ test('QR and login status have Vietnamese alternatives and keep metadata untouch
   assert.match(src, /Mở trang đăng nhập/);
   assert.doesNotMatch(src, /track\.title\s*=/);
 });
+
+test('explicit native web login does not silently reuse stale NetEase or QQ cookies', () => {
+  const desktop = fs.readFileSync(path.join(root, 'desktop/main.js'), 'utf8');
+  const preload = fs.readFileSync(path.join(root, 'desktop/preload.js'), 'utf8');
+  const netease = desktop.slice(desktop.indexOf('async function openNeteaseMusicLoginWindow('),
+    desktop.indexOf('async function openQQMusicLoginWindow('));
+  assert.match(netease, /options\.forceReauth === true/);
+  assert.ok(netease.indexOf('clearStorageData') < netease.indexOf('const initialCookie'),
+    'Fresh reauthentication must clear stale browsing cookies before reuse checks');
+  assert.match(netease, /visibilityTimer = setTimeout\(presentLoginWindow/);
+  const qq = desktop.slice(desktop.indexOf('async function openQQMusicLoginWindow('),
+    desktop.indexOf('async function clearQQMusicLoginSession('));
+  assert.match(qq, /qqCookieHasPlaybackLogin\(initialCookie\) && !options\.forceReauth/);
+  assert.match(preload, /openNeteaseMusicLogin: \(options\) => ipcRenderer\.invoke\('netease-music-open-login', options \|\| \{\}\)/);
+  assert.match(src, /openNeteaseMusicLogin\(\{ forceReauth: true \}\)/);
+  assert.match(src, /forceReauth: !qqLoginStatus\.loggedIn/);
+});
