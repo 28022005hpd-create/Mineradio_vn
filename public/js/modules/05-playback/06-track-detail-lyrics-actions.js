@@ -274,7 +274,7 @@ function detailCommentVietnameseEnabled() {
   return typeof MineradioI18n !== 'undefined' && MineradioI18n.locale === 'vi-VN';
 }
 function detailCommentTranslationKey(text) {
-  return String(text || '').trim().slice(0, 600);
+  return String(text || '').trim().slice(0, 1800);
 }
 function commentTimeLabel(ms) {
   var t = Number(ms) || 0;
@@ -284,6 +284,9 @@ function commentTimeLabel(ms) {
       { month: 'short', day: 'numeric' });
   } catch (e) { return ''; }
 }
+function detailCommentNeedsTranslation(text) {
+  return String(text || '').trim().length >= 3 && /[\\p{L}]/u.test(String(text || ''));
+}
 function renderDetailComments(comments) {
   if (!comments || !comments.length) return '<div class="detail-empty">' +
     (detailCommentVietnameseEnabled() ? 'Chưa có bình luận' : '暂无评论') + '</div>';
@@ -291,8 +294,10 @@ function renderDetailComments(comments) {
     var user = c.user || {};
     var avatar = user.avatar ? coverUrlWithSize(user.avatar, 64) : '';
     var sourceText = String(c.content || '');
-    var translated = detailCommentVietnameseEnabled()
-      ? detailCommentTranslationCache.get(detailCommentTranslationKey(sourceText)) : '';
+    var key = detailCommentTranslationKey(sourceText);
+    var enabled = detailCommentVietnameseEnabled();
+    var translated = enabled ? detailCommentTranslationCache.get(key) : '';
+    var pending = enabled && detailCommentNeedsTranslation(key) && !detailCommentTranslationCache.has(key);
     return '<div class="comment-item">' +
       (avatar ? '<img class="comment-avatar" src="' + avatar + '" alt="">' : '<div class="comment-avatar"></div>') +
       '<div class="comment-main"><div class="comment-meta">' + escHtml(user.nickname ||
@@ -303,56 +308,105 @@ function renderDetailComments(comments) {
       (translated && translated !== sourceText
         ? '<div class="comment-vi-translation" lang="vi"><span class="comment-vi-label">Bản dịch tiếng Việt</span>' +
           escHtml(translated) + '</div>'
-        : '<div class="comment-vi-translation" data-comment-vi="' + index + '" hidden></div>') +
+        : '<div class="comment-vi-translation" data-comment-vi="' + index + '"' +
+            (pending ? ' data-comment-state="pending" aria-live="polite">Đang dịch bình luận…</div>'
+              : ' hidden></div>')) +
       '</div></div>';
   }).join('') + '</div>';
 }
 // Translate community-authored comments separately from artist/title metadata.
 // Never overwrite the original, keep the translated line visually distinct.
+// Provider reviews often exceed the <=300-character lyrics-translation limit.
+// Split on words or punctuation, never send overlong comments as one payload.
+// A failing review cannot suppress translations of the other reviews.
+function detailCommentTranslationSegments(source) {
+  var input = detailCommentTranslationKey(source);
+  var chunks = [];
+  while (input && chunks.length < 9) {
+    if (input.length <= 250) { chunks.push(input); break; }
+    var limit = 250;
+    var boundary = -1;
+    for (var i = 100; i <= limit; i++) {
+      if (/[\\s，。！？；,.!?;:]/.test(input.charAt(i))) boundary = i + 1;
+    }
+    var take = boundary >= 100 ? boundary : limit;
+    chunks.push(input.slice(0, take).trim());
+    input = input.slice(take).trim();
+  }
+  return chunks.filter(Boolean);
+}
+async function requestVietnameseCommentTranslation(source) {
+  var chunks = detailCommentTranslationSegments(source);
+  if (!chunks.length) return '';
+  var response = await fetch('/api/lyrics/translate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ locale: 'vi-VN', lines: chunks })
+  });
+  if (!response.ok) throw new Error('COMMENTS_TRANSLATION_HTTP_' + response.status);
+  var payload = await response.json();
+  var translated = payload && payload.translations;
+  if (!Array.isArray(translated) || translated.length !== chunks.length) return '';
+  var pieces = translated.map(function (part) { return String(part || '').trim(); });
+  return pieces.every(Boolean) ? pieces.join(' ').trim() : '';
+}
+function showTranslatedDetailComment(index, vi, status) {
+  var target = document.querySelector('#song-comments [data-comment-vi="' + index + '"]');
+  if (!target) return;
+  if (!vi && status !== 'failure') { target.hidden = true; return; }
+  target.hidden = false;
+  target.textContent = '';
+  target.removeAttribute('data-comment-state');
+  if (status === 'failure') {
+    target.classList.add('comment-vi-unavailable');
+    target.textContent = 'Chưa thể dịch bình luận này (có thể dịch vụ đang gián đoạn).';
+    return;
+  }
+  target.classList.remove('comment-vi-unavailable');
+  target.removeAttribute('data-comment-vi');
+  var label = document.createElement('span');
+  label.className = 'comment-vi-label';
+  label.textContent = 'Bản dịch tiếng Việt';
+  target.appendChild(label);
+  target.appendChild(document.createTextNode(vi));
+}
 async function translateDetailCommentsToVietnamese(comments, seq) {
   if (!detailCommentVietnameseEnabled() || !Array.isArray(comments)) return;
   var missing = comments.map(function (c, index) {
-    var text = detailCommentTranslationKey(c.content);
-    return { index: index, text: text };
+    return { index: index, text: detailCommentTranslationKey(c.content) };
   }).filter(function (item) {
-    // English and other-language comments need translation too. Vietnamese
-    // originals are harmless: the translator returns the unchanged string.
-    return item.text.length >= 3 && /[\p{L}]/u.test(item.text) &&
-      !detailCommentTranslationCache.has(item.text);
+    return detailCommentNeedsTranslation(item.text) && !detailCommentTranslationCache.has(item.text);
   });
-  for (var pos = 0; pos < missing.length; pos += 6) {
-    if (seq !== trackDetailSeq || !detailCommentVietnameseEnabled()) return;
-    var batch = missing.slice(pos, pos + 6);
-    try {
-      var response = await fetch('/api/lyrics/translate', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ locale:'vi-VN', lines: batch.map(function (c) { return c.text; }) })
-      });
-      if (!response.ok) break;
-      var result = await response.json();
+  var cursor = 0;
+  async function translateWorker() {
+    while (cursor < missing.length) {
       if (seq !== trackDetailSeq || !detailCommentVietnameseEnabled()) return;
-      var translations = Array.isArray(result.translations) ? result.translations : [];
-      batch.forEach(function (item, i) {
-        var vi = String(translations[i] || '').trim();
-        if (!vi || vi === item.text || /[\u3400-\u9fff]/.test(vi) && !/[A-Za-zÀ-ỹ]/.test(vi)) return;
-        detailCommentTranslationCache.set(item.text, vi);
-        var target = document.querySelector('#song-comments [data-comment-vi="' + item.index + '"]');
-        if (target) {
-          target.hidden = false;
-          target.removeAttribute('data-comment-vi');
-          var label = document.createElement('span');
-          label.className = 'comment-vi-label';
-          label.textContent = 'Bản dịch tiếng Việt';
-          target.appendChild(label);
-          target.appendChild(document.createTextNode(vi));
+      var item = missing[cursor++];
+      try {
+        var vi = await requestVietnameseCommentTranslation(item.text);
+        if (seq !== trackDetailSeq || !detailCommentVietnameseEnabled()) return;
+        // Identical text is usually already Vietnamese, not an error.
+        if (vi && vi !== item.text && !(/[\\u3400-\\u9fff]/.test(vi) && !/[A-Za-zÀ-ỹ]/.test(vi))) {
+          detailCommentTranslationCache.set(item.text, vi);
+          showTranslatedDetailComment(item.index, vi, 'translated');
+        } else if (vi) {
+          detailCommentTranslationCache.set(item.text, item.text);
+          showTranslatedDetailComment(item.index, '', 'same');
+        } else {
+          showTranslatedDetailComment(item.index, '', 'failure');
         }
-      });
-      if (detailCommentTranslationCache.size > 1000) detailCommentTranslationCache.clear();
-    } catch (e) {
-      console.warn('[CommentTranslation]', e && e.message);
-      break;
+        if (detailCommentTranslationCache.size > 1200) {
+          detailCommentTranslationCache.delete(detailCommentTranslationCache.keys().next().value);
+        }
+      } catch (error) {
+        if (seq !== trackDetailSeq || !detailCommentVietnameseEnabled()) return;
+        console.warn('[CommentTranslation]', error && error.message || error);
+        showTranslatedDetailComment(item.index, '', 'failure');
+      }
     }
   }
+  // Small bounded pool: faster than sequential batches, but gentle on the
+  // third-party service and independent of lyric rendering/audio playback.
+  await Promise.all(Array.from({ length: Math.min(3, missing.length) }, translateWorker));
 }
 function detailCommentsConfig(song) {
   var provider = songProviderKey(song);
@@ -498,6 +552,7 @@ function bindTrackDetailScrollers() {
   if (body) body.querySelectorAll('.detail-scroll').forEach(bindSmoothWheelScroll);
 }
 function closeTrackDetailModal() {
+  ++trackDetailSeq; // Cancel asynchronous comment translations after closing.
   closeGsapModal(document.getElementById('track-detail-modal'), function () {
     detailCommentSong = null;
     detailCommentSubmitBusy = false;
