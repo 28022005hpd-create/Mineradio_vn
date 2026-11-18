@@ -359,7 +359,7 @@ function detailCommentsConfig(song) {
     var qqMid = song.mid || song.songmid || song.id || '';
     return {
       provider: 'qq',
-      title: 'QQ 音乐评论',
+      title: detailCommentVietnameseEnabled() ? 'Bình luận QQ Music' : 'QQ 音乐评论',
       readUrl: '/api/qq/song/comments?id=' + encodeURIComponent(qqId) + '&mid=' + encodeURIComponent(qqMid) + '&limit=18',
       writeUrl: '',
       canWrite: false,
@@ -369,7 +369,7 @@ function detailCommentsConfig(song) {
     var qishuiId = song.providerSongId || song.trackId || song.id || '';
     return qishuiId ? {
       provider: 'qishui',
-      title: '汽水音乐评论',
+      title: detailCommentVietnameseEnabled() ? 'Bình luận Qishui Music' : '汽水音乐评论',
       readUrl: '/api/qishui/song/comments?id=' + encodeURIComponent(qishuiId) + '&limit=18',
       writeUrl: '/api/qishui/song/comments?id=' + encodeURIComponent(qishuiId),
       canWrite: true,
@@ -379,7 +379,7 @@ function detailCommentsConfig(song) {
   if (provider === 'netease' && song.id) {
     return {
       provider: 'netease',
-      title: '网易云评论',
+      title: detailCommentVietnameseEnabled() ? 'Bình luận NetEase Cloud Music' : '网易云评论',
       readUrl: '/api/song/comments?id=' + encodeURIComponent(song.id) + '&limit=18',
       writeUrl: '/api/song/comments?id=' + encodeURIComponent(song.id),
       canWrite: true,
@@ -674,7 +674,9 @@ function openTrackDetailModal(type, songOverride) {
       detailRow('专辑', song.album || (song.type === 'podcast' ? (song.radioName || 'Podcast') : '未知')) +
       detailRow('时长', songDurationLabel(song)) +
       detailRow('来源', songSourceLabel(song)) +
-      detailRow('歌词源', lyricSourceMode === 'custom' ? '自定义歌词' : (lyricsTimingSource === 'fallback' ? '占位歌词' : '原词')) +
+      detailRow('歌词源', lyricSourceMode === 'custom' ? '自定义歌词' :
+        (lastLyricDataSource === 'lrclib-synced' ? 'LRCLIB · lời hát đồng bộ' :
+        (lyricsTimingSource === 'fallback' ? 'Chưa tìm được lời hát' : '原词'))) +
       '</div>' +
       '<div class="detail-chip-row">' +
       '<span class="detail-chip">' + escHtml(songSourceLabel(song)) + '</span>' +
