@@ -69,7 +69,7 @@ test('the responsive compact player commands call the single existing audio engi
   ctx.liveMvHandleMiniCommand('previous');
   ctx.liveMvHandleMiniCommand('unsupported');
   assert.deepEqual(calls,['toggle','next','previous']);
-  assert.doesNotMatch(source,/new Audio\(|\\.play\\(\s*new Audio/);
+  assert.doesNotMatch(source,/new Audio\(|\.play\(\s*new Audio/);
 });
 test('Live MV controls are exposed through the DIY effects tab and startup loader',()=>{
   const html=read('public/index.html');
