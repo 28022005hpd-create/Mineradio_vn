@@ -1580,6 +1580,9 @@
             <button class="modal-btn" onclick="skipLoginAndFocusSearch()" data-i18n="ui.2cce0h">先搜索一首歌</button>
             <button id="qq-cookie-toggle-btn" class="modal-btn" type="button"
               onclick="toggleQQCookiePanel()" data-i18n="ui.wk0hd">手动导入</button>
+            <!-- NetEase may reject its API QR; always allow the official web login as an alternative. -->
+            <button id="login-web-fallback-btn" class="modal-btn" type="button" style="display:none"
+              onclick="openProviderWebLogin()">Mở trang đăng nhập</button>
             <button id="refresh-qr-btn" class="modal-btn primary" onclick="startSelectedLoginConnection()" data-i18n="ui.1gz2cz4">开始登录</button>
           </div>
         </div>
