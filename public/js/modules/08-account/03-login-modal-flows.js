@@ -1,3 +1,15 @@
+
+// Localize only interface status constants, never a user's nickname or music
+// title. Native i18n already loads before this module.
+function nativeAccountUiCopy(text, fallback) {
+  var locale = typeof MineradioI18n !== 'undefined' && MineradioI18n;
+  if (!locale || typeof locale.ui !== 'function') return text;
+  var result = locale.ui(String(text || ''));
+  if (locale.locale === 'vi-VN' && /[\u3400-\u9fff]/.test(result)) {
+    return fallback || 'Không thể hoàn tất yêu cầu';
+  }
+  return result;
+}
 var loginRefreshRequestSeq = 0;
 var loginWorkflowDrag = null;
 var LOGIN_WORKFLOW_CONNECTION_STORE_KEY = 'mineradio-login-workflow-connections-v1';
@@ -1353,11 +1365,11 @@ async function openNeteaseWebLogin() {
     renderUserBtn();
     refreshUserPlaylists(true);
     loadHomeDiscover(true);
-    if (statusEl) { statusEl.textContent = '网易云会话已保存'; statusEl.className = 'scan'; }
+    if (statusEl) { statusEl.textContent = nativeAccountUiCopy('网易云会话已保存'); statusEl.className = 'scan'; }
     offerLoginCookieExport('netease', info);
     setTimeout(function () {
       closeLoginModal();
-      showToast('网易云已登录: ' + (info.nickname || info.userId || ''));
+      showToast(nativeAccountUiCopy('网易云已登录: ') + (info.nickname || info.userId || ''));
     }, 420);
   } catch (e) {
     neteaseWebLoginBusy = false;
@@ -1543,7 +1555,7 @@ async function submitNeteaseCookieLogin() {
   }
   qqCookieBusy = true;
   if (saveBtn) saveBtn.classList.add('busy');
-  if (statusEl) { statusEl.textContent = '正在保存网易云会话…'; statusEl.className = 'preview'; }
+  if (statusEl) { statusEl.textContent = nativeAccountUiCopy('正在保存网易云会话…'); statusEl.className = 'preview'; }
   try {
     var info = await apiJson('/api/login/cookie', {
       method: 'POST',
@@ -1565,7 +1577,7 @@ async function submitNeteaseCookieLogin() {
       showToast('网易云已登录: ' + (info.nickname || info.userId || ''));
     }, 420);
   } catch (e) {
-    if (statusEl) { statusEl.textContent = e && e.message ? e.message : '网易云会话保存失败'; statusEl.className = 'fail'; }
+    if (statusEl) { statusEl.textContent = nativeAccountUiCopy(e && e.message ? e.message : '网易云会话保存失败', nativeAccountUiCopy('网易云会话保存失败')); statusEl.className = 'fail'; }
   } finally {
     qqCookieBusy = false;
     if (saveBtn) saveBtn.classList.remove('busy');
@@ -1577,11 +1589,11 @@ async function checkQr() {
   try {
     var r = await apiJson('/api/login/qr/check?key=' + encodeURIComponent(qrKey));
     var $st = document.getElementById('qr-status');
-    if (r.code === 800) { $st.textContent = '二维码已过期, 请刷新'; $st.className = 'fail'; stopQrPoll(); }
-    else if (r.code === 801) { $st.textContent = '请在 App 中扫码'; $st.className = ''; }
-    else if (r.code === 802) { $st.textContent = '已扫码, 请在手机确认…'; $st.className = 'scan'; }
+    if (r.code === 800) { $st.textContent = nativeAccountUiCopy('二维码已过期, 请刷新'); $st.className = 'fail'; stopQrPoll(); }
+    else if (r.code === 801) { $st.textContent = nativeAccountUiCopy('请在 App 中扫码'); $st.className = ''; }
+    else if (r.code === 802) { $st.textContent = nativeAccountUiCopy('已扫码, 请在手机确认…'); $st.className = 'scan'; }
     else if (r.code === 803 && (r.loggedIn || r.hasCookie)) {
-      $st.textContent = r.pendingProfile ? '登录成功，正在同步账号资料…' : '登录成功！'; $st.className = 'scan';
+      $st.textContent = nativeAccountUiCopy(r.pendingProfile ? '登录成功，正在同步账号资料…' : '登录成功！'); $st.className = 'scan';
       stopQrPoll();
       loginStatus = r.loggedIn ? r : Object.assign({}, r, { loggedIn: true, pendingProfile: true, nickname: r.nickname || '网易云用户' });
       activeAccountProvider = 'netease';
@@ -1595,10 +1607,10 @@ async function checkQr() {
         }
         closeLoginModal();
         offerLoginCookieExport('netease', fresh);
-        showToast('欢迎 ' + (fresh && fresh.nickname ? fresh.nickname : ''));
+        showToast(nativeAccountUiCopy('欢迎 ') + (fresh && fresh.nickname ? fresh.nickname : ''));
       }, r.pendingProfile ? 1200 : 500);
     } else if (r.code === 803) {
-      $st.textContent = '扫码已确认，但没有拿到登录凭证，请刷新二维码重试'; $st.className = 'fail';
+      $st.textContent = nativeAccountUiCopy('扫码已确认，但没有拿到登录凭证，请刷新二维码重试'); $st.className = 'fail';
       stopQrPoll();
     }
   } catch (e) { console.warn(e); }
