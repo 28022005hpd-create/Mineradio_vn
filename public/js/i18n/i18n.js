@@ -82,6 +82,18 @@
   // Localize only known interface copy; never translate titles, artists, lyrics
   // or provider-returned account names. Dynamic components opt in explicitly.
   const dynamicUiStrings = Object.freeze({
+  "正在保存网易云会话…": "Đang lưu phiên NetEase…",
+  "网易云会话不可用": "Phiên NetEase không khả dụng",
+  "网易云会话已保存": "Đã lưu phiên NetEase",
+  "网易云已登录: ": "Đã đăng nhập NetEase: ",
+  "网易云会话保存失败": "Không thể lưu phiên NetEase",
+  "请在 App 中扫码": "Quét mã QR bằng ứng dụng trên điện thoại",
+  "已扫码, 请在手机确认…": "Đã quét mã, hãy xác nhận trên điện thoại…",
+  "登录成功，正在同步账号资料…": "Đăng nhập thành công, đang đồng bộ tài khoản…",
+  "登录成功！": "Đăng nhập thành công!",
+  "扫码已确认，但没有拿到登录凭证，请刷新二维码重试": "Đã xác nhận mã QR nhưng không nhận được phiên đăng nhập; vui lòng thử lại",
+  "欢迎 ": "Chào mừng ",
+  "网易云用户": "Người dùng NetEase",
   "QQ 音乐登录已失效": "Phiên đăng nhập QQ Music đã hết hạn",
   "常用": "Thông dụng",
   "界面": "Giao diện",
