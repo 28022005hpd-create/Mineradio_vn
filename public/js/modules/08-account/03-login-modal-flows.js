@@ -1375,10 +1375,11 @@ async function openNeteaseWebLogin() {
   }
 
   neteaseWebLoginBusy = true;
+  stopQrPoll();
   updateLoginProviderUi();
   if (statusEl) { statusEl.textContent = '已打开网易云窗口，请在官方页面扫码登录…'; statusEl.className = 'preview'; }
   try {
-    var result = await api.openNeteaseMusicLogin();
+    var result = await api.openNeteaseMusicLogin({ forceReauth: true });
     if (!result || !result.ok || !result.cookie) {
       throw new Error((result && (result.message || result.error)) || '网易云登录未完成');
     }
@@ -1403,7 +1404,14 @@ async function openNeteaseWebLogin() {
   } catch (e) {
     neteaseWebLoginBusy = false;
     updateLoginProviderUi();
-    if (statusEl) { statusEl.textContent = e && e.message ? e.message : '网易云登录失败'; statusEl.className = 'fail'; }
+    if (statusEl) {
+      statusEl.textContent = loginDisplayCopy('网易云登录失败，请重新打开官方窗口或刷新二维码。',
+        'Không thể đăng nhập NetEase. Hãy mở lại trang chính thức hoặc làm mới mã QR.');
+      statusEl.className = 'fail';
+    }
+    if (qrKey && loginProvider === 'netease' &&
+        document.getElementById('login-modal').classList.contains('show')) startQrPoll();
+    console.warn('Netease official login failed:', e);
   } finally {
     if (neteaseWebLoginBusy) {
       neteaseWebLoginBusy = false;
@@ -1427,7 +1435,8 @@ async function openQQWebLogin() {
   if (statusEl) { statusEl.textContent = '已打开 QQ 音乐窗口，请扫码并确认登录…'; statusEl.className = 'preview'; }
   try {
     var result = await api.openQQMusicLogin({
-      forceReauth: !!(qqLoginStatus && qqLoginStatus.authorizationIncomplete && qqLoginStatus.playbackKeyReady === false)
+      forceReauth: !qqLoginStatus.loggedIn ||
+        !!(qqLoginStatus && qqLoginStatus.authorizationIncomplete && qqLoginStatus.playbackKeyReady === false)
     });
     if (!result || !result.ok || !result.cookie) {
       throw new Error((result && (result.message || result.error)) || 'QQ 登录未完成');
