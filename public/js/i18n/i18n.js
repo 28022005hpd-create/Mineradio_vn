@@ -82,6 +82,22 @@
   // Localize only known interface copy; never translate titles, artists, lyrics
   // or provider-returned account names. Dynamic components opt in explicitly.
   const dynamicUiStrings = Object.freeze({
+  "界面与背景": "Giao diện và hình nền",
+  "壁纸帧率": "Tốc độ khung hình nền",
+  "玻璃色差": "Tán sắc kính",
+  "左栏唤出秒数": "Thời gian mở thanh trái (giây)",
+  "左栏收起秒数": "Thời gian thu thanh trái (giây)",
+  "没有找到": "Không tìm thấy",
+  "当前会话 · 最多 40 条": "Phiên hiện tại · tối đa 40 thao tác",
+  "调整设置后会在这里留下可回退记录": "Các thay đổi có thể hoàn tác sẽ xuất hiện tại đây",
+  "撤销至此项前": "Hoàn tác về trước mục này",
+  "开启": "Bật",
+  "关闭": "Tắt",
+  "无": "Không có",
+  " 项参数": " thiết lập",
+  "视觉设置": "Thiết lập hình ảnh",
+  "已回退：": "Đã hoàn tác: ",
+  "回退失败，请重试": "Không thể hoàn tác, hãy thử lại",
   // Authored Vietnamese copy for visual console, presets and archived settings.
   "颜色、封面、图片、视频与 Wallpaper Engine": "Màu sắc, ảnh bìa, hình ảnh, video và Wallpaper Engine",
   "桌面层开关、位置、透明度和帧数": "Bật/tắt, vị trí, độ mờ và tốc độ khung hình trên màn hình nền",
