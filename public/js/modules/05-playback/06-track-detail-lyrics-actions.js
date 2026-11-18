@@ -285,7 +285,7 @@ function commentTimeLabel(ms) {
   } catch (e) { return ''; }
 }
 function detailCommentNeedsTranslation(text) {
-  return String(text || '').trim().length >= 3 && /[\\p{L}]/u.test(String(text || ''));
+  return String(text || '').trim().length >= 3 && /[\p{L}]/u.test(String(text || ''));
 }
 function renderDetailComments(comments) {
   if (!comments || !comments.length) return '<div class="detail-empty">' +
@@ -327,7 +327,7 @@ function detailCommentTranslationSegments(source) {
     var limit = 250;
     var boundary = -1;
     for (var i = 100; i <= limit; i++) {
-      if (/[\\s，。！？；,.!?;:]/.test(input.charAt(i))) boundary = i + 1;
+      if (/[\s，。！？；,.!?;:]/.test(input.charAt(i))) boundary = i + 1;
     }
     var take = boundary >= 100 ? boundary : limit;
     chunks.push(input.slice(0, take).trim());
@@ -385,7 +385,7 @@ async function translateDetailCommentsToVietnamese(comments, seq) {
         var vi = await requestVietnameseCommentTranslation(item.text);
         if (seq !== trackDetailSeq || !detailCommentVietnameseEnabled()) return;
         // Identical text is usually already Vietnamese, not an error.
-        if (vi && vi !== item.text && !(/[\\u3400-\\u9fff]/.test(vi) && !/[A-Za-zÀ-ỹ]/.test(vi))) {
+        if (vi && vi !== item.text && !(/[\u3400-\u9fff]/.test(vi) && !/[A-Za-zÀ-ỹ]/.test(vi))) {
           detailCommentTranslationCache.set(item.text, vi);
           showTranslatedDetailComment(item.index, vi, 'translated');
         } else if (vi) {
