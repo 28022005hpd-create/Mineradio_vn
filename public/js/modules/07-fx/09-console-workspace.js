@@ -312,6 +312,30 @@ var FX_CONSOLE_LAYOUT = [
 
 var fxConsoleRegistry = [];
 var fxConsoleGroups = {};
+var fxConsoleLocaleWatcherBound = false;
+function refreshFxConsoleLanguage() {
+  var panel = document.getElementById('fx-panel');
+  if (!panel || !panel._fxConsoleWorkspaceOrganized) return;
+  FX_CONSOLE_TABS.forEach(function (meta) {
+    var tab = document.getElementById('fx-console-tab-' + meta.key);
+    if (tab) tab.textContent = fxConsoleUi(meta.label);
+  });
+  FX_CONSOLE_LAYOUT.forEach(function (tab) {
+    tab.groups.forEach(function (group) {
+      var head = document.getElementById('fx-console-' + tab.key + '-' + group.key + '-head');
+      if (!head) return;
+      var title = head.querySelector('.fx-fold-title strong');
+      var hint = head.querySelector('.fx-fold-title small');
+      if (title) title.textContent = fxConsoleUi(group.title);
+      if (hint) hint.textContent = fxConsoleUi(group.hint || '');
+    });
+  });
+  var search = document.getElementById('fx-console-search');
+  if (search && search.value && typeof renderFxConsoleSearchResults === 'function')
+    renderFxConsoleSearchResults(search.value);
+  if (typeof renderFxConsoleHistory === 'function') renderFxConsoleHistory();
+  fxConsoleLocalizePanel(panel);
+}
 
 function fxConsoleResolveBlock(ref) {
   var el = null;
@@ -538,6 +562,10 @@ function organizeFxConsoleWorkspace() {
   panel._fxConsoleWorkspaceOrganized = true;
   panel.setAttribute('data-console-layout', 'task-first-v2');
   setFxPanelTab(fxPanelTab);
+  if (!fxConsoleLocaleWatcherBound && typeof MineradioI18n !== 'undefined' && MineradioI18n.onChange) {
+    fxConsoleLocaleWatcherBound = true;
+    MineradioI18n.onChange(refreshFxConsoleLanguage);
+  }
   fxConsoleLocalizePanel(panel);
 }
 
