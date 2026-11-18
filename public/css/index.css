@@ -18837,3 +18837,67 @@ html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
  max-width: 100%;
  height: auto !important;
 }
+
+
+/* Vietnamese viewport and long-translation containment (Mineradio VN). */
+html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
+  #track-detail-modal,#custom-lyric-modal,#wallpaper-engine-modal,
+  #update-modal,#collect-modal,#local-beat-modal,#desktop-mode-control-panel) {
+  min-width: 0;
+  max-width: calc(100dvw - 20px);
+  box-sizing: border-box;
+}
+html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
+  #track-detail-modal,#custom-lyric-modal,#wallpaper-engine-modal,
+  #update-modal,#collect-modal,#local-beat-modal,#desktop-mode-control-panel)
+  :is(.fx-section-label,.fx-sub,.fx-control-label,.panel-tab,.queue-chip,
+  .login-auth-copy,.login-node-copy,.account-hint,.update-item-text,
+  .modal-desc,.modal-status,.wallpaper-engine-status,button) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
+  #track-detail-modal,#custom-lyric-modal,#wallpaper-engine-modal,
+  #update-modal,#collect-modal,#local-beat-modal,#desktop-mode-control-panel)
+  :is(.fx-row,.fx-control-row,.fx-settings-row,.panel-tabs,
+  .login-platform-tabs,.login-auth-actions,.queue-toolbar,.modal-actions) {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
+  #track-detail-modal,#custom-lyric-modal,#wallpaper-engine-modal,
+  #update-modal,#collect-modal,#local-beat-modal) :is(input,textarea,select) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* Metadata comes from music providers: retain its original script and elide
+   instead of making long song titles change the geometry of the player. */
+html[lang="vi-VN"] :is(.song-name,.song-title,.song-artist,.qi-name,.qi-artist,
+  .mini-queue-name,.mini-queue-sub,.pl-name,.pl-sub,.detail-song-title,
+  .detail-artist,.artist-song-name,.home-next-title,.home-today-artist,
+  .track-title,.track-artist) {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
+  #track-detail-modal,#custom-lyric-modal,#wallpaper-engine-modal,
+  #update-modal,#collect-modal,#local-beat-modal) :is(.modal,.dual-login-modal,
+  .update-modal,.fx-content,.panel-content) {
+  max-height: calc(100dvh - 20px);
+  overscroll-behavior: contain;
+}
+@media (max-width: 520px) {
+  html[lang="vi-VN"] :is(#fx-panel,#playlist-panel,#login-modal,#user-modal,
+    #track-detail-modal,#custom-lyric-modal,#wallpaper-engine-modal,
+    #update-modal,#collect-modal,#local-beat-modal) :is(.modal,.dual-login-modal,
+    .update-modal) { max-width: calc(100dvw - 16px); }
+  html[lang="vi-VN"] :is(#fx-panel,#login-modal,#playlist-panel)
+    :is(.fx-tabs,.panel-tabs,.login-platform-tabs) { flex-wrap: wrap; }
+}
