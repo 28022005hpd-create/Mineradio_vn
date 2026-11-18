@@ -2572,8 +2572,15 @@ async function readKugouLoginCookieHeader(cookieSession) {
   return buildCookieHeaderFor(cookies, isKugouCookieDomain, KUGOU_LOGIN_COOKIE_PRIORITY);
 }
 
-async function openNeteaseMusicLoginWindow(owner) {
+async function openNeteaseMusicLoginWindow(owner, options = {}) {
   const cookieSession = session.fromPartition(NETEASE_LOGIN_PARTITION);
+  // A cookie can still be present after a login was revoked. The user
+  // explicitly asked to open the official page, so do not silently reuse it.
+  if (options && options.forceReauth === true) {
+    await cookieSession.clearStorageData({
+      storages: ['cookies', 'localstorage', 'indexdb', 'cachestorage'],
+    });
+  }
   const initialCookie = await readNeteaseLoginCookieHeader(cookieSession);
   if (neteaseCookieHasLogin(initialCookie)) return { ok: true, cookie: initialCookie, reused: true };
 
@@ -2689,8 +2696,8 @@ async function openQQMusicLoginWindow(owner, options) {
   options = options || {};
   const cookieSession = session.fromPartition(QQ_LOGIN_PARTITION);
   const initialCookie = await readQQLoginCookieHeader(cookieSession);
-  if (qqCookieHasPlaybackLogin(initialCookie)) {
-    return { ok: true, cookie: initialCookie, reused: true, recovered: !!options.forceReauth };
+  if (qqCookieHasPlaybackLogin(initialCookie) && !options.forceReauth) {
+    return { ok: true, cookie: initialCookie, reused: true };
   }
   if (options.forceReauth) {
     await cookieSession.clearStorageData({
@@ -4902,9 +4909,9 @@ ipcMain.handle('mineradio-login-easter-egg-reset', async (event) => {
   return loginEasterEggGate.resetForReplay(() => clearAllProviderLoginState('renderer-replay-reset'));
 });
 
-ipcMain.handle('netease-music-open-login', async (event) => {
+ipcMain.handle('netease-music-open-login', async (event, options) => {
   if (!loginEasterEggGate.isUnlocked()) return loginEasterEggLockedResult();
-  return openNeteaseMusicLoginWindow(getSenderWindow(event));
+  return openNeteaseMusicLoginWindow(getSenderWindow(event), options || {});
 });
 
 ipcMain.handle('netease-music-clear-login', async () => {
