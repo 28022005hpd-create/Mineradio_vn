@@ -475,7 +475,7 @@ function playlistPanelDetailRowsHtml(options) {
         ? '<button type="button" class="pl-detail-remove pl-detail-cloud-remove" data-pl-detail-remove-cloud="' +
           i + '" title="Xóa và đồng bộ lên ' + escHtml(playlistProviderName(activeProvider)) +
           '" aria-label="Xóa ' + escHtml(song.name || 'bài hát') + ' khỏi thư viện đám mây"' +
-          (isCloudBusy ? ' disabled aria-busy="true"' : '') + '>' + (isCloudBusy ? '...' : 'Xóa') + '</button>'
+          (isCloudBusy ? ' disabled aria-busy="true"' : '') + '>' + (isCloudBusy ? '…' : '×') + '</button>'
         : '');
     return '<div class="pl-detail-row" data-pl-detail-row="' + i + '">' +
       imgTag +
@@ -590,10 +590,15 @@ function playlistPanelDetailHtml(pl, provider, detailWindow) {
     ? '<button class="fx-mini-btn ghost pl-detail-top-btn" type="button" data-pl-detail-rename="1">重命名</button><button class="fx-mini-btn ghost pl-detail-top-btn danger" type="button" data-pl-detail-delete="1">删除</button>'
     : '';
   var topButton = provider === 'mineradio' ? '' : '<button class="fx-mini-btn ghost pl-detail-top-btn" type="button" data-pl-detail-top="1">回到顶部</button>';
+  var undoButton = playlistPanelCloudLastRemoval && playlistPanelCloudLastRemoval.key === key
+    ? '<button class="fx-mini-btn ghost pl-detail-top-btn pl-detail-undo-btn" type="button" data-pl-detail-undo="1"' +
+      (playlistPanelCloudUndoBusy ? ' disabled aria-busy="true"' : '') +
+      '>↶ ' + (playlistPanelCloudUndoBusy ? 'Đang khôi phục' : 'Hoàn tác xóa') + '</button>'
+    : '';
   return '<div class="pl-inline-detail" data-pl-detail="' + escHtml(key) + '" style="height:' + playlistPanelDetailShellHeight() + 'px">' +
     '<div class="pl-detail-sticky">' +
     '<div class="pl-detail-head">' + img + '<div style="flex:1;min-width:0"><div class="pl-detail-title">' + escHtml(pl.name || '歌单详情') + '</div><div class="pl-detail-sub">' + escHtml((expectedTotal || tracks.length || 0) + ' 首 · ' + (pl.creator || playlistProviderName(provider))) + '</div></div><div class="pl-detail-count">' + (loading && !tracks.length ? '载入中' : (tracks.length + (expectedTotal > tracks.length ? '/' + expectedTotal : ''))) + '</div></div>' +
-    '<div class="pl-detail-actions"><button class="pl-detail-play" type="button" data-pl-detail-play="' + escHtml(key) + '"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>播放歌单</button>' + collectionButton + builtInActions + topButton + '</div>' +
+    '<div class="pl-detail-actions"><button class="pl-detail-play" type="button" data-pl-detail-play="' + escHtml(key) + '"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>播放歌单</button>' + collectionButton + builtInActions + topButton + undoButton + '</div>' +
     '</div>' +
     '<div class="pl-detail-list" data-pl-detail-scroll="' + escHtml(key) + '">' + rows + '</div>' +
     '</div>';
@@ -1058,6 +1063,13 @@ document.getElementById('pl-list').addEventListener('click', function (e) {
     e.preventDefault();
     e.stopPropagation();
     if (playlistPanelDetailState.playlist) deleteBuiltInPlaylist(playlistPanelDetailState.playlist.id, playlistPanelDetailState.playlist.name);
+    return;
+  }
+  var undoCloudTrack = e.target && e.target.closest ? e.target.closest('[data-pl-detail-undo]') : null;
+  if (undoCloudTrack) {
+    e.preventDefault();
+    e.stopPropagation();
+    undoPlaylistPanelCloudTrack();
     return;
   }
   var removeCloudTrack = e.target && e.target.closest ? e.target.closest('[data-pl-detail-remove-cloud]') : null;
