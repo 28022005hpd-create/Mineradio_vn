@@ -35,6 +35,7 @@ test('switching providers does not require the MR connector or hide the login dr
     loginProviderClickSuppressed: false,
     qrKey: 'old',
     normalizeLoginProviderKey(provider) { return provider; },
+    setManualCookieOpenForProvider() {},
     setLoginProvider(provider) { calls.push('select:' + provider); },
     setLoginAuthDrawerOpen(state) { calls.push('drawer:' + state); },
     updateLoginProviderUi() {},
