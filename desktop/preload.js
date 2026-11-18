@@ -3,6 +3,14 @@ const { contextBridge, ipcRenderer, clipboard, webUtils } = require('electron');
 contextBridge.exposeInMainWorld('desktopWindow', {
   isDesktop: true,
   minimize: () => ipcRenderer.invoke('desktop-window-minimize'),
+  setMiniPlayerEnabled: (enabled) => ipcRenderer.invoke('mineradio-mini-player-set-enabled', enabled === true),
+  publishMiniPlayerState: (value) => ipcRenderer.send('mineradio-mini-player-state', value || {}),
+  onMiniPlayerCommand: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, command) => callback(command);
+    ipcRenderer.on('mineradio-mini-player-command', listener);
+    return () => ipcRenderer.removeListener('mineradio-mini-player-command', listener);
+  },
   restore: () => ipcRenderer.invoke('desktop-window-restore'),
   toggleMaximize: () => ipcRenderer.invoke('desktop-window-toggle-maximize'),
   toggleFullscreen: () => ipcRenderer.invoke('desktop-window-toggle-fullscreen'),
