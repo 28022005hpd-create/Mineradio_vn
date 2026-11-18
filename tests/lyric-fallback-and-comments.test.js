@@ -67,7 +67,7 @@ test('lyrics fetch uses desktop local cache then alternate service only when pro
 test('song reviews preserve original, translated comment is shown in distinct layer', () => {
   const code=read('public/js/modules/05-playback/06-track-detail-lyrics-actions.js');
   assert.match(code,/function translateDetailCommentsToVietnamese/);
-  assert.match(code,/body: JSON\.stringify\(\{ locale:'vi-VN', lines:/);
+  assert.match(code,/body: JSON\.stringify\(\{ locale: 'vi-VN', lines: chunks \}\)/);
   assert.match(code,/comment-vi-translation/);
   assert.match(code,/escHtml\(sourceText\)/);
   assert.match(code,/escHtml\(translated\)/);
