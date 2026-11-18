@@ -19028,3 +19028,110 @@ html[lang="vi-VN"] #fx-panel :is(.fx-console-search-result, .fx-console-breadcru
   font-weight: 650;
   letter-spacing: .02em;
 }
+
+
+/* vi-VN: repair narrow DIY toolbar tabs and media action labels without letter-by-letter breaks. */
+/* Split the media actions onto a full-width second row. Four buttons in 56%
+   of a narrow settings card left ~35px/button and broke "Bìa album" into
+   individual syllables/letters. Two equal cells retain the Vietnamese words. */
+html[lang="vi-VN"] #fx-panel .fx-console-group-body
+  .lyric-color-row.image-pick-row:is(.bg-media-row, .wallpaper-engine-row) {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px 9px;
+  min-width: 0;
+}
+html[lang="vi-VN"] #fx-panel .fx-console-group-body
+  :is(.bg-media-actions, .wallpaper-engine-actions) {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+}
+html[lang="vi-VN"] #fx-panel .fx-console-group-body
+  :is(.bg-media-actions, .wallpaper-engine-actions) .fx-mini-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 33px !important;
+  min-height: 33px;
+  padding: 0 7px;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: keep-all !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  line-height: 1.2;
+}
+/* No letter-by-letter wrapping in the DIY tabs, search actions or buttons.
+   Scrolling a tab row is preferable to clipping one half of a word. */
+html[lang="vi-VN"] #fx-panel .fx-console-toolbar .fx-panel-tabs {
+  display: flex;
+  flex-wrap: nowrap !important;
+  gap: 5px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scroll-snap-type: x proximity;
+}
+html[lang="vi-VN"] #fx-panel .fx-console-toolbar .fx-panel-tabs::-webkit-scrollbar {
+  display: block;
+  height: 3px;
+}
+html[lang="vi-VN"] #fx-panel .fx-console-toolbar .fx-panel-tabs::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.22);
+  border-radius: 99px;
+}
+html[lang="vi-VN"] #fx-panel .fx-console-toolbar .fx-panel-tabs button {
+  flex: 0 0 auto;
+  min-width: max-content;
+  max-width: none;
+  width: auto;
+  height: 30px !important;
+  padding-inline: 11px;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: keep-all !important;
+  scroll-snap-align: start;
+}
+html[lang="vi-VN"] #fx-panel .fx-console-search-row {
+  min-width: 0;
+  grid-template-columns: 20px minmax(0,1fr) auto auto;
+}
+html[lang="vi-VN"] #fx-panel .fx-console-search-row .fx-console-tool-btn {
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: 35px;
+  max-width: none;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: keep-all !important;
+  padding-inline: 8px;
+}
+/* Even when layout auditing tags a control as overflow, do not let the
+   generic emergency wrapping override the word-safe DIY action layout. */
+html[lang="vi-VN"] #fx-panel .fx-console-group-body
+  :is(.bg-media-actions, .wallpaper-engine-actions) .fx-mini-btn.vi-copy-overflow {
+  height: 33px !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+}
+@media (max-width: 390px) {
+  html[lang="vi-VN"] #fx-panel .fx-console-group-body
+    :is(.bg-media-actions, .wallpaper-engine-actions) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[lang="vi-VN"] #fx-panel .fx-console-search-row .fx-console-tool-btn {
+    width: 30px; padding-inline: 0;
+  }
+}
