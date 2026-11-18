@@ -26,7 +26,7 @@ Cài đặt bật/tắt Live MV và Mini lưu cục bộ (`mineradio-live-mv-v1`
 
 **Windows:** dự án hiện tại là ứng dụng Electron dành cho Windows, có thể phát hành EXE. Mini chạy bằng `BrowserWindow` với bridge hạn chế. Mã bài/artist/cover/lyric mới được gửi sang mini, không gửi cookie/URL stream.
 
-**Điện thoại:** các stylesheet và widget web đã responsive nhưng repo chưa có build Android APK/iOS IPA, chưa triển khai hạ tầng kết nối điện thoại. Để có PiP hệ thống vẫn hoạt động sau khi người dùng ra màn hình chính, cần app native Android/iOS, quyền PiP/background audio và quy tắc nền tảng tương ứng. Không khẳng định đã hỗ trợ PiP hệ thống trên điện thoại chỉ bằng CSS của trang web.
+**Điện thoại:** các stylesheet và widget web đã responsive. Khi trình duyệt hỗ trợ Media Session, tên bài, bìa, thanh thời gian và nút phát/tạm dừng/bài trước/bài sau cũng xuất hiện trong các điều khiển hệ thống/khóa màn hình tương ứng. Tuy nhiên repo chưa có build Android APK/iOS IPA, chưa triển khai hạ tầng kết nối điện thoại. Để có PiP hệ thống vẫn hoạt động sau khi người dùng ra màn hình chính, cần app native Android/iOS, quyền PiP/background audio và quy tắc nền tảng tương ứng. Không khẳng định đã hỗ trợ PiP hệ thống trên điện thoại chỉ bằng CSS của trang web.
 
 ## Kiểm thử
 
