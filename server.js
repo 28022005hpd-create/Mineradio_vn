@@ -2148,6 +2148,7 @@ function mapNeteasePlaylistMeta(pl, fallbackId) {
     creator: (pl.creator && pl.creator.nickname) || pl.creatorNickname || '',
     subscribed: !!pl.subscribed,
     specialType: pl.specialType || 0,
+    ownerId: String(pl.creator && pl.creator.userId || pl.userId || ''),
   };
 }
 
@@ -6426,6 +6427,47 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error('[PlaylistAddSong]', err);
       sendJSON(res, { error: err.message }, 500);
+    }
+    return;
+  }
+
+  // Remove a track only from an owned NetEase playlist. Deleting a song from
+  // an artist's official album is not supported, and collected playlists are
+  // never writable. Keep this check server-side, not just in the UI.
+  if (pn === '/api/playlist/remove-song') {
+    if (req.method !== 'POST') {
+      sendJSON(res, { success: false, error: 'METHOD_NOT_ALLOWED' }, 405);
+      return;
+    }
+    try {
+      const info = await requireLogin(res);
+      if (!info) return;
+      const body = await readRequestBody(req);
+      const pid = String(body.pid || body.playlistId || '').trim();
+      const id = String(body.id || '').trim();
+      if (!/^\d{1,24}$/.test(pid) || !/^\d{1,24}$/.test(id)) {
+        sendJSON(res, { success: false, error: 'INVALID_PLAYLIST_OR_SONG_ID' }, 400);
+        return;
+      }
+      const detail = await playlist_detail({ id: pid, s: 0, cookie: userCookie, timestamp: Date.now() });
+      const pl = detail && detail.body && detail.body.playlist;
+      if (!pl || String(pl.creator && pl.creator.userId || pl.userId || '') !== String(info.userId)) {
+        sendJSON(res, { success: false, error: 'PLAYLIST_NOT_OWNED' }, 403);
+        return;
+      }
+      const result = await playlist_tracks({ op: 'del', pid, tracks: id,
+        cookie: userCookie, timestamp: Date.now() });
+      const code = normalizeApiCode(result);
+      if (code !== 200 || result.body && result.body.error) {
+        sendJSON(res, { success: false, code, error: normalizeApiMessage(result) || 'CLOUD_REMOVE_FAILED' }, 409);
+        return;
+      }
+      invalidateNeteasePlaylistTrackIndex(pid);
+      sendJSON(res, { provider: 'netease', success: true, pid, id, code,
+        synced: true, action: 'remove-from-playlist' });
+    } catch (err) {
+      console.error('[PlaylistRemoveSong]', err);
+      sendJSON(res, { success: false, error: err.message }, 500);
     }
     return;
   }
