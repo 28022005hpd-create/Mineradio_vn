@@ -361,6 +361,19 @@
         <button type="button" class="fx-mini-btn ghost" id="vn-github-update-action" onclick="handleVnGithubUpdateAction()">Kiểm tra GitHub</button>
         <small id="vn-github-update-caption">GitHub → máy tính · không tải ngược dữ liệu</small>
       </div>
+      <div class="fx-section-label">Trình chiếu nhạc trực tiếp</div>
+      <div class="lyric-color-row mineradio-live-controls" id="mineradio-live-mv-controls">
+        <div class="mineradio-live-controls-copy">
+          <strong>MV ảnh bìa và lời hát</strong>
+          <small>Thay đổi theo bài hát · lời gốc và lời Việt đồng bộ</small>
+        </div>
+        <div class="mineradio-live-controls-actions">
+          <button id="live-mv-toggle" type="button" aria-pressed="false"
+            onclick="liveMvSetEnabled(!liveMvEnabled)">Bật MV</button>
+          <button id="live-mv-mini-toggle" type="button" aria-pressed="false"
+            onclick="liveMvSetMiniEnabled(!liveMvMiniEnabled)">Mini</button>
+        </div>
+      </div>
       <div class="fx-section-label" data-i18n="ui.5u07xi">视觉预设</div>
       <div class="preset-grid" id="preset-grid"></div>
       <div class="fx-section-label" data-i18n="ui.ztztox">用户存档</div>
