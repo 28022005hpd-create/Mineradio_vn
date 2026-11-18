@@ -60,7 +60,7 @@ test('a first-time song gets Vietnamese lyrics automatically after the initial p
   const initial=ctx.preferredLocalizedLyricsForDisplay(ctx.originalLyricsState);
   assert.equal(initial.translationLines.length,0);
   await flushTicks();
-  assert.equal(calls.length,2,'Initial two 12-line batches should start without replay');
+  assert.equal(calls.length,3,'Five-line first-verse requests and the remaining lines must start without replay');
   assert.ok(renders.length >= 1, 'Async translation must repaint the existing song');
   assert.equal(ctx.preferredLocalizedLyricsForDisplay(ctx.originalLyricsState).translationLines.length,16);
 });
@@ -99,10 +99,10 @@ test('network failure automatically retries the current track, retaining success
   assert.equal(ctx.viLyricTranslationFinished.size,1);
 });
 test('small first-verse batches render before long-song bulk batches complete',async () => {
-  let resolveBulk;
-  const bulk=new Promise(resolve=>{resolveBulk=resolve;});
+  let releaseBulk;
+  const bulk=new Promise(resolve=>{releaseBulk=resolve;});
   const {ctx,calls,renders}=makePlayer({fetch:async (body)=>{
-    if(body.lines.length>12) return bulk;
+    if(body.lines.length>5) await bulk;
     return {ok:true,async json() {
       return {locale:'vi-VN',translations:body.lines.map(x=>'Dịch: '+x)};
     }};
@@ -111,15 +111,12 @@ test('small first-verse batches render before long-song bulk batches complete',a
   ctx.preferredLocalizedLyricsForDisplay(ctx.originalLyricsState);
   await flushTicks();
   const first=ctx.preferredLocalizedLyricsForDisplay(ctx.originalLyricsState);
-  assert.ok(calls.some(c=>c.lines.length>12), 'Bulk translation should begin after first verse');
-  assert.ok(first.translationLines.length>=24 && first.translationLines.length<92,
-    'Opening verse should appear immediately while the rest translates');
-  resolveBulk({ok:true,async json() {
-    return {locale:'vi-VN',translations:Array(60).fill('Bản dịch')};
-  }});
-  // The last batch is shorter; its response is deliberately incomplete to
-  // exercise non-blocking recovery. First verse must remain available.
+  assert.ok(calls.some(c=>c.lines.length>5), 'Bulk translation should begin after first verse');
+  assert.equal(first.translationLines.length,10,
+    'First five-line batches must appear even before longer requests finish');
+  releaseBulk();
   await flushTicks();
+  assert.equal(ctx.preferredLocalizedLyricsForDisplay(ctx.originalLyricsState).translationLines.length,92);
   assert.ok(renders.length>=2);
 });
 test('stale-song jobs never mark a new same-lyrics track finished or erase its pending request',async () => {
