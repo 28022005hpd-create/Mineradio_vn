@@ -116,6 +116,9 @@ function viLyricRequestTranslation(key, state) {
           });
           if (!response.ok) throw new Error('Vietnamese lyric translation unavailable');
           var payload = await response.json();
+          // An old request may complete after a new song with identical lyrics
+          // starts. Reject it before mutating the shared cache.
+          if (!viLyricTranslationCurrent(key, token)) return;
           var values = payload && payload.locale === 'vi-VN' && payload.translations;
           if (!Array.isArray(values) || values.length !== batch.length) throw new Error('Invalid lyric translation');
           var changed = false;
