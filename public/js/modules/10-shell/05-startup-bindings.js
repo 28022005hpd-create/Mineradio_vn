@@ -13,6 +13,7 @@ bindQualityControl();
 bindAudioOutputControls();
 bindVolumeControls();
 initControlGlassSurface();
+if (typeof initializeMineradioLiveMv === 'function') initializeMineradioLiveMv();
 bindPlayerControlAnimations();
 scheduleUiWarmTask(function () {
   updateControlGlassDisplacementMap();
