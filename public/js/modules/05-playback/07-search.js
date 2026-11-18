@@ -138,11 +138,12 @@ function renderSearchHistory() {
   }
   $results.innerHTML =
     '<div class="search-history">' +
-    '<div class="search-history-head"><span>搜索历史</span><button class="search-history-clear" type="button" data-clear-history="1">清空</button></div>' +
+    '<div class="search-history-head"><span data-i18n="ui.1ggkcof">搜索历史</span><button class="search-history-clear" type="button" data-clear-history="1" data-i18n="ui.9mbwb2">清空</button></div>' +
     '<div class="search-history-list">' +
     items.map(function (q) { return '<button class="search-history-chip" type="button" data-history-query="' + escHtml(q) + '">' + escHtml(q) + '</button>'; }).join('') +
     '</div>' +
     '</div>';
+  MineradioI18n.bind($results);
   setSearchHistorySurface(true);
   $results.classList.add('show');
   requestAnimationFrame(updateSearchPillGlassDisplacementMap);
@@ -197,6 +198,7 @@ function updateSearchModeTabs() {
       : (searchMode === 'kugou' ? '搜索酷狗音乐...' : (searchMode === 'qq' ? '搜索 QQ 音乐...' : (searchMode === 'netease' ? '搜索网易云音乐...' : '搜索歌曲、歌手...')));
   }
   if ($input && searchMode === 'qishui') $input.placeholder = '搜索汽水音乐匹配源...';
+  if ($input) $input.placeholder = MineradioI18n.source($input.placeholder);
   requestAnimationFrame(updateSearchPillGlassDisplacementMap);
 }
 function setSearchMode(mode) {
@@ -338,7 +340,7 @@ function renderPodcastPrograms() {
         '<div class="search-result-meta">' + escHtml(programMetaText(p)) + '</div>' +
         '</div>' +
         '</div>' +
-        '<button class="add-btn" title="下一首播放" onclick="event.stopPropagation();queuePodcastProgram(' + i + ')">+</button>' +
+        '<button class="add-btn" title="下一首播放" data-i18n-title="ui.77fg6b" onclick="event.stopPropagation();queuePodcastProgram(' + i + ')">+</button>' +
         '</div>';
     }).join('');
   $results.classList.add('show');
@@ -536,7 +538,7 @@ function renderControlSourceSwitcher(matches) {
       var ready = active || !!match;
       var providerLimited = !!(match && provider.key === 'spotify' && match.playable === false);
       var cleanStatus = active ? '当前' : (providerLimited ? '匹配源' : (match ? '可切换' : (controlSourceSwitcherState.loading ? '检测中' : controlSourceIssueLabel(issue))));
-      var title = active ? '当前音源' : (providerLimited ? (provider.title + ': 播放将自动换源') : (match ? ('切换到 ' + provider.title) : (provider.title + ': ' + controlSourceIssueLabel(issue))));
+      var title = active ? MineradioI18n.source('当前音源') : (providerLimited ? (provider.title + ': 播放将自动换源') : (match ? ('切换到 ' + provider.title) : (provider.title + ': ' + controlSourceIssueLabel(issue))));
       var status = active ? '当前' : (providerLimited ? '匹配源' : (match ? '可切换' : (controlSourceSwitcherState.loading ? '检测中' : '无匹配')));
       return '<button type="button" class="control-source-option' + (active ? ' active' : '') + (!ready ? ' disabled' : '') + '" data-source-provider="' + provider.key + '" title="' + escHtml(title) + '" ' + (!ready ? 'disabled ' : '') + 'onclick="switchCurrentSongSource(\'' + provider.key + '\')">' +
         '<span class="tag-source ' + provider.key + '">' + provider.label + '</span>' +
@@ -604,7 +606,7 @@ function toggleControlSourceSwitcher(e) {
   }
   var song = currentControlSong();
   if (!song || song.type === 'local' || song.source === 'local' || song.localUrl || song.type === 'podcast') {
-    showToast('当前歌曲不支持切换音源');
+    showToast(MineradioI18n.source('当前歌曲不支持切换音源'));
     return;
   }
   var anchor = e && e.currentTarget ? e.currentTarget : null;
@@ -1140,16 +1142,16 @@ function searchSongResultHtml(s, i) {
       '</div>' +
       '</div>' +
       '<button class="song-action-btn' + (isSongLiked(s) ? ' liked' : '') + '" data-like-index="' + i + '" title="' + (isSongLiked(s) ? '取消红心' : '红心喜欢') + '" onclick="event.stopPropagation();toggleLikeSearchResult(' + i + ')">' + heartIconSvg() + '</button>' +
-      '<button class="song-action-btn" title="收藏到歌单" onclick="event.stopPropagation();collectSearchResult(' + i + ')">' + playlistPlusIconSvg() + '</button>' +
-      '<button class="add-btn" title="下一首播放" onclick="event.stopPropagation();queueSearchResult(' + i + ')">+</button>' +
+      '<button class="song-action-btn" title="收藏到歌单" data-i18n-title="ui.115lq6p" onclick="event.stopPropagation();collectSearchResult(' + i + ')">' + playlistPlusIconSvg() + '</button>' +
+      '<button class="add-btn" title="下一首播放" data-i18n-title="ui.77fg6b" onclick="event.stopPropagation();queueSearchResult(' + i + ')">+</button>' +
       '</div>';
 }
 function searchLoadMoreSentinelHtml() {
   var remaining = Math.max(0, searchMusicRenderState.songs.length - searchMusicRenderState.visibleCount);
   if (!remaining && !searchMusicRenderState.remoteHasMore && !searchMusicRenderState.loadingMore) return '';
   var label = searchMusicRenderState.loadingMore
-    ? '正在加载更多歌曲…'
-    : (remaining ? ('继续滚动加载 · 当前还有 ' + remaining + ' 首') : '继续滚动加载更多歌曲');
+    ? MineradioI18n.source('正在加载更多歌曲…')
+    : (remaining ? ('继续滚动加载 · 当前还有 ' + remaining + ' 首') : MineradioI18n.source('继续滚动加载更多歌曲'));
   return '<div class="search-empty search-load-more" data-search-load-more="1" role="status">' + label + '</div>';
 }
 function refreshSearchLoadMoreSentinel() {
@@ -1234,6 +1236,7 @@ function appendNextSearchResults(expectedKey) {
     var sentinel = $results.querySelector('[data-search-load-more]');
     if (sentinel) sentinel.insertAdjacentHTML('beforebegin', html);
     else $results.insertAdjacentHTML('beforeend', html);
+    MineradioI18n.bind($results);
     syncLikeStatusForSongs(searchMusicRenderState.songs.slice(start, end));
     searchMusicRenderState.appending = false;
     refreshSearchLoadMoreSentinel();
@@ -1255,6 +1258,7 @@ function renderSongSearchResults(songs) {
   var html = '';
   for (var i = 0; i < searchMusicRenderState.visibleCount; i++) html += searchSongResultHtml(playlist[i], i);
   $results.innerHTML = html + searchLoadMoreSentinelHtml();
+  MineradioI18n.bind($results);
   $results.classList.add('show');
   syncLikeStatusForSongs(playlist.slice(0, searchMusicRenderState.visibleCount));
   if (window.gsap) animateListItems($results, '.search-result', { x: 0, y: 6, stagger: 0.012, duration: 0.18, limit: 18 });
@@ -1284,7 +1288,7 @@ async function doSearch(q, opts) {
       resetSearchMusicRenderState();
       playlist = [];
       searchLastResultQuery = '';
-      $results.innerHTML = '<div class="search-empty">' + escHtml(searchProviderNotice || '没有找到相关歌曲') + '</div>';
+      $results.innerHTML = '<div class="search-empty">' + escHtml(searchProviderNotice || MineradioI18n.source('没有找到相关歌曲')) + '</div>';
       $results.classList.add('show');
       return;
     }
@@ -1305,7 +1309,7 @@ async function doSearch(q, opts) {
       resetSearchMusicRenderState();
       playlist = [];
       searchLastResultQuery = '';
-      $results.innerHTML = '<div class="search-empty">搜索暂时失败，请稍后重试</div>';
+      $results.innerHTML = '<div class="search-empty">' + MineradioI18n.source('搜索暂时失败，请稍后重试') + '</div>';
       $results.classList.add('show');
     }
   }

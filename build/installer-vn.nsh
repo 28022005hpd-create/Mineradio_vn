@@ -1,0 +1,7 @@
+!define MINERADIO_INSTALL_DIR_NAME "Mineradio_vn"
+!define MINERADIO_INSTALL_DIR_NAME_LOWER "mineradio_vn"
+!define MINERADIO_INSTALL_MARKER ".mineradio-vn-install-root"
+!define MINERADIO_MARKER_APP_ID "com.mineradio.vn.desktop"
+!define MINERADIO_INSTALL_BRAND "MINERADIO VN"
+!define MINERADIO_INSTALL_TITLE "Cài đặt Mineradio_vn"
+!include "${BUILD_RESOURCES_DIR}\installer.nsh"

@@ -528,7 +528,7 @@ async function attemptAudioPlay(opts) {
     playing = false; setPlayIcon(false);
     hideLoading();
     forcePlaybackControlsInteractive();
-    if (!opts.silent && !opts.trackSwitch) showToast(opts.manual ? '播放启动失败, 请重新选择歌曲' : '播放被系统拦截, 请点击播放按钮');
+    if (!opts.silent && !opts.trackSwitch) showToast(opts.manual ? MineradioI18n.source('播放启动失败, 请重新选择歌曲') : MineradioI18n.source('播放被系统拦截, 请点击播放按钮'));
     return false;
   }
 }
@@ -550,7 +550,7 @@ async function togglePlay() {
       return;
     }
     if ((!audio || !audio.src) && currentLocalSong && (currentLocalSong.localMissing || !currentLocalSong.localUrl)) {
-      showToast('上次播放的是本地文件，请重新导入后继续');
+      showToast(MineradioI18n.source('上次播放的是本地文件，请重新导入后继续'));
       return;
     }
     if (!audio) return;
@@ -582,7 +582,7 @@ async function togglePlay() {
     setPlayIcon(playing);
     hideLoading();
     forcePlaybackControlsInteractive();
-    if (!audio || !audio.src) showToast('播放控制失败');
+    if (!audio || !audio.src) showToast(MineradioI18n.source('播放控制失败'));
   } finally {
     playToggleBusy = false;
   }
@@ -633,7 +633,7 @@ function nextTrack(userInitiated) {
     var previousTail = currentIdx;
     Promise.resolve(hydratePlaylistQueueNextPage('queue-tail')).then(function () {
       if (playQueue.length <= previousTail + 1 && queueHydrationState && queueHydrationState.error) {
-        showToast('后续歌曲载入失败，当前歌曲保持不变');
+        showToast(MineradioI18n.source('后续歌曲载入失败，当前歌曲保持不变'));
         return false;
       }
       currentIdx = playQueue.length > previousTail + 1 ? previousTail + 1 : 0;
@@ -660,7 +660,7 @@ function prevTrack(userInitiated) {
 }
 function shuffleQueue() {
   reorderQueueForShufflePlaybackOrder(currentIdx, { reason: 'shuffle-queue' });
-  showToast('队列已随机');
+  showToast(MineradioI18n.source('队列已随机'));
 }
 function clearQueue() {
   if (typeof cancelPlaylistQueueHydration === 'function') cancelPlaylistQueueHydration('clear-queue');
@@ -747,6 +747,6 @@ function cyclePlayMode() {
     if (typeof resetCuefieldAutoMix === 'function') resetCuefieldAutoMix('play-mode-single');
   }
   updatePlayModeButton(true);
-  showToast('播放模式: ' + playModeLabel(playMode));
+  showToast(MineradioI18n.source('播放模式: ') + MineradioI18n.source(playModeLabel(playMode)));
 }
 updatePlayModeButton(false);

@@ -1170,6 +1170,7 @@ function mapSpotifyPlaylist(item, profile) {
     trackCount: Number(item.items && item.items.total) || Number(item.tracks && item.tracks.total) || 0,
     playCount: 0,
     subscribed: !owned,
+    owned,
     shelfPane: owned ? 'mine' : 'fav',
     public: item.public,
     collaborative: !!item.collaborative,
@@ -1499,6 +1500,44 @@ async function handleSpotifyLibrarySet(type, value, saved) {
   };
 }
 
+async function handleSpotifyPlaylistRemoveSong(playlistId, song) {
+  const granted = normalizeScopes(readStoredSpotifyToken().scope);
+  if (!granted.includes('playlist-modify-private') && !granted.includes('playlist-modify-public')) {
+    requireSpotifyScopes(['playlist-modify-private']);
+  }
+  playlistId = normalizeText(playlistId).replace(/^spotify:/i, '');
+  const uri = spotifyLibraryUri('track', song);
+  if (!/^[a-zA-Z0-9]{22}$/.test(playlistId) ||
+      !/^spotify:track:[a-zA-Z0-9]{22}$/.test(uri)) {
+    const error = new Error('SPOTIFY_PLAYLIST_OR_TRACK_REQUIRED');
+    error.code = 'SPOTIFY_PLAYLIST_OR_TRACK_REQUIRED';
+    error.statusCode = 400;
+    throw error;
+  }
+  // Do not modify public albums, saved playlists of other users, or shared
+  // lists where ownership has not been established.
+  const [profile, playlist] = await Promise.all([
+    getSpotifyProfile({ timeoutMs: 9000 }),
+    spotifyUserGet('/playlists/' + encodeURIComponent(playlistId), {}, { timeoutMs: 9000 })
+  ]);
+  if (!normalizeText(profile && profile.id) || !playlist || !playlist.owner ||
+      normalizeText(playlist.owner.id) !== normalizeText(profile.id)) {
+    const error = new Error('PLAYLIST_NOT_OWNED');
+    error.code = 'PLAYLIST_NOT_OWNED';
+    error.statusCode = 403;
+    throw error;
+  }
+  const result = await spotifyUserRequest(
+    '/playlists/' + encodeURIComponent(playlistId) + '/items',
+    'DELETE', {}, { items: [{ uri }] }, { timeoutMs: 10000, noRetry: true }
+  );
+  return {
+    provider: 'spotify', pid: playlistId, id: uri.split(':').pop(),
+    success: true, synced: true, snapshotId: normalizeText(result && result.snapshot_id),
+    action: 'remove-from-playlist'
+  };
+}
+
 async function handleSpotifyPlaylistAddSong(playlistId, song) {
   const tokenScopes = normalizeScopes(readStoredSpotifyToken().scope);
   if (!tokenScopes.includes('playlist-modify-private') && !tokenScopes.includes('playlist-modify-public')) {
@@ -1613,6 +1652,7 @@ module.exports = {
   handleSpotifyLibraryCheck,
   handleSpotifyLibrarySet,
   handleSpotifyPlaylistAddSong,
+  handleSpotifyPlaylistRemoveSong,
   handleSpotifyCreatePlaylist,
   handleSpotifySongUrl,
   handleSpotifyLyric,

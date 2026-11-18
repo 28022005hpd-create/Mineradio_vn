@@ -1,3 +1,23 @@
+
+// Localize only interface status constants, never a user's nickname or music
+// title. Native i18n already loads before this module.
+function nativeAccountUiCopy(text, fallback) {
+  var locale = typeof MineradioI18n !== 'undefined' && MineradioI18n;
+  if (!locale || typeof locale.ui !== 'function') return text;
+  var result = locale.ui(String(text || ''));
+  if (locale.locale === 'vi-VN' && /[\u3400-\u9fff]/.test(result)) {
+    return fallback || 'Không thể hoàn tất yêu cầu';
+  }
+  return result;
+}
+function loginDisplayCopy(zh, vi) {
+  return typeof MineradioI18n !== 'undefined' && MineradioI18n.locale === 'vi-VN' ? vi : zh;
+}
+function loginProviderDisplayName(provider) {
+  var names = { netease: 'NetEase Cloud Music', qq: 'QQ Music',
+    kugou: 'KuGou Music', qishui: 'Qishui Music' };
+  return loginDisplayCopy((platformMeta(provider) || {}).label || provider, names[provider] || provider);
+}
 var loginRefreshRequestSeq = 0;
 var loginWorkflowDrag = null;
 var LOGIN_WORKFLOW_CONNECTION_STORE_KEY = 'mineradio-login-workflow-connections-v1';
@@ -28,10 +48,10 @@ function loginProviderSupportsCookieMode(provider) {
 }
 function loginProviderOfficialModeText(provider) {
   provider = normalizeLoginProviderKey(provider);
-  if (provider === 'spotify') return { title: 'OAuth', sub: '弹出 Spotify 授权窗口' };
-  if (provider === 'qishui') return { title: '扫码', sub: '使用抖音 App 官方授权' };
-  if (provider === 'kugou') return { title: '官网', sub: '弹出酷狗官方窗口' };
-  return { title: '扫码', sub: '连接后弹出官方窗口' };
+  if (provider === 'spotify') return { title: 'OAuth', sub: loginDisplayCopy('弹出 Spotify 授权窗口', 'Cửa sổ cấp quyền Spotify') };
+  if (provider === 'qishui') return { title: loginDisplayCopy('扫码', 'Mã QR'), sub: loginDisplayCopy('使用抖音 App 官方授权', 'Xác nhận bằng ứng dụng Douyin') };
+  if (provider === 'kugou') return { title: loginDisplayCopy('官网', 'Trang web'), sub: loginDisplayCopy('弹出酷狗官方窗口', 'Mở trang KuGou chính thức') };
+  return { title: loginDisplayCopy('扫码', 'Mã QR'), sub: loginDisplayCopy('连接后弹出官方窗口', 'Quét mã hoặc dùng trang web chính thức') };
 }
 function setManualCookieOpenForProvider(provider, open) {
   provider = normalizeLoginProviderKey(provider);
@@ -197,9 +217,13 @@ function selectLoginProviderNode(provider) {
     return;
   }
   provider = normalizeLoginProviderKey(provider);
+  setManualCookieOpenForProvider(provider, false); // Default to QR/web on provider selection.
   setLoginProvider(provider, true);
-  setLoginAuthDrawerOpen(hasLoginWorkflowConnection(provider) || loginWorkflowPendingProvider === provider);
+  // Provider selection is enough; the MR connector animation is optional.
+  setLoginAuthDrawerOpen(true);
   updateLoginProviderUi();
+  if (provider === 'netease' || provider === 'qishui') refreshQr();
+  else { stopQrPoll(); qrKey = null; }
 }
 function connectLoginProviderToMr(provider) {
   provider = normalizeLoginProviderKey(provider);
@@ -284,7 +308,7 @@ function finishLoginProviderPointer(e) {
 function loginProviderVipLabel(provider, status) {
   if (!status || !status.loggedIn) return '';
   var level = providerVipLevel(provider, status);
-  return level === 'svip' ? 'SVIP' : (level === 'vip' ? 'VIP' : '普通');
+  return level === 'svip' ? 'SVIP' : (level === 'vip' ? 'VIP' : loginDisplayCopy('普通', 'Thường'));
 }
 function handleLoginProviderExternalSwitchEvent(e, provider) {
   if (e) {
@@ -307,8 +331,8 @@ function updateLoginProviderCapsuleStatus(provider, btn) {
     btn.insertBefore(handle, btn.firstChild);
   }
   handle.setAttribute('data-login-provider-sort', provider);
-  handle.setAttribute('title', 'Drag to sort');
-  handle.setAttribute('aria-label', 'Drag to sort');
+  handle.setAttribute('title', loginDisplayCopy('拖动调整顺序', 'Kéo để đổi thứ tự'));
+  handle.setAttribute('aria-label', loginDisplayCopy('拖动调整顺序', 'Kéo để đổi thứ tự'));
   var logo = btn.querySelector('.provider-logo');
   if (logo) {
     if (st.loggedIn) {
@@ -335,10 +359,11 @@ function updateLoginProviderCapsuleStatus(provider, btn) {
   externalSwitch.setAttribute('role', 'switch');
   externalSwitch.setAttribute('tabindex', '0');
   externalSwitch.setAttribute('data-login-provider-external', provider);
-  externalSwitch.setAttribute('aria-label', '展示到右上角账号胶囊');
+  externalSwitch.setAttribute('aria-label', loginDisplayCopy('展示到右上角账号胶囊', 'Hiện tài khoản ở góc trên bên phải'));
   externalSwitch.setAttribute('aria-checked', isAccountProviderExternallyVisible(provider) ? 'true' : 'false');
   if (!externalSwitch.querySelector('.login-provider-external-label')) {
-    externalSwitch.innerHTML = '<span class="login-provider-external-label">展示</span><i></i>';
+    externalSwitch.innerHTML = '<span class="login-provider-external-label">' +
+      loginDisplayCopy('展示', 'Hiện') + '</span><i></i>';
   }
   if (!externalSwitch.__loginProviderExternalBound) {
     externalSwitch.__loginProviderExternalBound = true;
@@ -353,7 +378,9 @@ function updateLoginProviderCapsuleStatus(provider, btn) {
       handleLoginProviderExternalSwitchEvent(e, externalSwitch.getAttribute('data-login-provider-external') || provider);
     });
   }
-  externalSwitch.title = isAccountProviderExternallyVisible(provider) ? '已在右上角展示，点击关闭' : '未在右上角展示，点击开启';
+  externalSwitch.title = isAccountProviderExternallyVisible(provider)
+    ? loginDisplayCopy('已在右上角展示，点击关闭', 'Đang hiện trên thanh tài khoản, nhấn để ẩn')
+    : loginDisplayCopy('未在右上角展示，点击开启', 'Nhấn để hiện trên thanh tài khoản');
   var label = loginProviderVipLabel(provider, st);
   var level = providerVipLevel(provider, st);
   badge.textContent = label;
@@ -466,7 +493,9 @@ function updateLoginNodeGraphUi() {
     var cookieTitle = cookie.querySelector('b');
     var cookieSub = cookie.querySelector('small');
     if (cookieTitle) cookieTitle.textContent = 'Cookie';
-    if (cookieSub) cookieSub.textContent = loginProviderSupportsCookieMode(loginProvider) ? '连接后打开手动导入' : '该平台不支持 Cookie 导入';
+    if (cookieSub) cookieSub.textContent = loginProviderSupportsCookieMode(loginProvider)
+      ? loginDisplayCopy('连接后打开手动导入', 'Nhập cookie thủ công')
+      : loginDisplayCopy('该平台不支持 Cookie 导入', 'Nền tảng này không hỗ trợ cookie');
     cookie.disabled = !loginProviderSupportsCookieMode(loginProvider);
     cookie.classList.toggle('active', isManualCookieOpenForProvider(loginProvider));
   }
@@ -476,10 +505,13 @@ function updateLoginNodeGraphUi() {
     var copySub = copy.querySelector('small');
     var connectedCount = connected.length;
     if (copySub) copySub.textContent = hasLoginWorkflowConnection(loginProvider)
-      ? ((meta && meta.label || loginProvider) + ' 已接入 / 共 ' + connectedCount + ' 个接口')
+      ? loginDisplayCopy((meta && meta.label || loginProvider) + ' 已接入 / 共 ' + connectedCount + ' 个接口',
+          loginProviderDisplayName(loginProvider) + ' đã kết nối · ' + connectedCount + ' tài khoản')
       : (loginWorkflowPendingProvider === loginProvider
-        ? ((meta && meta.label || loginProvider) + ' 待登录确认')
-        : (connectedCount ? ('已接入 ' + connectedCount + ' 个接口，拖入当前接口可继续添加') : '把左侧接口拖入这里'));
+        ? loginDisplayCopy((meta && meta.label || loginProvider) + ' 待登录确认',
+            loginProviderDisplayName(loginProvider) + ' đang chờ xác nhận')
+        : loginDisplayCopy(connectedCount ? ('已接入 ' + connectedCount + ' 个接口，拖入当前接口可继续添加') : '把左侧接口拖入这里',
+            'Chọn nền tảng bên trái để đăng nhập'));
   }
   scheduleLoginWorkflowEdges('node-ui');
 }
@@ -493,13 +525,10 @@ function selectLoginMode(mode) {
   }
   setManualCookieOpenForProvider(loginProvider, mode === 'cookie');
   updateLoginProviderUi();
-  setLoginAuthDrawerOpen(hasLoginWorkflowConnection(loginProvider) || loginWorkflowPendingProvider === loginProvider);
+  setLoginAuthDrawerOpen(true);
+  if (mode !== 'cookie' && (loginProvider === 'netease' || loginProvider === 'qishui')) refreshQr();
 }
 function startSelectedLoginConnection() {
-  if (!hasLoginWorkflowConnection(loginProvider) && loginWorkflowPendingProvider !== loginProvider) {
-    showToast('先把左侧接口拖到 MR 接入口');
-    return;
-  }
   setLoginAuthDrawerOpen(true);
   connectLoginMode(loginWorkflowActiveMode());
 }
@@ -574,25 +603,28 @@ async function confirmCookieExportPrompt() {
 async function showLoginModal(opts) {
   opts = opts || {};
   loginProvider = opts.provider ? normalizeLoginProviderKey(opts.provider) : 'netease';
+  setManualCookieOpenForProvider(loginProvider, false); // Restore official QR/web on reopen.
   var modal = document.getElementById('login-modal');
-  if (typeof setLoginEasterEggMode === 'function' &&
-      (!loginEasterEggState || !loginEasterEggState.ready || !loginEasterEggState.unlocked)) {
-    setLoginEasterEggMode(true);
-  }
-  openGsapModal(modal);
+  // Resolve the native login state before presenting the modal. The vi-VN
+  // release bypasses the wish gate; do not flash the locked screen on startup.
   var unlocked = typeof prepareLoginEasterEggGate === 'function'
     ? await prepareLoginEasterEggGate()
     : true;
+  openGsapModal(modal);
   if (!unlocked) return;
   resumeLoginModalAfterGate();
 }
 function resumeLoginModalAfterGate() {
   bindLoginWorkflowPointerEvents();
-  setLoginAuthDrawerOpen(false);
+  setLoginAuthDrawerOpen(true);
   updateLoginProviderUi();
   scheduleLoginWorkflowEdges('open');
+  // The original workflow exposes login immediately, without dragging a wire.
+  if (loginProvider === 'netease' || loginProvider === 'qishui') refreshQr();
+  if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('login-modal'));
 }
 function closeLoginModal() {
+  loginRefreshRequestSeq += 1; // Ignore in-flight QR calls after closing.
   stopQrPoll();
   setLoginAuthDrawerOpen(false);
   closeGsapModal(document.getElementById('login-modal'));
@@ -908,7 +940,9 @@ function updateLoginProviderUi() {
   var kugouBtn = document.getElementById('login-provider-kugou');
   var qishuiBtn = document.getElementById('login-provider-qishui');
   var qqCookieSaveBtn = document.getElementById('qq-cookie-save-btn');
-  var canOpenNeteaseWeb = !!(window.desktopWindow && typeof window.desktopWindow.openNeteaseMusicLogin === 'function');
+  var fallbackBtn = document.getElementById('login-web-fallback-btn');
+  var canOpenNeteaseWeb = !!(window.desktopWindow && window.desktopWindow.isDesktop &&
+    typeof window.desktopWindow.openNeteaseMusicLogin === 'function');
   var canUseQishuiQrLogin = true;
   var qishuiSearchReady = qishuiPublicSearchReady();
   var qishuiBusy = !!(qishuiTokenBusy || qishuiOAuthBusy);
@@ -919,6 +953,10 @@ function updateLoginProviderUi() {
   var spotifyWizard = document.getElementById('spotify-setup-wizard');
   var canOpenSpotifyOAuth = !!(window.desktopWindow && typeof window.desktopWindow.openSpotifyMusicLogin === 'function');
   var spotifyBusy = !!(spotifyConfigBusy || spotifyOAuthBusy);
+  if (fallbackBtn) {
+    fallbackBtn.style.display = isNetease && canOpenNeteaseWeb ? '' : 'none';
+    fallbackBtn.textContent = loginDisplayCopy('网页登录', 'Mở trang đăng nhập');
+  }
   if (loginDrawer) loginDrawer.classList.toggle('spotify-mode', isSpotify);
   if (loginModalPanel) loginModalPanel.classList.toggle('spotify-setup-open', isSpotify);
   if (spotifyWizard) spotifyWizard.setAttribute('aria-hidden', isSpotify ? 'false' : 'true');
@@ -980,6 +1018,7 @@ function updateLoginProviderUi() {
     renderSpotifySetupWizard();
     scheduleSpotifySetupAutoCheck();
     updateLoginNodeGraphUi();
+    if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('login-modal'));
     return;
   }
   if (qqPanel) qqPanel.classList.remove('spotify-guide-panel');
@@ -988,19 +1027,21 @@ function updateLoginProviderUi() {
   if (qqBtn) qqBtn.classList.toggle('active', isQQ);
   if (kugouBtn) kugouBtn.classList.toggle('active', isKugou);
   if (qishuiBtn) qishuiBtn.classList.toggle('active', isQishui);
-  if (title) title.textContent = isQishui ? '扫码登录汽水音乐' : ('扫码登录' + meta.label);
-  if (desc) desc.innerHTML = isQQ
-    ? '打开 <b>QQ 音乐官方网页登录窗口</b> 扫码，成功后会自动同步账号会话。'
-    : (isKugou
-      ? '打开 <b>酷狗音乐官方网页登录窗口</b> 登录，成功后会自动同步账号会话。'
-    : (isQishui
-      ? '使用已登录账号的 <b>抖音 App</b> 扫描官方二维码并确认，登录后可同步我的喜欢、歌单并按账号权益播放。'
-    : (canOpenNeteaseWeb
-      ? '打开 <b>网易云音乐官方网页登录窗口</b> 扫码，避开接口二维码风控；成功后会自动同步账号会话。'
-      : '使用 <b>网易云音乐 App</b> 扫码，可同步歌单、红心与播客。')));
+  if (title) title.textContent = loginDisplayCopy(
+    isQishui ? '扫码登录汽水音乐' : ('扫码登录' + meta.label),
+    'Đăng nhập ' + loginProviderDisplayName(loginProvider));
+  if (desc) desc.innerHTML = loginDisplayCopy(
+    isQQ ? '打开 <b>QQ 音乐官方网页登录窗口</b> 扫码，成功后会自动同步账号会话。' :
+      (isKugou ? '打开 <b>酷狗音乐官方网页登录窗口</b> 登录，成功后会自动同步账号会话。' :
+      (isQishui ? '使用已登录账号的 <b>抖音 App</b> 扫描官方二维码并确认。' :
+        '使用网易云音乐 App 扫描二维码，或打开官方网页登录窗口。')),
+    isQQ ? 'Nhấn <b>Mở cửa sổ đăng nhập QQ Music</b>, quét mã rồi xác nhận để đồng bộ tài khoản.' :
+      (isKugou ? 'Nhấn <b>Mở trang KuGou Music</b> để đăng nhập và đồng bộ tài khoản.' :
+      (isQishui ? 'Dùng <b>Douyin</b> quét mã QR và xác nhận đăng nhập.' :
+        'Dùng <b>NetEase Cloud Music</b> quét mã QR, hoặc chọn <b>Mở trang đăng nhập</b> để đăng nhập trên trang chính thức.')));
   var manualCookieOpen = isManualCookieOpenForProvider(loginProvider);
   if (shell) {
-    var useWebPreview = isQQ || isKugou || (isNetease && (canOpenNeteaseWeb || manualCookieOpen));
+    var useWebPreview = isQQ || isKugou || (isNetease && manualCookieOpen);
     shell.classList.toggle('web-login-preview', useWebPreview);
     shell.classList.toggle('qq-preview', isQQ);
     shell.classList.toggle('netease-preview', isNetease && canOpenNeteaseWeb);
@@ -1008,30 +1049,39 @@ function updateLoginProviderUi() {
   if (qqPanel) qqPanel.classList.toggle('show', isManualCookieProvider && manualCookieOpen);
   if (qqCookieToggle) {
     qqCookieToggle.classList.toggle('show', isManualCookieProvider);
-    qqCookieToggle.textContent = manualCookieOpen ? '收起导入' : 'Cookie 导入';
+    qqCookieToggle.textContent = manualCookieOpen
+      ? loginDisplayCopy('收起导入', 'Ẩn nhập cookie')
+      : loginDisplayCopy('Cookie 导入', 'Nhập cookie');
   }
   if (qqCookieInput) qqCookieInput.placeholder = isKugou ? 'KuGoo=...; token=...; userid=...; kg_mid=...' : (isNetease ? 'MUSIC_U=...; __csrf=...' : 'uin=...; qqmusic_key=...; qm_keyst=...');
-  if (qqCookieNote) qqCookieNote.textContent = isKugou ? '从 kugou.com 的登录会话导入。' : (isNetease ? '从 music.163.com 的登录会话导入。' : '从 y.qq.com 的登录会话导入。');
-  if (qqCookieSaveBtn) qqCookieSaveBtn.textContent = '保存 Cookie';
+  if (qqCookieNote) qqCookieNote.textContent = loginDisplayCopy(
+    isKugou ? '从 kugou.com 的登录会话导入。' : (isNetease ? '从 music.163.com 的登录会话导入。' : '从 y.qq.com 的登录会话导入。'),
+    'Chỉ nhập cookie của chính bạn từ ' + (isKugou ? 'kugou.com' : (isNetease ? 'music.163.com' : 'y.qq.com')) + '.');
+  if (qqCookieSaveBtn) qqCookieSaveBtn.textContent = loginDisplayCopy('保存 Cookie', 'Lưu cookie');
   if (qqCard) {
     qqCard.style.display = '';
     qqCard.disabled = isQishui ? (qishuiBusy || !canUseQishuiQrLogin) : (isQQ ? !!qqWebLoginBusy : (isKugou ? !!kugouWebLoginBusy : !!neteaseWebLoginBusy));
     var cardMark = qqCard.querySelector('b');
     var cardLabel = qqCard.querySelector('span');
     if (cardMark) cardMark.textContent = isQQ ? 'QQ' : (isKugou ? 'KG' : (isQishui ? 'QS' : 'NE'));
-    if (cardLabel) cardLabel.textContent = isQQ
-      ? (qqWebLoginBusy ? '等待扫码确认' : (qqLoginStatus.loggedIn ? '重新打开官方窗口同步会员' : '打开官方扫码窗口'))
-      : (isKugou ? (kugouWebLoginBusy ? '等待登录确认' : '打开官方登录窗口') : (isQishui ? (qishuiOAuthBusy ? '正在生成二维码' : '扫码登录汽水') : (neteaseWebLoginBusy ? '等待扫码确认' : '打开官方登录窗口')));
+    if (cardLabel) cardLabel.textContent = loginDisplayCopy(
+      isQQ ? (qqWebLoginBusy ? '等待扫码确认' : '打开官方扫码窗口') :
+        (isKugou ? (kugouWebLoginBusy ? '等待登录确认' : '打开官方登录窗口') :
+        (isQishui ? '扫码登录汽水' : '打开官方登录窗口')),
+      isQQ ? (qqWebLoginBusy ? 'Đang chờ xác nhận' : 'Mở cửa sổ đăng nhập QQ') :
+        (isKugou ? (kugouWebLoginBusy ? 'Đang chờ đăng nhập' : 'Mở cửa sổ đăng nhập KuGou') :
+        (isQishui ? 'Quét mã Qishui' : 'Mở cửa sổ đăng nhập NetEase')));
   }
   if (st) {
     st.className = isManualCookieProvider ? 'preview' : '';
-    st.textContent = isQQ
-      ? qqLoginStatusText(qqLoginStatus)
-      : (isKugou
-        ? (kugouLoginStatus.loggedIn ? ('已保存酷狗音乐会话 · ' + (kugouLoginStatus.nickname || '')) : '点击“登录”打开酷狗音乐官方窗口')
-        : (isQishui
-          ? qishuiLoginStatusText()
-        : (canOpenNeteaseWeb ? '点击“网页登录”打开网易云官方窗口' : '正在生成二维码…')));
+    st.textContent = loginDisplayCopy(
+      isQQ ? qqLoginStatusText(qqLoginStatus) :
+        (isKugou ? (kugouLoginStatus.loggedIn ? ('已保存酷狗音乐会话 · ' + (kugouLoginStatus.nickname || '')) : '点击“登录”打开酷狗音乐官方窗口') :
+          (isQishui ? qishuiLoginStatusText() : '正在生成二维码…')),
+      isQQ ? (qqLoginStatus.loggedIn ? 'Đã kết nối QQ Music' : 'Chọn mở trang QQ Music để quét mã đăng nhập') :
+        (isKugou ? (kugouLoginStatus.loggedIn ? 'Đã kết nối KuGou Music' : 'Chọn mở trang KuGou để đăng nhập') :
+          (isQishui ? (qishuiLoginStatus.loggedIn ? 'Đã kết nối Qishui Music' : 'Dùng Douyin quét mã QR để xác nhận') :
+            'Đang tạo mã QR NetEase…')));
   }
   if (refreshBtn) {
     refreshBtn.disabled = isQishui ? (qishuiBusy || !canUseQishuiQrLogin) : (isQQ ? !!qqWebLoginBusy : (isKugou ? !!kugouWebLoginBusy : !!neteaseWebLoginBusy));
@@ -1040,10 +1090,16 @@ function updateLoginProviderUi() {
       qqLoginStatus.playbackKeyReady === false
     );
     var qqNeedsMembershipSync = isQQ && typeof qqMembershipNeedsSync === 'function' && qqMembershipNeedsSync(qqLoginStatus);
-    refreshBtn.textContent = isQishui ? (qishuiOAuthBusy ? '生成中…' : '刷新二维码') : (isQQ ? (qqWebLoginBusy ? '等待扫码…' : (qqNeedsAuthRefresh ? '重新授权' : (qqNeedsMembershipSync ? '同步会员' : (qqLoginStatus.loggedIn ? '刷新状态' : '扫码登录')))) : (isKugou ? (kugouWebLoginBusy ? '等待登录…' : '登录') : (canOpenNeteaseWeb ? (neteaseWebLoginBusy ? '等待扫码…' : '网页登录') : '刷新二维码')));
-    refreshBtn.onclick = isQishui ? openQishuiWebLogin : (isQQ ? (qqNeedsAuthRefresh ? openQQWebLogin : (qqLoginStatus.loggedIn ? refreshQr : openQQWebLogin)) : (isKugou ? openKugouWebLogin : (canOpenNeteaseWeb ? openNeteaseWebLogin : refreshQr)));
+    refreshBtn.textContent = loginDisplayCopy(
+      isQishui ? (qishuiOAuthBusy ? '生成中…' : '刷新二维码') : (isQQ ? (qqWebLoginBusy ? '等待扫码…' : '扫码登录') : (isKugou ? '登录' : '刷新二维码')),
+      isQishui ? (qishuiOAuthBusy ? 'Đang tạo mã…' : 'Làm mới mã QR') :
+        (isQQ ? (qqWebLoginBusy ? 'Đang chờ xác nhận…' : 'Mở trang QQ Music') :
+        (isKugou ? (kugouWebLoginBusy ? 'Đang đăng nhập…' : 'Mở trang KuGou') : 'Làm mới mã QR')));
+    refreshBtn.onclick = isQishui ? openQishuiWebLogin :
+      (isQQ ? openQQWebLogin : (isKugou ? openKugouWebLogin : refreshQr));
   }
   updateLoginNodeGraphUi();
+  if (window.MineradioI18n) window.MineradioI18n.bindDynamicUi(document.getElementById('login-modal'));
 }
 async function refreshQr() {
   stopQrPoll();
@@ -1129,31 +1185,25 @@ async function refreshQr() {
     }
     return;
   }
-  if (window.desktopWindow && typeof window.desktopWindow.openNeteaseMusicLogin === 'function') {
-    qrKey = null;
-    var neImg = document.getElementById('qr-img');
-    var neStatus = document.getElementById('qr-status');
-    if (neImg) neImg.src = '';
-    if (neStatus) {
-      neStatus.textContent = loginStatus.loggedIn ? ('已保存网易云会话 · ' + (loginStatus.nickname || '')) : '点击“网页登录”打开网易云官方窗口';
-      neStatus.className = 'preview';
-    }
-    return;
-  }
+  // Inline QR works in Electron as well. The official web window is a fallback.
   try {
     var k = await apiJson('/api/login/qr/key');
     if (!isLoginRefreshCurrent(refreshProvider, refreshSeq)) return;
-    if (!k.key) throw new Error('获取 key 失败');
+    if (!k.key) throw new Error('QR_KEY_UNAVAILABLE');
     qrKey = k.key;
     var q = await apiJson('/api/login/qr/create?key=' + encodeURIComponent(qrKey));
     if (!isLoginRefreshCurrent(refreshProvider, refreshSeq)) return;
-    if (!q.img) throw new Error('生成二维码失败');
+    if (!q.img) throw new Error('QR_IMAGE_UNAVAILABLE');
     document.getElementById('qr-img').src = q.img;
-    document.getElementById('qr-status').textContent = '请使用网易云音乐 App 扫码';
+    document.getElementById('qr-status').textContent = loginDisplayCopy(
+      '请使用网易云音乐 App 扫码', 'Dùng ứng dụng NetEase Cloud Music quét mã QR');
     startQrPoll();
   } catch (e) {
     if (!isLoginRefreshCurrent(refreshProvider, refreshSeq)) return;
-    document.getElementById('qr-status').textContent = '出错: ' + e.message;
+    console.warn('NetEase QR generation failed:', e);
+    document.getElementById('qr-status').textContent = loginDisplayCopy(
+      '二维码暂时不可用，请点击“网页登录”打开官方登录窗口。',
+      'Chưa tạo được mã QR. Hãy nhấn “Mở trang đăng nhập” để đăng nhập bằng trang web chính thức.');
     document.getElementById('qr-status').className = 'fail';
   }
 }
@@ -1333,10 +1383,11 @@ async function openNeteaseWebLogin() {
   }
 
   neteaseWebLoginBusy = true;
+  stopQrPoll();
   updateLoginProviderUi();
   if (statusEl) { statusEl.textContent = '已打开网易云窗口，请在官方页面扫码登录…'; statusEl.className = 'preview'; }
   try {
-    var result = await api.openNeteaseMusicLogin();
+    var result = await api.openNeteaseMusicLogin({ forceReauth: true });
     if (!result || !result.ok || !result.cookie) {
       throw new Error((result && (result.message || result.error)) || '网易云登录未完成');
     }
@@ -1352,16 +1403,23 @@ async function openNeteaseWebLogin() {
     renderUserBtn();
     refreshUserPlaylists(true);
     loadHomeDiscover(true);
-    if (statusEl) { statusEl.textContent = '网易云会话已保存'; statusEl.className = 'scan'; }
+    if (statusEl) { statusEl.textContent = nativeAccountUiCopy('网易云会话已保存'); statusEl.className = 'scan'; }
     offerLoginCookieExport('netease', info);
     setTimeout(function () {
       closeLoginModal();
-      showToast('网易云已登录: ' + (info.nickname || info.userId || ''));
+      showToast(nativeAccountUiCopy('网易云已登录: ') + (info.nickname || info.userId || ''));
     }, 420);
   } catch (e) {
     neteaseWebLoginBusy = false;
     updateLoginProviderUi();
-    if (statusEl) { statusEl.textContent = e && e.message ? e.message : '网易云登录失败'; statusEl.className = 'fail'; }
+    if (statusEl) {
+      statusEl.textContent = loginDisplayCopy('网易云登录失败，请重新打开官方窗口或刷新二维码。',
+        'Không thể đăng nhập NetEase. Hãy mở lại trang chính thức hoặc làm mới mã QR.');
+      statusEl.className = 'fail';
+    }
+    if (qrKey && loginProvider === 'netease' &&
+        document.getElementById('login-modal').classList.contains('show')) startQrPoll();
+    console.warn('Netease official login failed:', e);
   } finally {
     if (neteaseWebLoginBusy) {
       neteaseWebLoginBusy = false;
@@ -1385,7 +1443,8 @@ async function openQQWebLogin() {
   if (statusEl) { statusEl.textContent = '已打开 QQ 音乐窗口，请扫码并确认登录…'; statusEl.className = 'preview'; }
   try {
     var result = await api.openQQMusicLogin({
-      forceReauth: !!(qqLoginStatus && qqLoginStatus.authorizationIncomplete && qqLoginStatus.playbackKeyReady === false)
+      forceReauth: !qqLoginStatus.loggedIn ||
+        !!(qqLoginStatus && qqLoginStatus.authorizationIncomplete && qqLoginStatus.playbackKeyReady === false)
     });
     if (!result || !result.ok || !result.cookie) {
       throw new Error((result && (result.message || result.error)) || 'QQ 登录未完成');
@@ -1542,7 +1601,7 @@ async function submitNeteaseCookieLogin() {
   }
   qqCookieBusy = true;
   if (saveBtn) saveBtn.classList.add('busy');
-  if (statusEl) { statusEl.textContent = '正在保存网易云会话…'; statusEl.className = 'preview'; }
+  if (statusEl) { statusEl.textContent = nativeAccountUiCopy('正在保存网易云会话…'); statusEl.className = 'preview'; }
   try {
     var info = await apiJson('/api/login/cookie', {
       method: 'POST',
@@ -1564,7 +1623,7 @@ async function submitNeteaseCookieLogin() {
       showToast('网易云已登录: ' + (info.nickname || info.userId || ''));
     }, 420);
   } catch (e) {
-    if (statusEl) { statusEl.textContent = e && e.message ? e.message : '网易云会话保存失败'; statusEl.className = 'fail'; }
+    if (statusEl) { statusEl.textContent = nativeAccountUiCopy(e && e.message ? e.message : '网易云会话保存失败', nativeAccountUiCopy('网易云会话保存失败')); statusEl.className = 'fail'; }
   } finally {
     qqCookieBusy = false;
     if (saveBtn) saveBtn.classList.remove('busy');
@@ -1576,11 +1635,11 @@ async function checkQr() {
   try {
     var r = await apiJson('/api/login/qr/check?key=' + encodeURIComponent(qrKey));
     var $st = document.getElementById('qr-status');
-    if (r.code === 800) { $st.textContent = '二维码已过期, 请刷新'; $st.className = 'fail'; stopQrPoll(); }
-    else if (r.code === 801) { $st.textContent = '请在 App 中扫码'; $st.className = ''; }
-    else if (r.code === 802) { $st.textContent = '已扫码, 请在手机确认…'; $st.className = 'scan'; }
+    if (r.code === 800) { $st.textContent = nativeAccountUiCopy('二维码已过期, 请刷新'); $st.className = 'fail'; stopQrPoll(); }
+    else if (r.code === 801) { $st.textContent = nativeAccountUiCopy('请在 App 中扫码'); $st.className = ''; }
+    else if (r.code === 802) { $st.textContent = nativeAccountUiCopy('已扫码, 请在手机确认…'); $st.className = 'scan'; }
     else if (r.code === 803 && (r.loggedIn || r.hasCookie)) {
-      $st.textContent = r.pendingProfile ? '登录成功，正在同步账号资料…' : '登录成功！'; $st.className = 'scan';
+      $st.textContent = nativeAccountUiCopy(r.pendingProfile ? '登录成功，正在同步账号资料…' : '登录成功！'); $st.className = 'scan';
       stopQrPoll();
       loginStatus = r.loggedIn ? r : Object.assign({}, r, { loggedIn: true, pendingProfile: true, nickname: r.nickname || '网易云用户' });
       activeAccountProvider = 'netease';
@@ -1594,10 +1653,10 @@ async function checkQr() {
         }
         closeLoginModal();
         offerLoginCookieExport('netease', fresh);
-        showToast('欢迎 ' + (fresh && fresh.nickname ? fresh.nickname : ''));
+        showToast(nativeAccountUiCopy('欢迎 ') + (fresh && fresh.nickname ? fresh.nickname : ''));
       }, r.pendingProfile ? 1200 : 500);
     } else if (r.code === 803) {
-      $st.textContent = '扫码已确认，但没有拿到登录凭证，请刷新二维码重试'; $st.className = 'fail';
+      $st.textContent = nativeAccountUiCopy('扫码已确认，但没有拿到登录凭证，请刷新二维码重试'); $st.className = 'fail';
       stopQrPoll();
     }
   } catch (e) { console.warn(e); }

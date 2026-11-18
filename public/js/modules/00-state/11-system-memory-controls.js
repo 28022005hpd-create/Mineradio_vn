@@ -1,3 +1,10 @@
+function memoryUiCopy(zh, vi) {
+  return typeof MineradioI18n !== 'undefined' && MineradioI18n.locale === 'vi-VN' ? vi : zh;
+}
+function memoryUiToast(message) {
+  return showToast(typeof MineradioI18n !== 'undefined' && MineradioI18n.ui
+    ? MineradioI18n.ui(message) : message);
+}
 var MEMORY_REDUCT_MASK_BITS = {
   workingSet: 1,
   modifiedList: 4,
@@ -74,12 +81,16 @@ function memoryFormatSnapshot(snapshot) {
   var percent = Math.round(Number(snapshot.usedPercent) || 0);
   var proc = snapshot.process || {};
   var rss = Math.round(Number(proc.rssMB) || 0);
-  return '系统 ' + used + '/' + total + ' MB (' + percent + '%), 可用 ' + free + ' MB, 播放器 ' + rss + ' MB';
+  return memoryUiCopy(
+    '系统 ' + used + '/' + total + ' MB (' + percent + '%), 可用 ' + free + ' MB, 播放器 ' + rss + ' MB',
+    'RAM hệ thống ' + used + '/' + total + ' MB (' + percent + '%), còn trống ' + free +
+      ' MB, Mineradio ' + rss + ' MB');
 }
 
 function updateMemoryStatusText(text) {
   var chip = document.getElementById('memory-status-chip');
-  if (chip) chip.textContent = text || '系统内存读取中...';
+  if (chip) chip.textContent = (typeof MineradioI18n !== 'undefined' && MineradioI18n.ui
+    ? MineradioI18n.ui(text || '系统内存读取中...') : (text || '系统内存读取中...'));
 }
 
 function refreshMemorySnapshot(force) {
@@ -96,7 +107,7 @@ function refreshMemorySnapshot(force) {
     if (payload) rememberMemoryStatusPayload(payload);
     else memoryLastStatusPayload = null;
     var status = payload && payload.ok ? memoryFormatSnapshot(payload.snapshot) : '系统内存读取失败';
-    if (payload && payload.elevated) status += ' | 管理员';
+    if (payload && payload.elevated) status += memoryUiCopy(' | 管理员', ' | quyền quản trị');
     updateMemoryStatusText(status);
     updateMemoryControls();
     return payload;
@@ -124,8 +135,12 @@ function updateMemoryControls() {
     el.classList.remove('dev-locked');
     el.setAttribute('aria-disabled', 'false');
     el.title = systemAvailable
-      ? 'Mem Reduct will run only after Mineradio is hidden/minimized and threshold/interval allow it.'
-      : 'System-level Mem Reduct is not confirmed by the desktop process yet; app trim remains active.';
+      ? memoryUiCopy(
+        'Mem Reduct will run only after Mineradio is hidden/minimized and threshold/interval allow it.',
+        'Mem Reduct chỉ hoạt động khi Mineradio ẩn/thu nhỏ và đáp ứng ngưỡng, chu kỳ.')
+      : memoryUiCopy(
+        'System-level Mem Reduct is not confirmed by the desktop process yet; app trim remains active.',
+        'Tiến trình chưa xác nhận giải phóng RAM hệ thống; giảm RAM của ứng dụng vẫn hoạt động.');
   });
   document.querySelectorAll('#memory-mask-seg [data-memory-mask]').forEach(function (btn) {
     var bit = MEMORY_REDUCT_MASK_BITS[btn.getAttribute('data-memory-mask')] || 0;
@@ -138,14 +153,22 @@ function updateMemoryControls() {
       btn.disabled = !systemAvailable;
       btn.classList.toggle('dev-locked', !systemAvailable);
       btn.title = systemAvailable
-        ? 'Manual system memory release. Mineradio skips it while the main window is visible to avoid CPU spikes.'
-        : 'System-level purge is unavailable; background app trim remains active.';
+        ? memoryUiCopy(
+          'Manual system memory release. Mineradio skips it while the main window is visible to avoid CPU spikes.',
+          'Giải phóng RAM hệ thống thủ công. Bỏ qua khi cửa sổ chính đang hiện để tránh tăng tải CPU.')
+        : memoryUiCopy(
+          'System-level purge is unavailable; background app trim remains active.',
+          'Không thể giải phóng RAM hệ thống; chức năng giảm RAM ứng dụng vẫn hoạt động.');
     } else if (index > 1) {
       btn.disabled = !systemAvailable;
       btn.classList.toggle('dev-locked', !systemAvailable);
       btn.title = systemAvailable
-        ? 'Manual elevated release. Minimize or hide Mineradio first; the foreground window is skipped to avoid CPU spikes.'
-        : 'System-level purge is unavailable; background app trim remains active.';
+        ? memoryUiCopy(
+          'Manual elevated release. Minimize or hide Mineradio first; the foreground window is skipped to avoid CPU spikes.',
+          'Giải phóng RAM với quyền quản trị. Hãy thu nhỏ hoặc ẩn Mineradio trước.')
+        : memoryUiCopy(
+          'System-level purge is unavailable; background app trim remains active.',
+          'Không thể giải phóng RAM hệ thống; chức năng giảm RAM ứng dụng vẫn hoạt động.');
     }
   });
   setRange('fx-memory-interval', fx.memorySystemIntervalMin);
@@ -171,7 +194,7 @@ function toggleMemoryMaskPart(part) {
 
 function runAppMemoryTrim(reason) {
   if (!window.desktopWindow || typeof window.desktopWindow.trimAppMemory !== 'function') {
-    showToast('桌面版才支持进程内存压缩');
+    memoryUiToast('桌面版才支持进程内存压缩');
     return;
   }
   updateMemoryStatusText('正在压缩播放器工作集...');
@@ -188,7 +211,7 @@ function runAppMemoryTrim(reason) {
 function runSystemMemoryPurge(autoElevate) {
   ensureMemoryFxDefaults();
   if (!window.desktopWindow || typeof window.desktopWindow.purgeSystemMemory !== 'function') {
-    showToast('桌面版才支持系统级释放');
+    memoryUiToast('桌面版才支持系统级释放');
     return;
   }
   updateMemoryStatusText(autoElevate ? '正在请求提权系统释放（前台可见时会跳过）...' : '正在尝试系统级手动释放（前台可见时会跳过）...');
@@ -201,13 +224,13 @@ function runSystemMemoryPurge(autoElevate) {
     var result = payload && payload.result;
     if (result && result.skipped && result.reason === 'foreground-visible') {
       updateMemoryStatusText('前台可见时不执行系统释放；先最小化/隐藏再用，避免操作卡顿');
-      showToast('前台已跳过系统释放，最小化后再用');
+      memoryUiToast('前台已跳过系统释放，最小化后再用');
     } else if (result && result.ok) {
       updateMemoryStatusText('系统释放完成，约释放 ' + (result.freedMB || 0) + ' MB' + (result.partial ? '（部分权限）' : ''));
-      showToast('系统释放完成');
+      memoryUiToast('系统释放完成');
     } else if (result && result.needAdmin) {
       updateMemoryStatusText(autoElevate ? '提权释放未完成：可能取消了管理员权限或被系统拦截' : '当前权限只能完成部分释放；需要时可最小化后点提权释放');
-      showToast(autoElevate ? '提权释放未完成' : '需要管理员权限的部分已跳过');
+      memoryUiToast(autoElevate ? '提权释放未完成' : '需要管理员权限的部分已跳过');
     } else {
       updateMemoryStatusText('系统释放未完成: ' + String(result && result.message || payload && payload.error || ''));
     }

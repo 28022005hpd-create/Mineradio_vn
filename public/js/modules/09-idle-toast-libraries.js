@@ -652,9 +652,9 @@ function showVisualGuideStep(index) {
   if (title) title.textContent = step.title;
   if (body) body.textContent = step.body;
   if (kicker) kicker.textContent = step.kicker;
-  if (hint) hint.textContent = visualGuideStep === steps.length - 1 ? '点击空白处完成引导' : '点击空白处也可以继续';
+  if (hint) hint.textContent = MineradioI18n.source(visualGuideStep === steps.length - 1 ? '点击空白处完成引导' : '点击空白处也可以继续');
   if (progress) progress.textContent = (visualGuideStep + 1) + ' / ' + steps.length;
-  if (next) next.textContent = visualGuideStep === steps.length - 1 ? '完成' : '下一步';
+  if (next) next.textContent = MineradioI18n.source(visualGuideStep === steps.length - 1 ? '完成' : '下一步');
   scheduleVisualGuidePositioning();
 }
 function guideTargetRect(step) {

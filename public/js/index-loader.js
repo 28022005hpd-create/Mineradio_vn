@@ -75,6 +75,7 @@
     'js/modules/05-playback/17b-cuefield-source-loop.js',
     'js/modules/05-playback/18-cuefield-automix-integration.js',
     'js/modules/06-lyrics/00-lyrics-fetch-parse.js',
+    'js/modules/06-lyrics/00a-localized-lyric-translation.js',
     'js/modules/06-lyrics/00-built-in-playlists.js',
     'js/modules/06-lyrics/01-playlist-panel-shell.js',
     'js/modules/06-lyrics/02-playlist-detail.js',
@@ -106,6 +107,7 @@
     'js/modules/10-shell/02-peek-panels-upload.js',
     'js/modules/10-shell/03-splash.js',
     'js/modules/10-shell/04-desktop-overlay-fullscreen.js',
+    'js/modules/10-shell/04b-live-mv-mini.js',
     'js/modules/10-shell/05-startup-bindings.js',
     'js/modules/11-main-loop.js',
   ];

@@ -25,6 +25,8 @@ const {
 const { extractKugouAuth } = require('../kugou-api');
 const { qishuiCookieHasLogin } = require('../qishui-api');
 const { clearSpotifyToken } = require('../spotify-api');
+const { GithubVnAutoUpdater, installerLaunchScript } = require('./github-vn-auto-update');
+
 
 registerWallpaperEngineScheme(protocol);
 registerLocalMusicScheme(protocol);
@@ -33,6 +35,10 @@ let mainWindow = null;
 let localServer = null;
 let mainServerPort = 0;
 let desktopLyricsWindow = null;
+let compactMusicWindow = null;
+let compactMusicEnabled = false;
+let compactMusicState = { title: 'Mineradio', artist: '', lyric: '', paused: true };
+
 let desktopLyricsState = {};
 let desktopLyricsUserBounds = null;
 let desktopLyricsProgrammaticMove = false;
@@ -147,8 +153,48 @@ const STARTUP_QA_USER_DATA_PATH = (() => {
 const STABLE_USER_DATA_PATH = STARTUP_QA_USER_DATA_PATH || path.join(app.getPath('appData'), APP_NAME);
 fs.mkdirSync(STABLE_USER_DATA_PATH, { recursive: true });
 app.setPath('userData', STABLE_USER_DATA_PATH);
+const VN_BUILD_METADATA = (() => {
+  try { return require('./vn-update-build.json'); }
+  catch (_) { return {}; }
+})();
+const VN_AUTO_UPDATE_CONFIG = APP_METADATA.githubAutoUpdate || {};
+let pendingVnInstaller = null;
+const vnAutoUpdater = new GithubVnAutoUpdater({
+  enabled: process.platform === 'win32' && app.isPackaged && APP_METADATA.internalBeta !== true &&
+    VN_AUTO_UPDATE_CONFIG.enabled === true && VN_BUILD_METADATA.channel === 'vi-VN' && !STARTUP_QA_USER_DATA_PATH,
+  owner: '28022005hpd-create',
+  repo: 'Mineradio_vn',
+  buildNumber: VN_BUILD_METADATA.buildNumber || 0,
+  userData: STABLE_USER_DATA_PATH,
+  onStatus: (status) => {
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents &&
+        !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send('mineradio-vn-github-update-status', status);
+    }
+  }
+});
+function startVnAutoUpdatePolling() {
+  if (!vnAutoUpdater.enabled) return;
+  const initial = setTimeout(() => vnAutoUpdater.check(), 14000);
+  if (initial.unref) initial.unref();
+  const interval = setInterval(() => vnAutoUpdater.check(), 25 * 60 * 1000);
+  if (interval.unref) interval.unref();
+}
+
+
+
+// One language preference shared by the Electron window and native tray menu.
+const UI_LANGUAGE_SETTINGS_FILE = path.join(STABLE_USER_DATA_PATH, 'ui-language.json');
+function readNativeUiLanguage() {
+  try {
+    const data = JSON.parse(fs.readFileSync(UI_LANGUAGE_SETTINGS_FILE, 'utf8'));
+    return data && data.locale === 'zh-CN' ? 'zh-CN' : 'vi-VN';
+  } catch (_) { return 'vi-VN'; }
+}
+let nativeUiLanguage = readNativeUiLanguage();
 const INITIAL_CACHE_SETTINGS = ensureCacheDirectories(readCacheSettings());
 const loginEasterEggGate = new LoginEasterEggGate({
+  disabled: APP_METADATA.loginEasterEggEnabled === false && APP_METADATA.internalBeta !== true,
   userDataPath: STABLE_USER_DATA_PATH,
   credentialRoots: () => [
     chromiumSessionDataPath(cacheSettings || INITIAL_CACHE_SETTINGS),
@@ -2121,10 +2167,11 @@ function createOrUpdateTray() {
     }
   }
   const desktopMode = fullDesktopModeRuntime.getStatus('tray-menu');
+  const zh = nativeUiLanguage === 'zh-CN';
   const menu = Menu.buildFromTemplate([
-    { label: `显示 ${APP_NAME}`, click: () => focusMainWindow() },
+    { label: zh ? `显示 ${APP_NAME}` : `Hiện ${APP_NAME}`, click: () => focusMainWindow() },
     {
-      label: '退出完整桌面模式',
+      label: zh ? '退出完整桌面模式' : 'Thoát chế độ desktop đầy đủ',
       visible: desktopMode.enabled === true,
       click: () => disableFullDesktopMode('tray-exit-desktop-mode').catch((error) => {
         console.warn('[FullDesktopMode] tray exit failed:', error && error.message || error);
@@ -2132,7 +2179,7 @@ function createOrUpdateTray() {
     },
     { type: 'separator' },
     {
-      label: '退出',
+      label: zh ? '退出' : 'Thoát',
       click: () => {
         appQuitting = true;
         app.quit();
@@ -2529,14 +2576,22 @@ async function readKugouLoginCookieHeader(cookieSession) {
   return buildCookieHeaderFor(cookies, isKugouCookieDomain, KUGOU_LOGIN_COOKIE_PRIORITY);
 }
 
-async function openNeteaseMusicLoginWindow(owner) {
+async function openNeteaseMusicLoginWindow(owner, options = {}) {
   const cookieSession = session.fromPartition(NETEASE_LOGIN_PARTITION);
+  // A cookie can still be present after a login was revoked. The user
+  // explicitly asked to open the official page, so do not silently reuse it.
+  if (options && options.forceReauth === true) {
+    await cookieSession.clearStorageData({
+      storages: ['cookies', 'localstorage', 'indexdb', 'cachestorage'],
+    });
+  }
   const initialCookie = await readNeteaseLoginCookieHeader(cookieSession);
   if (neteaseCookieHasLogin(initialCookie)) return { ok: true, cookie: initialCookie, reused: true };
 
   return new Promise((resolve) => {
     let settled = false;
     let pollTimer = null;
+    let visibilityTimer = null;
 
     const loginWindow = new BrowserWindow({
       width: 940,
@@ -2562,6 +2617,7 @@ async function openNeteaseMusicLoginWindow(owner) {
       if (settled) return;
       settled = true;
       if (pollTimer) clearInterval(pollTimer);
+      if (visibilityTimer) clearTimeout(visibilityTimer);
       if (loginWindow && !loginWindow.isDestroyed()) {
         loginWindow.close();
       }
@@ -2611,10 +2667,20 @@ async function openNeteaseMusicLoginWindow(owner) {
       `, true).catch(() => {});
     });
 
-    loginWindow.on('ready-to-show', () => loginWindow.show());
+    // Third-party login pages sometimes never trigger ready-to-show.
+    // Present the real login window even when its first paint is delayed.
+    const presentLoginWindow = () => {
+      if (!settled && !loginWindow.isDestroyed()) {
+        loginWindow.show();
+        loginWindow.focus();
+      }
+    };
+    loginWindow.once('ready-to-show', presentLoginWindow);
+    visibilityTimer = setTimeout(presentLoginWindow, 2500);
     loginWindow.on('closed', async () => {
       if (settled) return;
       if (pollTimer) clearInterval(pollTimer);
+      if (visibilityTimer) clearTimeout(visibilityTimer);
       try {
         const cookie = await readNeteaseLoginCookieHeader(cookieSession);
         resolve(neteaseCookieHasLogin(cookie)
@@ -2634,8 +2700,8 @@ async function openQQMusicLoginWindow(owner, options) {
   options = options || {};
   const cookieSession = session.fromPartition(QQ_LOGIN_PARTITION);
   const initialCookie = await readQQLoginCookieHeader(cookieSession);
-  if (qqCookieHasPlaybackLogin(initialCookie)) {
-    return { ok: true, cookie: initialCookie, reused: true, recovered: !!options.forceReauth };
+  if (qqCookieHasPlaybackLogin(initialCookie) && !options.forceReauth) {
+    return { ok: true, cookie: initialCookie, reused: true };
   }
   if (options.forceReauth) {
     await cookieSession.clearStorageData({
@@ -3925,6 +3991,110 @@ function closeOverlayWindows(reason = 'overlay-close') {
   });
 }
 
+// Compact player reuses the existing audio renderer; it never opens an audio
+// stream. Only the trusted main window can publish display data or toggle it.
+function compactMusicClose() {
+  const win = compactMusicWindow;
+  compactMusicWindow = null;
+  if (win && !win.isDestroyed()) win.close();
+}
+function compactMusicSanitizeState(value) {
+  value = value && typeof value === 'object' ? value : {};
+  const shortText = (field, length) => String(value[field] || '').slice(0, length);
+  const image = shortText('cover', 1200);
+  return {
+    title: shortText('title', 180),
+    artist: shortText('artist', 160),
+    lyric: shortText('lyric', 300),
+    translation: shortText('translation', 300),
+    cover: /^(https?:|data:image\/|blob:|file:|\/[^\/])/i.test(image) ? image : '',
+    paused: value.paused !== false,
+    time: shortText('time', 16),
+    duration: shortText('duration', 16),
+    percent: Math.max(0, Math.min(100, Number(value.percent) || 0))
+  };
+}
+function compactMusicPublish() {
+  if (compactMusicWindow && !compactMusicWindow.isDestroyed() &&
+      !compactMusicWindow.webContents.isLoading()) {
+    compactMusicWindow.webContents.send('mineradio-mini-player-state', compactMusicState);
+  }
+}
+function compactMusicOpen() {
+  if (appQuitting || !compactMusicEnabled || !mainWindow || mainWindow.isDestroyed()) return null;
+  if (compactMusicWindow && !compactMusicWindow.isDestroyed()) {
+    compactMusicPublish();
+    return compactMusicWindow;
+  }
+  const display = screen.getDisplayMatching(mainWindow.getBounds());
+  const available = display.workArea;
+  compactMusicWindow = new BrowserWindow({
+    width: 340, height: 106, minWidth: 310, minHeight: 96,
+    x: available.x + Math.max(0, available.width - 360),
+    y: available.y + Math.max(0, available.height - 130),
+    resizable: true, movable: true, frame: false, transparent: true,
+    backgroundColor: '#00000000', hasShadow: true, show: false,
+    skipTaskbar: true, alwaysOnTop: true, title: 'Mineradio Mini',
+    webPreferences: {
+      preload: path.join(__dirname, 'mini-player-preload.js'),
+      contextIsolation: true, nodeIntegration: false, sandbox: false,
+      backgroundThrottling: false,
+    }
+  });
+  const win = compactMusicWindow;
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event, url) => {
+    if (url === overlayUrl('mini-player.html')) return;
+    event.preventDefault();
+  });
+  win.on('closed', () => { if (compactMusicWindow === win) compactMusicWindow = null; });
+  win.once('ready-to-show', () => {
+    if (!win.isDestroyed() && compactMusicWindow === win) win.showInactive();
+  });
+  win.webContents.once('did-finish-load', () => {
+    if (compactMusicWindow === win) {
+      win.showInactive();
+      compactMusicPublish();
+    }
+  });
+  win.loadURL(overlayUrl('mini-player.html')).catch(error => {
+    console.warn('[MiniPlayer] compact window load failed:', error.message);
+    if (!win.isDestroyed()) win.close();
+  });
+  return win;
+}
+ipcMain.handle('mineradio-mini-player-set-enabled', (event, enabled) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents) return { ok: false };
+  compactMusicEnabled = enabled === true;
+  if (!compactMusicEnabled) compactMusicClose();
+  else if (mainWindow.isMinimized()) compactMusicOpen();
+  return { ok: true, enabled: compactMusicEnabled };
+});
+ipcMain.on('mineradio-mini-player-state', (event, value) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents || !compactMusicEnabled) return;
+  compactMusicState = compactMusicSanitizeState(value);
+  compactMusicPublish();
+});
+ipcMain.on('mineradio-mini-player-ready', event => {
+  if (compactMusicWindow && event.sender === compactMusicWindow.webContents) compactMusicPublish();
+});
+ipcMain.on('mineradio-mini-player-command', (event, command) => {
+  if (!compactMusicWindow || event.sender !== compactMusicWindow.webContents) return;
+  if (!['toggle', 'previous', 'next', 'restore', 'mv'].includes(command)) return;
+  if (command === 'restore' || command === 'mv') {
+    compactMusicClose();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      clearMainWindowMinimizeIntent(mainWindow);
+      showMainWindowSafely(mainWindow, 'compact-music-restore');
+      mainWindow.focus();
+      if (command === 'mv') mainWindow.webContents.send('mineradio-mini-player-command', 'mv');
+    }
+    return;
+  }
+  if (mainWindow && !mainWindow.isDestroyed())
+    mainWindow.webContents.send('mineradio-mini-player-command', command);
+});
+
 ipcMain.handle('desktop-window-minimize', async (event) => {
   const win = getSenderWindow(event);
   if (win === mainWindow && fullDesktopModeRuntime.getStatus('window-minimize').enabled === true) {
@@ -3976,6 +4146,20 @@ ipcMain.handle('desktop-window-exit-fullscreen-windowed', (event) => {
   }
   exitFullscreenToWindow(win);
   return getWindowState(win);
+});
+
+ipcMain.handle('mineradio-ui-language-get', () => ({ locale: nativeUiLanguage }));
+ipcMain.handle('mineradio-ui-language-set', (event, next) => {
+  if (next !== 'zh-CN' && next !== 'vi-VN') return { ok: false, locale: nativeUiLanguage };
+  nativeUiLanguage = next;
+  try {
+    fs.writeFileSync(UI_LANGUAGE_SETTINGS_FILE, JSON.stringify({ version: 1, locale: next }), 'utf8');
+  } catch (err) { console.warn('[I18n] Could not persist native language:', err.message); }
+  createOrUpdateTray();
+  BrowserWindow.getAllWindows().forEach((win) => {
+    if (!win.isDestroyed()) win.webContents.send('mineradio-ui-language-changed', next);
+  });
+  return { ok: true, locale: next };
 });
 
 ipcMain.handle('desktop-window-get-state', (event) => {
@@ -4833,9 +5017,9 @@ ipcMain.handle('mineradio-login-easter-egg-reset', async (event) => {
   return loginEasterEggGate.resetForReplay(() => clearAllProviderLoginState('renderer-replay-reset'));
 });
 
-ipcMain.handle('netease-music-open-login', async (event) => {
+ipcMain.handle('netease-music-open-login', async (event, options) => {
   if (!loginEasterEggGate.isUnlocked()) return loginEasterEggLockedResult();
-  return openNeteaseMusicLoginWindow(getSenderWindow(event));
+  return openNeteaseMusicLoginWindow(getSenderWindow(event), options || {});
 });
 
 ipcMain.handle('netease-music-clear-login', async () => {
@@ -4862,6 +5046,62 @@ ipcMain.handle('kugou-music-clear-login', async () => {
 
 ipcMain.handle('qishui-music-clear-login', async () => {
   return clearQishuiMusicLoginSession();
+});
+
+
+ipcMain.handle('mineradio-vn-update-status', (event) => {
+  if (!isTrustedMainWindowIpc(event)) return { status: 'disabled', error: 'UNTRUSTED_SENDER' };
+  return vnAutoUpdater.snapshot();
+});
+ipcMain.handle('mineradio-vn-update-check', async (event) => {
+  if (!isTrustedMainWindowIpc(event)) return { status: 'disabled', error: 'UNTRUSTED_SENDER' };
+  return vnAutoUpdater.check();
+});
+ipcMain.handle('mineradio-vn-update-install', async (event) => {
+  if (!isTrustedMainWindowIpc(event)) return { ok: false, error: 'UNTRUSTED_SENDER' };
+  if (process.platform !== 'win32' || !vnAutoUpdater.enabled) return { ok: false, error: 'UPDATER_DISABLED' };
+  const exe = app.getPath('exe');
+  const dir = path.dirname(exe);
+  const marker = path.join(dir, '.mineradio-vn-install-root');
+  let markerText = '';
+  try { markerText = fs.readFileSync(marker, 'utf8'); } catch (_) {}
+  if (!markerText.includes('appId=com.mineradio.vn.desktop')) {
+    return { ok: false, error: 'INSTALL_MARKER_MISSING' };
+  }
+  const installer = await vnAutoUpdater.verifiedFile();
+  if (!installer) return { ok: false, error: 'VERIFIED_UPDATE_NOT_READY' };
+  const owner = getSenderWindow(event);
+  const result = await dialog.showMessageBox(owner || undefined, {
+    type: 'question',
+    title: 'Mineradio_vn - cập nhật',
+    message: nativeUiLanguage === 'zh-CN' ? '安装已验证的新版并重启？' : 'Cài đặt bản đã xác minh và khởi động lại Mineradio?',
+    detail: nativeUiLanguage === 'zh-CN'
+      ? 'Ứng dụng sẽ đóng trước khi chạy bộ cài từ GitHub.'
+      : 'Ứng dụng sẽ thoát an toàn, chạy bộ cài đã xác minh và mở lại. Nhạc và cài đặt cá nhân vẫn được giữ.',
+    buttons: nativeUiLanguage === 'zh-CN' ? ['安装并重启', '取消'] : ['Cài và khởi động lại', 'Để sau'],
+    defaultId: 1,
+    cancelId: 1,
+    noLink: true,
+  });
+  if (result.response !== 0) return { ok: false, cancelled: true };
+  pendingVnInstaller = { installer, dir, exe };
+  setTimeout(() => { appQuitting = true; app.quit(); }, 150);
+  return { ok: true, restarting: true };
+});
+app.on('quit', () => {
+  if (!pendingVnInstaller) return;
+  const chosen = pendingVnInstaller;
+  pendingVnInstaller = null;
+  try {
+    const script = installerLaunchScript(chosen.installer, chosen.dir, chosen.exe, process.pid);
+    const child = spawn('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')
+    ], { detached: true, windowsHide: true, stdio: 'ignore' });
+    child.unref();
+  } catch (e) {
+    console.error('[GithubVnUpdate] Failed to launch verified installer helper:', e.message);
+  }
 });
 
 ipcMain.handle('mineradio-open-update-page', async (event, value) => {
@@ -5026,7 +5266,8 @@ function configureLocalServerEnvironment(port) {
   process.env.QISHUI_TOKEN_FILE = path.join(STABLE_USER_DATA_PATH, '.qishui-token');
   process.env.QISHUI_QR_CONFIG_FILE = path.join(STABLE_USER_DATA_PATH, '.qishui-qr-login.json');
   process.env.MINERADIO_LISTEN_SYNC_FILE = path.join(STABLE_USER_DATA_PATH, 'listen-sync-journal.json');
-  process.env.MINERADIO_LOGIN_EASTER_EGG_GATE_FILE = path.join(STABLE_USER_DATA_PATH, LOGIN_EASTER_EGG_STATE_FILE);
+  process.env.MINERADIO_LOGIN_EASTER_EGG_GATE_FILE = loginEasterEggGate.disabled
+    ? '' : path.join(STABLE_USER_DATA_PATH, LOGIN_EASTER_EGG_STATE_FILE);
   process.env.MINERADIO_LOGIN_EASTER_EGG_GATE_VERSION = LOGIN_EASTER_EGG_GATE_VERSION;
   if (!process.env.QISHUI_OAUTH_CONFIG_FILE) {
     process.env.QISHUI_OAUTH_CONFIG_FILE = path.join(STABLE_USER_DATA_PATH, '.qishui-oauth.json');
@@ -5707,6 +5948,7 @@ async function createWindowOnce() {
       windowMinimizeReason: minimizeIntent.reason || 'unexpected',
     });
     sendWindowState(win);
+    if (minimizeIntent.intentional && compactMusicEnabled) compactMusicOpen();
     if (fullDesktopModeHostVisibilityTransitionDepth <= 0) suspendWallpaperEngineForHiddenHost(win, 'minimize');
     if (minimizeIntent.intentional) {
       scheduleAppMemoryTrim('minimize', 1600);
@@ -5719,6 +5961,7 @@ async function createWindowOnce() {
     }, MAIN_WINDOW_MINIMIZE_RECOVERY_DELAY_MS);
   });
   win.on('restore', () => {
+    compactMusicClose();
     if (mainWindowMinimizeRecoveryTimer) clearTimeout(mainWindowMinimizeRecoveryTimer);
     mainWindowMinimizeRecoveryTimer = null;
     clearMainWindowMinimizeIntent(win);
@@ -5959,6 +6202,7 @@ if (!gotSingleInstanceLock) {
     powerMonitor.on('resume', () => restoreUnexpectedMainWindowVisibility(mainWindow, 'system-resume'));
     powerMonitor.on('unlock-screen', () => restoreUnexpectedMainWindowVisibility(mainWindow, 'screen-unlock'));
     await createWindow();
+    startVnAutoUpdatePolling();
   }).catch((e) => reportWindowCreationFailure('Main', e));
 
   app.on('activate', () => {

@@ -16,7 +16,16 @@ function formatMineradioCacheBytes(value) {
 
 function setMineradioCacheStorageText(id, value) {
   var node = mineradioCacheStorageNode(id);
-  if (node) node.textContent = value == null || value === '' ? '—' : String(value);
+  if (!node) return;
+  var copy = value == null || value === '' ? '—' : String(value);
+  // The cache paths may contain a user's Chinese folder name: never translate
+  // those filesystem paths or numeric sizes. Translate only app-owned notices.
+  if ((id === 'cache-storage-total' || id === 'cache-storage-note' ||
+       (id === 'cache-storage-userdata-path' && copy === '系统安全数据目录')) &&
+      typeof MineradioI18n !== 'undefined' && MineradioI18n.ui) {
+    copy = MineradioI18n.ui(copy);
+  }
+  node.textContent = copy;
 }
 
 function applyMineradioCacheSettings(snapshot) {

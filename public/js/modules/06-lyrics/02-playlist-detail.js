@@ -156,6 +156,290 @@ function prioritizePlaylistGroupItems(items) {
     return a.idx - b.idx;
   }).map(function (entry) { return entry.pl; });
 }
+// Delete only the selected entry in "My Music" and synchronize that exact
+// user-owned cloud playlist. Never issue a mutation for public artist albums or
+// other users' lists. Virtual liked lists use the platform's unlike endpoint.
+var playlistPanelCloudRemovalBusy = '';
+var playlistPanelCloudLastRemoval = null;
+var playlistPanelCloudUndoBusy = false;
+
+// Native Windows confirmation boxes do not match Mineradio's dark
+// translucent window. Use an accessible, text-safe, app-owned modal instead.
+function playlistPanelConfirmCloudDelete(details) {
+  return new Promise(function (resolve) {
+    if (document.getElementById('pl-cloud-confirm-overlay')) { resolve(false); return; }
+    var previouslyFocused = document.activeElement;
+    var overlay = document.createElement('div');
+    overlay.id = 'pl-cloud-confirm-overlay';
+    overlay.className = 'pl-cloud-confirm-overlay';
+    overlay.innerHTML =
+      '<section class="pl-cloud-confirm-card" role="dialog" aria-modal="true" ' +
+        'aria-labelledby="pl-cloud-confirm-title" aria-describedby="pl-cloud-confirm-description">' +
+        '<div class="pl-cloud-confirm-icon" aria-hidden="true">♫</div>' +
+        '<h2 id="pl-cloud-confirm-title">Xóa khỏi Nhạc của tôi?</h2>' +
+        '<p id="pl-cloud-confirm-description">Bài hát sẽ được gỡ khỏi danh sách trên tài khoản đám mây.</p>' +
+        '<div class="pl-cloud-confirm-song"><strong id="pl-cloud-confirm-song-name"></strong>' +
+          '<span id="pl-cloud-confirm-song-artist"></span></div>' +
+        '<div class="pl-cloud-confirm-destination"><span>Đồng bộ với</span>' +
+          '<strong id="pl-cloud-confirm-provider"></strong></div>' +
+        '<p class="pl-cloud-confirm-note">Chỉ thay đổi thư viện cá nhân. Bạn có thể hoàn tác ' +
+          'để thêm bài hát trở lại. Album phát hành của nghệ sĩ không bị xóa.</p>' +
+        '<div class="pl-cloud-confirm-actions">' +
+          '<button type="button" class="pl-cloud-confirm-cancel" data-pl-cloud-cancel>Giữ bài hát</button>' +
+          '<button type="button" class="pl-cloud-confirm-submit" data-pl-cloud-accept>Xóa bài hát</button>' +
+        '</div>' +
+      '</section>';
+    overlay.querySelector('#pl-cloud-confirm-song-name').textContent = details.name || 'Bài hát';
+    overlay.querySelector('#pl-cloud-confirm-song-artist').textContent = details.artist || '';
+    overlay.querySelector('#pl-cloud-confirm-provider').textContent =
+      details.provider + ' · ' + details.playlist;
+    overlay.querySelector('#pl-cloud-confirm-description').textContent =
+      details.kind === 'unlike'
+        ? 'Bỏ thích bài hát này trên tài khoản đang đăng nhập.'
+        : 'Gỡ bài hát khỏi danh sách phát bạn sở hữu trên tài khoản đám mây.';
+    var cancel = overlay.querySelector('[data-pl-cloud-cancel]');
+    var accept = overlay.querySelector('[data-pl-cloud-accept]');
+    var settled = false;
+    function finish(approved) {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener('keydown', onKey, true);
+      overlay.remove();
+      if (previouslyFocused && previouslyFocused.isConnected &&
+          typeof previouslyFocused.focus === 'function') previouslyFocused.focus();
+      resolve(!!approved);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); }
+      else if (e.key === 'Tab') {
+        if (e.shiftKey && document.activeElement === cancel) {
+          e.preventDefault(); accept.focus();
+        } else if (!e.shiftKey && document.activeElement === accept) {
+          e.preventDefault(); cancel.focus();
+        }
+      }
+    }
+    cancel.addEventListener('click', function () { finish(false); });
+    accept.addEventListener('click', function () { finish(true); });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) finish(false);
+    });
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', onKey, true);
+    cancel.focus();
+    requestAnimationFrame(function () {
+      if (overlay.isConnected) overlay.classList.add('is-open');
+    });
+  });
+}
+
+function playlistPanelRenderCloudUndo() {
+  var bar = document.getElementById('pl-cloud-undo-bar');
+  var entry = playlistPanelCloudLastRemoval;
+  if (!entry) { if (bar) bar.remove(); return; }
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'pl-cloud-undo-bar';
+    bar.className = 'pl-cloud-undo-bar';
+    bar.setAttribute('role', 'status');
+    bar.setAttribute('aria-live', 'polite');
+    bar.innerHTML =
+      '<div class="pl-cloud-undo-symbol" aria-hidden="true">↶</div>' +
+      '<div class="pl-cloud-undo-content"><strong>Đã xóa khỏi Nhạc của tôi</strong>' +
+        '<span data-pl-undo-name></span></div>' +
+      '<button type="button" class="pl-cloud-undo-action" data-pl-cloud-undo>Hoàn tác</button>' +
+      '<button type="button" class="pl-cloud-undo-dismiss" data-pl-cloud-undo-dismiss ' +
+        'aria-label="Đóng thông báo">×</button>';
+    bar.querySelector('[data-pl-cloud-undo]').addEventListener('click', function () {
+      undoPlaylistPanelCloudTrack();
+    });
+    bar.querySelector('[data-pl-cloud-undo-dismiss]').addEventListener('click', function () {
+      if (playlistPanelCloudUndoBusy) return;
+      playlistPanelCloudLastRemoval = null;
+      playlistPanelRenderCloudUndo();
+      if (playlistPanelDetailState && playlistPanelDetailState.key) renderPlaylistPanelDetailRows();
+    });
+    document.body.appendChild(bar);
+  }
+  bar.querySelector('[data-pl-undo-name]').textContent =
+    (entry.song.name || 'Bài hát') + ' · ' + entry.playlistName;
+  var undo = bar.querySelector('[data-pl-cloud-undo]');
+  undo.disabled = playlistPanelCloudUndoBusy;
+  undo.textContent = playlistPanelCloudUndoBusy ? 'Đang khôi phục…' : 'Hoàn tác';
+}
+function playlistPanelCloudRestoreEndpoint(entry) {
+  if (entry.action.kind === 'unlike') return entry.action.endpoint;
+  return entry.provider === 'netease' ? '/api/playlist/add-song' :
+    (entry.provider === 'spotify' ? '/api/spotify/playlist/add-song' : '');
+}
+async function undoPlaylistPanelCloudTrack() {
+  var entry = playlistPanelCloudLastRemoval;
+  if (!entry || playlistPanelCloudUndoBusy || playlistPanelCloudRemovalBusy) return false;
+  if (typeof isSongAccountLoggedIn === 'function' && !isSongAccountLoggedIn(entry.provider)) {
+    showToast('Hãy đăng nhập ' + playlistProviderName(entry.provider) + ' để hoàn tác.');
+    return false;
+  }
+  var endpoint = playlistPanelCloudRestoreEndpoint(entry);
+  if (!endpoint) { showToast('Dịch vụ hiện chưa hỗ trợ khôi phục bài hát.'); return false; }
+  playlistPanelCloudUndoBusy = true;
+  playlistPanelRenderCloudUndo();
+  try {
+    var response = await apiJson(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry.action.kind === 'unlike'
+        ? { id: entry.songId, like: true, song: entry.song }
+        : { pid: entry.pid, id: entry.songId, song: entry.song })
+    });
+    if (!response || response.error || response.success === false || response.ok === false ||
+        (response.code != null && Number(response.code) !== 200) ||
+        (entry.action.kind === 'unlike' && response.liked === false)) {
+      throw new Error(response && (response.message || response.error) || 'CLOUD_RESTORE_FAILED');
+    }
+    // The server has confirmed the add/like. Restore only the affected
+    // playlist UI (another playlist may now be open). No local-only fake undo.
+    var state = playlistPanelDetailState;
+    if (state && state.key === entry.key && Array.isArray(state.tracks)) {
+      var matchKey = typeof songAccountStateKey === 'function'
+        ? songAccountStateKey(entry.song) : entry.provider + ':' + entry.songId;
+      var exists = state.tracks.some(function (song) {
+        return (typeof songAccountStateKey === 'function'
+          ? songAccountStateKey(song) : entry.provider + ':' + song.id) === matchKey;
+      });
+      if (!exists) {
+        state.tracks.splice(Math.min(entry.index, state.tracks.length), 0, entry.song);
+        state.total = Math.max(state.tracks.length, Number(state.total || 0) + 1);
+        state.nextOffset = Math.max(state.tracks.length, Number(state.nextOffset || 0) + 1);
+        if (state.playlist) state.playlist.trackCount = state.total;
+      }
+    }
+    if (entry.action.kind === 'unlike' && typeof likedSongMap !== 'undefined' &&
+        typeof songAccountStateKey === 'function') {
+      var likeKey = songAccountStateKey(entry.song);
+      if (likeKey) likedSongMap[likeKey] = true;
+      if (typeof updateLikeButtons === 'function') updateLikeButtons();
+    }
+    if (playlistPanelCloudLastRemoval === entry) playlistPanelCloudLastRemoval = null;
+    showToast('Đã khôi phục “' + String(entry.song.name || 'bài hát').slice(0, 100) +
+      '” trên ' + playlistProviderName(entry.provider) + '.');
+    if (typeof renderPlaylistPanelDetailRows === 'function') renderPlaylistPanelDetailRows();
+    if (typeof refreshUserPlaylists === 'function') refreshUserPlaylists(true).catch(function () {});
+    return true;
+  } catch (err) {
+    console.warn('[CloudPlaylistUndo]', entry.provider, err);
+    showToast('Chưa thể hoàn tác trên dịch vụ nhạc. Hãy thử lại hoặc đăng nhập lại.');
+    return false; // Keep the undo button for another attempt.
+  } finally {
+    playlistPanelCloudUndoBusy = false;
+    playlistPanelRenderCloudUndo();
+    if (playlistPanelDetailState && playlistPanelDetailState.key) renderPlaylistPanelDetailRows();
+  }
+}
+function playlistPanelCloudRemovalAction(pl, provider) {
+  if (!pl) return null;
+  provider = normalizePlaylistProvider(provider);
+  var id = String(pl.id || '');
+  if (provider === 'netease' && pl.owned === true) {
+    return Number(pl.specialType || 0) === 5
+      ? { kind: 'unlike', endpoint: '/api/song/like' }
+      : { kind: 'playlist', endpoint: '/api/playlist/remove-song' };
+  }
+  if (provider === 'spotify') {
+    if (id === 'spotify-liked') return { kind: 'unlike', endpoint: '/api/spotify/song/like' };
+    if (pl.owned === true && !pl.virtual) return { kind: 'playlist', endpoint: '/api/spotify/playlist/remove-song' };
+  }
+  if (provider === 'qishui' && id === 'qishui-liked' && pl.virtual === true && pl.owned === true)
+    return { kind: 'unlike', endpoint: '/api/qishui/song/like' };
+  if (provider === 'kugou' && pl.likedCollection === true)
+    return { kind: 'unlike', endpoint: '/api/kugou/song/like' };
+  // QQ is read-only; other Qishui/KuGou lists do not yet have verified,
+  // owner-checked removal APIs, so they must not expose a destructive button.
+  return null;
+}
+function playlistPanelCloudFailureMessage(error) {
+  var code = String(error && (error.error || error.message) || '');
+  if (/PLAYLIST_NOT_OWNED|PERMISSION|SCOPE|403/i.test(code))
+    return 'Không có quyền sửa danh sách phát này. Hãy đăng nhập lại tài khoản sở hữu.';
+  if (/AUTH|LOGIN|401/i.test(code)) return 'Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.';
+  return 'Không thể xóa trên dịch vụ nhạc. Bài hát vẫn được giữ trong danh sách.';
+}
+async function removePlaylistPanelCloudTrack(index) {
+  var state = playlistPanelDetailState;
+  var parts = String(state && state.key || '').split(':');
+  var provider = normalizePlaylistProvider(parts[0]);
+  var pid = parts.slice(1).join(':');
+  var action = playlistPanelCloudRemovalAction(state && state.playlist, provider);
+  var song = state && state.tracks && state.tracks[index];
+  if (!action || !song || !pid || playlistPanelCloudRemovalBusy || playlistPanelCloudUndoBusy) return false;
+  if (typeof isSongAccountLoggedIn === 'function' && !isSongAccountLoggedIn(provider)) {
+    showToast('Hãy đăng nhập ' + playlistProviderName(provider) + ' để đồng bộ xóa bài hát.');
+    return false;
+  }
+  var confirmed = await playlistPanelConfirmCloudDelete({
+    name: String(song.name || 'Bài hát').slice(0, 160),
+    artist: String(song.artist || '').slice(0, 140),
+    playlist: String(state.playlist && state.playlist.name || 'Nhạc của tôi').slice(0, 160),
+    provider: playlistProviderName(provider),
+    kind: action.kind
+  });
+  if (!confirmed) return false;
+  // The listener may change playlists while the confirmation is displayed.
+  if (state !== playlistPanelDetailState || state.key !== provider + ':' + pid) return false;
+  var songId = typeof songAccountId === 'function' ? songAccountId(song, provider) : String(song.id || '');
+  if (!songId) {
+    showToast('Không tìm thấy mã bài hát của dịch vụ nhạc.');
+    return false;
+  }
+  var key = state.key;
+  playlistPanelCloudRemovalBusy = key + ':' + index;
+  renderPlaylistPanelDetailRows();
+  try {
+    var payload = action.kind === 'unlike'
+      ? { id: songId, like: false, song: song }
+      : { pid: pid, id: songId, song: song };
+    var result = await apiJson(action.endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!result || result.error || result.success === false || result.ok === false ||
+        (result.code != null && Number(result.code) !== 200) ||
+        (action.kind === 'unlike' && result.liked === true))
+      throw new Error(result && (result.message || result.error) || 'CLOUD_REMOVE_FAILED');
+    // Only change the local view *after* cloud confirmation. If the user
+    // navigated to another playlist during the request, do not touch it.
+    if (playlistPanelDetailState.key === key && playlistPanelDetailState === state) {
+      state.tracks.splice(index, 1);
+      state.total = Math.max(0, Number(state.total || 0) - 1);
+      state.nextOffset = Math.max(0, Number(state.nextOffset || 0) - 1);
+      if (state.playlist) state.playlist.trackCount = state.total;
+      if (action.kind === 'unlike' && typeof likedSongMap !== 'undefined' &&
+          typeof songAccountStateKey === 'function') {
+        var likeKey = songAccountStateKey(song);
+        if (likeKey) likedSongMap[likeKey] = false;
+        if (typeof updateLikeButtons === 'function') updateLikeButtons();
+      }
+      renderPlaylistPanelDetailRows();
+    }
+    playlistPanelCloudLastRemoval = {
+      provider: provider, pid: pid, key: key, action: action,
+      song: Object.assign({}, song), songId: songId, index: index,
+      playlistName: String(state.playlist && state.playlist.name || 'Nhạc của tôi')
+    };
+    playlistPanelRenderCloudUndo();
+    if (playlistPanelDetailState.key === key) renderPlaylistPanelDetailRows();
+    if (typeof refreshUserPlaylists === 'function') refreshUserPlaylists(true).catch(function () {});
+    return true;
+  } catch (err) {
+    console.warn('[CloudPlaylistRemove]', provider, err);
+    showToast(playlistPanelCloudFailureMessage(err));
+    return false;
+  } finally {
+    playlistPanelCloudRemovalBusy = '';
+    if (playlistPanelDetailState.key === key) renderPlaylistPanelDetailRows();
+  }
+}
+
 function playlistPanelNoticeHtml(text, isError) {
   text = String(text || '').trim();
   if (!text) text = '歌单暂无可播放歌曲';
@@ -181,9 +465,18 @@ function playlistPanelDetailRowsHtml(options) {
     var i = start + localIndex;
     var thumb = songCoverSrc(song, 60);
     var imgTag = thumb ? '<img src="' + escHtml(thumb) + '" alt="" loading="lazy" decoding="async" onerror="this.style.opacity=0.2">' : '<div style="width:34px;height:34px;border-radius:7px;background:rgba(255,255,255,.06);flex:0 0 auto"></div>';
-    var removeButton = normalizePlaylistProvider((st.key || '').split(':')[0]) === 'mineradio'
-      ? '<button type="button" class="pl-detail-remove" data-pl-detail-remove="' + i + '" title="从内置歌单移除" aria-label="从内置歌单移除">×</button>'
-      : '';
+    var activeProvider = normalizePlaylistProvider((st.key || '').split(':')[0]);
+    var cloudAction = playlistPanelCloudRemovalAction(st.playlist, activeProvider);
+    var isCloudBusy = playlistPanelCloudRemovalBusy === st.key + ':' + i;
+    var removeButton = activeProvider === 'mineradio'
+      ? '<button type="button" class="pl-detail-remove" data-pl-detail-remove="' + i +
+        '" title="Xóa khỏi danh sách Mineradio" aria-label="Xóa khỏi danh sách Mineradio">×</button>'
+      : (cloudAction
+        ? '<button type="button" class="pl-detail-remove pl-detail-cloud-remove" data-pl-detail-remove-cloud="' +
+          i + '" title="Xóa và đồng bộ lên ' + escHtml(playlistProviderName(activeProvider)) +
+          '" aria-label="Xóa ' + escHtml(song.name || 'bài hát') + ' khỏi thư viện đám mây"' +
+          (isCloudBusy ? ' disabled aria-busy="true"' : '') + '>' + (isCloudBusy ? '…' : '×') + '</button>'
+        : '');
     return '<div class="pl-detail-row" data-pl-detail-row="' + i + '">' +
       imgTag +
       '<div style="flex:1;min-width:0"><div class="pl-detail-row-title">' + escHtml(song.name || '') + '</div>' +
@@ -297,10 +590,15 @@ function playlistPanelDetailHtml(pl, provider, detailWindow) {
     ? '<button class="fx-mini-btn ghost pl-detail-top-btn" type="button" data-pl-detail-rename="1">重命名</button><button class="fx-mini-btn ghost pl-detail-top-btn danger" type="button" data-pl-detail-delete="1">删除</button>'
     : '';
   var topButton = provider === 'mineradio' ? '' : '<button class="fx-mini-btn ghost pl-detail-top-btn" type="button" data-pl-detail-top="1">回到顶部</button>';
+  var undoButton = playlistPanelCloudLastRemoval && playlistPanelCloudLastRemoval.key === key
+    ? '<button class="fx-mini-btn ghost pl-detail-top-btn pl-detail-undo-btn" type="button" data-pl-detail-undo="1"' +
+      (playlistPanelCloudUndoBusy ? ' disabled aria-busy="true"' : '') +
+      '>↶ ' + (playlistPanelCloudUndoBusy ? 'Đang khôi phục' : 'Hoàn tác xóa') + '</button>'
+    : '';
   return '<div class="pl-inline-detail" data-pl-detail="' + escHtml(key) + '" style="height:' + playlistPanelDetailShellHeight() + 'px">' +
     '<div class="pl-detail-sticky">' +
     '<div class="pl-detail-head">' + img + '<div style="flex:1;min-width:0"><div class="pl-detail-title">' + escHtml(pl.name || '歌单详情') + '</div><div class="pl-detail-sub">' + escHtml((expectedTotal || tracks.length || 0) + ' 首 · ' + (pl.creator || playlistProviderName(provider))) + '</div></div><div class="pl-detail-count">' + (loading && !tracks.length ? '载入中' : (tracks.length + (expectedTotal > tracks.length ? '/' + expectedTotal : ''))) + '</div></div>' +
-    '<div class="pl-detail-actions"><button class="pl-detail-play" type="button" data-pl-detail-play="' + escHtml(key) + '"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>播放歌单</button>' + collectionButton + builtInActions + topButton + '</div>' +
+    '<div class="pl-detail-actions"><button class="pl-detail-play" type="button" data-pl-detail-play="' + escHtml(key) + '"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>播放歌单</button>' + collectionButton + builtInActions + topButton + undoButton + '</div>' +
     '</div>' +
     '<div class="pl-detail-list" data-pl-detail-scroll="' + escHtml(key) + '">' + rows + '</div>' +
     '</div>';
@@ -649,14 +947,14 @@ function renderUserPlaylistsList(opts) {
   if (!userPlaylists.length) {
     $pl.innerHTML = playlistCatalogSyncState && playlistCatalogSyncState.loading
       ? miniQueueSkeleton() + playlistCatalogFooterHtml()
-      : '<div style="text-align:center;padding:24px 0;color:rgba(255,255,255,.32);font-size:11.5px">未找到歌单</div>';
+      : '<div style="text-align:center;padding:24px 0;color:rgba(255,255,255,.32);font-size:11.5px">' + MineradioI18n.ui('未找到歌单') + '</div>';
     return;
   }
   var panel = document.getElementById('playlist-panel');
   var keepTop = panel ? panel.scrollTop : 0;
   function playlistCardHtml(pl, sourceIndex) {
     var provider = normalizePlaylistProvider(pl.provider);
-    var providerLabel = playlistProviderLabel(provider);
+    var providerLabel = MineradioI18n.ui(playlistProviderLabel(provider));
     var thumb = pl.cover ? (provider === 'netease' ? (pl.cover + '?param=88y88') : pl.cover) : '';
     var imgTag = thumb ? '<img src="' + thumb + '" alt="" loading="lazy" decoding="async" onerror="this.style.opacity=0.2">' : (provider === 'mineradio' ? '<div class="pl-built-in-placeholder">MR</div>' : '<div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,.06);flex-shrink:0"></div>');
     var key = playlistPanelKey(provider, pl.id);
@@ -664,7 +962,7 @@ function renderUserPlaylistsList(opts) {
     var expanded = isExpanded ? ' expanded' : '';
     return '<div class="pl-card' + expanded + '" aria-expanded="' + (isExpanded ? 'true' : 'false') + '" data-playlist-provider="' + provider + '" data-playlist-id="' + escHtml(String(pl.id || '')) + '" data-playlist-title="' + escHtml(pl.name || '') + '" data-playlist-index="' + sourceIndex + '">' +
       imgTag +
-      '<div style="flex:1;min-width:0"><div class="pl-name">' + escHtml(pl.name) + '<span class="tag-source ' + provider + '" style="margin-left:6px;vertical-align:1px">' + providerLabel + '</span></div><div class="pl-sub">' + pl.trackCount + ' 首 · ' + escHtml(pl.creator || '') + '</div></div>' +
+      '<div style="flex:1;min-width:0"><div class="pl-name">' + escHtml(pl.name) + '<span class="tag-source ' + provider + '" style="margin-left:6px;vertical-align:1px">' + providerLabel + '</span></div><div class="pl-sub">' + MineradioI18n.source(String(pl.trackCount) + ' 首') + ' · ' + escHtml(pl.creator || '') + '</div></div>' +
       '</div>';
   }
   var cache = playlistPanelBuildVirtualEntries();
@@ -699,12 +997,12 @@ function renderMyPodcastCollections(opts) {
   var $pod = document.getElementById('podcast-list');
   if (!$pod) return;
   if (!loginStatus.loggedIn) {
-    $pod.innerHTML = '<div style="text-align:center;padding:14px 0;color:rgba(255,255,255,.28);font-size:11.5px">登录后显示我的播客</div>';
+    $pod.innerHTML = '<div style="text-align:center;padding:14px 0;color:rgba(255,255,255,.28);font-size:11.5px">' + MineradioI18n.ui('登录后显示我的播客') + '</div>';
     return;
   }
   var items = myPodcastCollections || [];
   if (!items.length) {
-    $pod.innerHTML = '<div style="text-align:center;padding:14px 0;color:rgba(255,255,255,.28);font-size:11.5px">暂无播客数据</div>';
+    $pod.innerHTML = '<div style="text-align:center;padding:14px 0;color:rgba(255,255,255,.28);font-size:11.5px">' + MineradioI18n.ui('暂无播客数据') + '</div>';
     return;
   }
   $pod.innerHTML = items.map(function (pc) {
@@ -765,6 +1063,20 @@ document.getElementById('pl-list').addEventListener('click', function (e) {
     e.preventDefault();
     e.stopPropagation();
     if (playlistPanelDetailState.playlist) deleteBuiltInPlaylist(playlistPanelDetailState.playlist.id, playlistPanelDetailState.playlist.name);
+    return;
+  }
+  var undoCloudTrack = e.target && e.target.closest ? e.target.closest('[data-pl-detail-undo]') : null;
+  if (undoCloudTrack) {
+    e.preventDefault();
+    e.stopPropagation();
+    undoPlaylistPanelCloudTrack();
+    return;
+  }
+  var removeCloudTrack = e.target && e.target.closest ? e.target.closest('[data-pl-detail-remove-cloud]') : null;
+  if (removeCloudTrack) {
+    e.preventDefault();
+    e.stopPropagation();
+    removePlaylistPanelCloudTrack(Number(removeCloudTrack.getAttribute('data-pl-detail-remove-cloud')));
     return;
   }
   var removeTrack = e.target && e.target.closest ? e.target.closest('[data-pl-detail-remove]') : null;

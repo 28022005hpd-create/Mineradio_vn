@@ -269,26 +269,144 @@ function queueAlbumDetailSongNext(i) {
   if (!song) return;
   queueDetailSongNext(song);
 }
+var detailCommentTranslationCache = new Map();
+function detailCommentVietnameseEnabled() {
+  return typeof MineradioI18n !== 'undefined' && MineradioI18n.locale === 'vi-VN';
+}
+function detailCommentTranslationKey(text) {
+  return String(text || '').trim().slice(0, 1800);
+}
 function commentTimeLabel(ms) {
   var t = Number(ms) || 0;
   if (!t) return '';
   try {
-    return new Date(t).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-  } catch (e) {
-    return '';
-  }
+    return new Date(t).toLocaleDateString(detailCommentVietnameseEnabled() ? 'vi-VN' : 'zh-CN',
+      { month: 'short', day: 'numeric' });
+  } catch (e) { return ''; }
+}
+function detailCommentNeedsTranslation(text) {
+  return String(text || '').trim().length >= 3 && /[\p{L}]/u.test(String(text || ''));
 }
 function renderDetailComments(comments) {
-  if (!comments || !comments.length) return '<div class="detail-empty">暂无评论</div>';
-  return '<div class="detail-scroll">' + comments.map(function (c) {
+  if (!comments || !comments.length) return '<div class="detail-empty">' +
+    (detailCommentVietnameseEnabled() ? 'Chưa có bình luận' : '暂无评论') + '</div>';
+  return '<div class="detail-scroll">' + comments.map(function (c, index) {
     var user = c.user || {};
     var avatar = user.avatar ? coverUrlWithSize(user.avatar, 64) : '';
+    var sourceText = String(c.content || '');
+    var key = detailCommentTranslationKey(sourceText);
+    var enabled = detailCommentVietnameseEnabled();
+    var translated = enabled ? detailCommentTranslationCache.get(key) : '';
+    var pending = enabled && detailCommentNeedsTranslation(key) && !detailCommentTranslationCache.has(key);
     return '<div class="comment-item">' +
       (avatar ? '<img class="comment-avatar" src="' + avatar + '" alt="">' : '<div class="comment-avatar"></div>') +
-      '<div class="comment-main"><div class="comment-meta">' + escHtml(user.nickname || '音乐用户') + (c.likedCount ? (' · ' + c.likedCount + ' 赞') : '') + (c.time ? (' · ' + escHtml(commentTimeLabel(c.time))) : '') + '</div>' +
-      '<div class="comment-text">' + escHtml(c.content || '') + '</div></div>' +
-      '</div>';
+      '<div class="comment-main"><div class="comment-meta">' + escHtml(user.nickname ||
+        (detailCommentVietnameseEnabled() ? 'Người nghe nhạc' : '音乐用户')) +
+        (c.likedCount ? (' · ' + c.likedCount + (detailCommentVietnameseEnabled() ? ' lượt thích' : ' 赞')) : '') +
+        (c.time ? (' · ' + escHtml(commentTimeLabel(c.time))) : '') + '</div>' +
+      '<div class="comment-text">' + escHtml(sourceText) + '</div>' +
+      (translated && translated !== sourceText
+        ? '<div class="comment-vi-translation" lang="vi"><span class="comment-vi-label">Bản dịch tiếng Việt</span>' +
+          escHtml(translated) + '</div>'
+        : '<div class="comment-vi-translation" data-comment-vi="' + index + '"' +
+            (pending ? ' data-comment-state="pending" aria-live="polite">Đang dịch bình luận…</div>'
+              : ' hidden></div>')) +
+      '</div></div>';
   }).join('') + '</div>';
+}
+// Translate community-authored comments separately from artist/title metadata.
+// Never overwrite the original, keep the translated line visually distinct.
+// Provider reviews often exceed the <=300-character lyrics-translation limit.
+// Split on words or punctuation, never send overlong comments as one payload.
+// A failing review cannot suppress translations of the other reviews.
+function detailCommentTranslationSegments(source) {
+  var input = detailCommentTranslationKey(source);
+  var chunks = [];
+  while (input && chunks.length < 9) {
+    if (input.length <= 250) { chunks.push(input); break; }
+    var limit = 250;
+    var boundary = -1;
+    for (var i = 100; i <= limit; i++) {
+      if (/[\s，。！？；,.!?;:]/.test(input.charAt(i))) boundary = i + 1;
+    }
+    var take = boundary >= 100 ? boundary : limit;
+    chunks.push(input.slice(0, take).trim());
+    input = input.slice(take).trim();
+  }
+  return chunks.filter(Boolean);
+}
+async function requestVietnameseCommentTranslation(source) {
+  var chunks = detailCommentTranslationSegments(source);
+  if (!chunks.length) return '';
+  var response = await fetch('/api/lyrics/translate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ locale: 'vi-VN', lines: chunks })
+  });
+  if (!response.ok) throw new Error('COMMENTS_TRANSLATION_HTTP_' + response.status);
+  var payload = await response.json();
+  var translated = payload && payload.translations;
+  if (!Array.isArray(translated) || translated.length !== chunks.length) return '';
+  var pieces = translated.map(function (part) { return String(part || '').trim(); });
+  return pieces.every(Boolean) ? pieces.join(' ').trim() : '';
+}
+function showTranslatedDetailComment(index, vi, status) {
+  var target = document.querySelector('#song-comments [data-comment-vi="' + index + '"]');
+  if (!target) return;
+  if (!vi && status !== 'failure') { target.hidden = true; return; }
+  target.hidden = false;
+  target.textContent = '';
+  target.removeAttribute('data-comment-state');
+  if (status === 'failure') {
+    target.classList.add('comment-vi-unavailable');
+    target.textContent = 'Chưa thể dịch bình luận này (có thể dịch vụ đang gián đoạn).';
+    return;
+  }
+  target.classList.remove('comment-vi-unavailable');
+  target.removeAttribute('data-comment-vi');
+  var label = document.createElement('span');
+  label.className = 'comment-vi-label';
+  label.textContent = 'Bản dịch tiếng Việt';
+  target.appendChild(label);
+  target.appendChild(document.createTextNode(vi));
+}
+async function translateDetailCommentsToVietnamese(comments, seq) {
+  if (!detailCommentVietnameseEnabled() || !Array.isArray(comments)) return;
+  var missing = comments.map(function (c, index) {
+    return { index: index, text: detailCommentTranslationKey(c.content) };
+  }).filter(function (item) {
+    return detailCommentNeedsTranslation(item.text) && !detailCommentTranslationCache.has(item.text);
+  });
+  var cursor = 0;
+  async function translateWorker() {
+    while (cursor < missing.length) {
+      if (seq !== trackDetailSeq || !detailCommentVietnameseEnabled()) return;
+      var item = missing[cursor++];
+      try {
+        var vi = await requestVietnameseCommentTranslation(item.text);
+        if (seq !== trackDetailSeq || !detailCommentVietnameseEnabled()) return;
+        // Identical text is usually already Vietnamese, not an error.
+        if (vi && vi !== item.text && !(/[\u3400-\u9fff]/.test(vi) && !/[A-Za-zÀ-ỹ]/.test(vi))) {
+          detailCommentTranslationCache.set(item.text, vi);
+          showTranslatedDetailComment(item.index, vi, 'translated');
+        } else if (vi) {
+          detailCommentTranslationCache.set(item.text, item.text);
+          showTranslatedDetailComment(item.index, '', 'same');
+        } else {
+          showTranslatedDetailComment(item.index, '', 'failure');
+        }
+        if (detailCommentTranslationCache.size > 1200) {
+          detailCommentTranslationCache.delete(detailCommentTranslationCache.keys().next().value);
+        }
+      } catch (error) {
+        if (seq !== trackDetailSeq || !detailCommentVietnameseEnabled()) return;
+        console.warn('[CommentTranslation]', error && error.message || error);
+        showTranslatedDetailComment(item.index, '', 'failure');
+      }
+    }
+  }
+  // Small bounded pool: faster than sequential batches, but gentle on the
+  // third-party service and independent of lyric rendering/audio playback.
+  await Promise.all(Array.from({ length: Math.min(3, missing.length) }, translateWorker));
 }
 function detailCommentsConfig(song) {
   var provider = songProviderKey(song);
@@ -297,7 +415,7 @@ function detailCommentsConfig(song) {
     var qqMid = song.mid || song.songmid || song.id || '';
     return {
       provider: 'qq',
-      title: 'QQ 音乐评论',
+      title: detailCommentVietnameseEnabled() ? 'Bình luận QQ Music' : 'QQ 音乐评论',
       readUrl: '/api/qq/song/comments?id=' + encodeURIComponent(qqId) + '&mid=' + encodeURIComponent(qqMid) + '&limit=18',
       writeUrl: '',
       canWrite: false,
@@ -307,7 +425,7 @@ function detailCommentsConfig(song) {
     var qishuiId = song.providerSongId || song.trackId || song.id || '';
     return qishuiId ? {
       provider: 'qishui',
-      title: '汽水音乐评论',
+      title: detailCommentVietnameseEnabled() ? 'Bình luận Qishui Music' : '汽水音乐评论',
       readUrl: '/api/qishui/song/comments?id=' + encodeURIComponent(qishuiId) + '&limit=18',
       writeUrl: '/api/qishui/song/comments?id=' + encodeURIComponent(qishuiId),
       canWrite: true,
@@ -317,7 +435,7 @@ function detailCommentsConfig(song) {
   if (provider === 'netease' && song.id) {
     return {
       provider: 'netease',
-      title: '网易云评论',
+      title: detailCommentVietnameseEnabled() ? 'Bình luận NetEase Cloud Music' : '网易云评论',
       readUrl: '/api/song/comments?id=' + encodeURIComponent(song.id) + '&limit=18',
       writeUrl: '/api/song/comments?id=' + encodeURIComponent(song.id),
       canWrite: true,
@@ -346,11 +464,13 @@ function loadDetailComments(song, seq) {
     var nextTarget = document.getElementById('song-comments');
     if (nextTarget) nextTarget.innerHTML = result && !result.error
       ? renderDetailComments(result.comments || [])
-      : '<div class="detail-empty">评论加载失败</div>';
+      : '<div class="detail-empty">' + (detailCommentVietnameseEnabled() ? 'Không tải được bình luận' : '评论加载失败') + '</div>';
     bindTrackDetailScrollers();
+    if (result && !result.error) translateDetailCommentsToVietnamese(result.comments || [], seq);
   }).catch(function () {
     var nextTarget = document.getElementById('song-comments');
-    if (seq === trackDetailSeq && nextTarget) nextTarget.innerHTML = '<div class="detail-empty">评论加载失败</div>';
+    if (seq === trackDetailSeq && nextTarget) nextTarget.innerHTML = '<div class="detail-empty">' +
+      (detailCommentVietnameseEnabled() ? 'Không tải được bình luận' : '评论加载失败') + '</div>';
     bindTrackDetailScrollers();
   });
 }
@@ -432,6 +552,7 @@ function bindTrackDetailScrollers() {
   if (body) body.querySelectorAll('.detail-scroll').forEach(bindSmoothWheelScroll);
 }
 function closeTrackDetailModal() {
+  ++trackDetailSeq; // Cancel asynchronous comment translations after closing.
   closeGsapModal(document.getElementById('track-detail-modal'), function () {
     detailCommentSong = null;
     detailCommentSubmitBusy = false;
@@ -610,7 +731,9 @@ function openTrackDetailModal(type, songOverride) {
       detailRow('专辑', song.album || (song.type === 'podcast' ? (song.radioName || 'Podcast') : '未知')) +
       detailRow('时长', songDurationLabel(song)) +
       detailRow('来源', songSourceLabel(song)) +
-      detailRow('歌词源', lyricSourceMode === 'custom' ? '自定义歌词' : (lyricsTimingSource === 'fallback' ? '占位歌词' : '原词')) +
+      detailRow('歌词源', lyricSourceMode === 'custom' ? '自定义歌词' :
+        (lastLyricDataSource === 'lrclib-synced' ? 'LRCLIB · lời hát đồng bộ' :
+        (lyricsTimingSource === 'fallback' ? 'Chưa tìm được lời hát' : '原词'))) +
       '</div>' +
       '<div class="detail-chip-row">' +
       '<span class="detail-chip">' + escHtml(songSourceLabel(song)) + '</span>' +
@@ -877,7 +1000,8 @@ function applyLyricsState(lines, hasNativeKaraoke, timingSource, translationLine
 }
 function applyOriginalLyricsState(renderOptions) {
   lyricSourceMode = 'original';
-  applyLyricsState(originalLyricsState.lines, originalLyricsState.hasNativeKaraoke, originalLyricsState.timingSource, originalLyricsState.translationLines, originalLyricsState.translationSource, renderOptions);
+  var display = typeof preferredLocalizedLyricsForDisplay === 'function' ? preferredLocalizedLyricsForDisplay(originalLyricsState) : originalLyricsState;
+  applyLyricsState(display.lines, display.hasNativeKaraoke, display.timingSource, display.translationLines, display.translationSource, renderOptions);
 }
 function parseCustomLyricText(text) {
   var raw = String(text || '').trim();
@@ -1034,6 +1158,7 @@ function setLyricDisplayMode(mode) {
 function setLyricTranslationMode(mode) {
   fx.lyricTranslationMode = normalizeLyricTranslationMode(mode);
   updateLyricTranslationModeControls();
+  if (lyricSourceMode !== 'custom') applyOriginalLyricsState({ preserveSame: true, reason: 'lyric-translation-mode' });
   refreshStageLyricDisplayMode();
   saveLyricLayout({ user: true, reason: 'lyricTranslationMode' });
   showToast('双语翻译已切换');

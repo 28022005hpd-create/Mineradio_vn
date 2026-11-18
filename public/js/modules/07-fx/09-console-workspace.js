@@ -1,5 +1,18 @@
 'use strict';
 
+// Localize UI labels without touching the Chinese search aliases, metadata
+// or archived preset identifiers used by the visual engine.
+function fxConsoleUi(text) {
+  return typeof MineradioI18n !== 'undefined' && MineradioI18n.ui
+    ? MineradioI18n.ui(text) : text;
+}
+function fxConsoleLocalizePanel(panel) {
+  if (!panel || typeof MineradioI18n === 'undefined') return;
+  MineradioI18n.bind(panel);
+  MineradioI18n.bindDynamicUi(panel);
+  MineradioI18n.scheduleLayoutAudit(panel);
+}
+
 var FX_CONSOLE_TABS = [
   { key: 'home', label: '常用' },
   { key: 'interface', label: '界面' },
@@ -126,6 +139,9 @@ var FX_CONSOLE_LAYOUT = [
   {
     key: 'motion',
     groups: [
+      { key: 'live-mv', title: 'MV lời hát trực tiếp', hint: 'Ảnh bìa và lời chạy theo nhạc · trình phát nổi', open: true, items: [
+        fxConsoleItem('mineradio-live-mv-controls', 'Live MV và Mini', 'mv lyric live ảnh bìa karaoke song ngữ thu nhỏ nổi điện thoại windows', false)
+      ] },
       { key: 'base', title: '基础画面', hint: '整体律动、景深、封面和电影镜头', open: true, items: [
         fxConsoleItem('fx-intensity', '律动强度', '音乐响应 节奏'),
         fxConsoleItem('fx-depth', '画面景深', '立体感 深度'),
@@ -299,6 +315,30 @@ var FX_CONSOLE_LAYOUT = [
 
 var fxConsoleRegistry = [];
 var fxConsoleGroups = {};
+var fxConsoleLocaleWatcherBound = false;
+function refreshFxConsoleLanguage() {
+  var panel = document.getElementById('fx-panel');
+  if (!panel || !panel._fxConsoleWorkspaceOrganized) return;
+  FX_CONSOLE_TABS.forEach(function (meta) {
+    var tab = document.getElementById('fx-console-tab-' + meta.key);
+    if (tab) tab.textContent = fxConsoleUi(meta.label);
+  });
+  FX_CONSOLE_LAYOUT.forEach(function (tab) {
+    tab.groups.forEach(function (group) {
+      var head = document.getElementById('fx-console-' + tab.key + '-' + group.key + '-head');
+      if (!head) return;
+      var title = head.querySelector('.fx-fold-title strong');
+      var hint = head.querySelector('.fx-fold-title small');
+      if (title) title.textContent = fxConsoleUi(group.title);
+      if (hint) hint.textContent = fxConsoleUi(group.hint || '');
+    });
+  });
+  var search = document.getElementById('fx-console-search');
+  if (search && search.value && typeof renderFxConsoleSearchResults === 'function')
+    renderFxConsoleSearchResults(search.value);
+  if (typeof renderFxConsoleHistory === 'function') renderFxConsoleHistory();
+  fxConsoleLocalizePanel(panel);
+}
 
 function fxConsoleResolveBlock(ref) {
   var el = null;
@@ -325,6 +365,7 @@ function fxConsoleMakeToolbar(panel) {
     '<div id="fx-console-search-results" class="fx-console-popover fx-console-search-results" hidden></div>' +
     '<div id="fx-panel-tabs" class="fx-panel-tabs" role="tablist" aria-label="视觉控制台分类"></div>' +
     '<div id="fx-console-history" class="fx-console-popover fx-console-history-popover" hidden></div>';
+  if (typeof MineradioI18n !== 'undefined') MineradioI18n.bindDynamicUi(toolbar);
   var tabs = toolbar.querySelector('#fx-panel-tabs');
   FX_CONSOLE_TABS.forEach(function (meta) {
     var btn = document.createElement('button');
@@ -335,7 +376,7 @@ function fxConsoleMakeToolbar(panel) {
     btn.setAttribute('aria-controls', 'fx-console-page-' + meta.key);
     btn.setAttribute('aria-selected', 'false');
     btn.setAttribute('tabindex', '-1');
-    btn.textContent = meta.label;
+    btn.textContent = fxConsoleUi(meta.label);
     tabs.appendChild(btn);
   });
   panel.appendChild(toolbar);
@@ -357,9 +398,9 @@ function fxConsoleMakeGroup(page, tabMeta, groupMeta) {
   var title = document.createElement('span');
   title.className = 'fx-fold-title';
   var strong = document.createElement('strong');
-  strong.textContent = groupMeta.title;
+  strong.textContent = fxConsoleUi(groupMeta.title);
   var small = document.createElement('small');
-  small.textContent = groupMeta.hint || '';
+  small.textContent = fxConsoleUi(groupMeta.hint || '');
   title.appendChild(strong);
   title.appendChild(small);
   var arrow = document.createElement('span');
@@ -524,6 +565,11 @@ function organizeFxConsoleWorkspace() {
   panel._fxConsoleWorkspaceOrganized = true;
   panel.setAttribute('data-console-layout', 'task-first-v2');
   setFxPanelTab(fxPanelTab);
+  if (!fxConsoleLocaleWatcherBound && typeof MineradioI18n !== 'undefined' && MineradioI18n.onChange) {
+    fxConsoleLocaleWatcherBound = true;
+    MineradioI18n.onChange(refreshFxConsoleLanguage);
+  }
+  fxConsoleLocalizePanel(panel);
 }
 
 function fxConsoleEntryForElement(element) {
@@ -537,7 +583,9 @@ function fxConsoleEntryForElement(element) {
 }
 
 function fxConsoleNormalizeSearch(value) {
-  return String(value || '').toLowerCase().replace(/[\s\-_./]+/g, '');
+  return String(value || '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd')
+    .replace(/[\s\-_./]+/g, '');
 }
 
 function fxConsoleCurrentValue(entry) {
@@ -620,13 +668,15 @@ function renderFxConsoleSearchResults(query) {
   if (history) history.hidden = true;
   if (historyBtn) historyBtn.setAttribute('aria-expanded', 'false');
   var matches = fxConsoleRegistry.filter(function (entry) {
-    var text = [entry.title, entry.aliases, entry.tabLabel, entry.groupLabel, entry.element && entry.element.textContent].join(' ');
+    var text = [entry.title, entry.aliases, entry.tabLabel, entry.groupLabel,
+      fxConsoleUi(entry.title), fxConsoleUi(entry.tabLabel),
+      fxConsoleUi(entry.groupLabel), entry.element && entry.element.textContent].join(' ');
     return fxConsoleNormalizeSearch(text).indexOf(needle) >= 0;
   }).slice(0, 18);
   if (!matches.length) {
     var empty = document.createElement('div');
     empty.className = 'fx-console-empty';
-    empty.textContent = '没有找到“' + String(query || '').trim().slice(0, 30) + '”';
+    empty.textContent = fxConsoleUi('没有找到') + ' “' + String(query || '').trim().slice(0, 30) + '”';
     results.appendChild(empty);
   } else {
     matches.forEach(function (entry) {
@@ -636,14 +686,14 @@ function renderFxConsoleSearchResults(query) {
       var main = document.createElement('span');
       main.className = 'fx-console-result-main';
       var title = document.createElement('strong');
-      title.textContent = entry.title;
+      title.textContent = fxConsoleUi(entry.title);
       var crumb = document.createElement('small');
       crumb.className = 'fx-console-breadcrumb';
-      crumb.textContent = entry.tabLabel + ' › ' + entry.groupLabel;
+      crumb.textContent = fxConsoleUi(entry.tabLabel) + ' › ' + fxConsoleUi(entry.groupLabel);
       main.appendChild(title);
       main.appendChild(crumb);
       var value = document.createElement('b');
-      value.textContent = fxConsoleCurrentValue(entry);
+      value.textContent = fxConsoleUi(fxConsoleCurrentValue(entry));
       btn.appendChild(main);
       btn.appendChild(value);
       btn.addEventListener('click', function () { fxConsoleFocusEntry(entry); });
@@ -652,6 +702,7 @@ function renderFxConsoleSearchResults(query) {
   }
   results.hidden = false;
   if (search) search.setAttribute('aria-expanded', 'true');
+  fxConsoleLocalizePanel(results);
 }
 
 var fxConsoleHistory = [];
@@ -707,10 +758,10 @@ function fxConsoleStateEqual(a, b) {
 }
 
 function fxConsoleFormatHistoryValue(value) {
-  if (value === true) return '开启';
-  if (value === false) return '关闭';
+  if (value === true) return fxConsoleUi('开启');
+  if (value === false) return fxConsoleUi('关闭');
   if (typeof value === 'number') return Math.abs(value - Math.round(value)) < 0.0001 ? String(Math.round(value)) : String(Math.round(value * 100) / 100);
-  if (value == null) return '无';
+  if (value == null) return fxConsoleUi('无');
   return String(value);
 }
 
@@ -724,7 +775,7 @@ function fxConsoleHistoryDetail(before, after, changes) {
     changed.push([before[key], after[key]]);
   });
   if (!changed.length) return '';
-  if (changed.length > 1) return changed.length + ' 项参数';
+  if (changed.length > 1) return changed.length + fxConsoleUi(' 项参数');
   return fxConsoleFormatHistoryValue(changed[0][0]) + ' → ' + fxConsoleFormatHistoryValue(changed[0][1]);
 }
 
@@ -876,12 +927,13 @@ function renderFxConsoleHistory() {
   pop.innerHTML = '';
   var head = document.createElement('div');
   head.className = 'fx-console-popover-head';
-  head.innerHTML = '<strong>最近操作</strong><small>当前会话 · 最多 40 条</small>';
+  head.innerHTML = '<strong>' + fxConsoleUi('最近操作') + '</strong><small>' +
+    fxConsoleUi('当前会话 · 最多 40 条') + '</small>';
   pop.appendChild(head);
   if (!fxConsoleHistory.length) {
     var empty = document.createElement('div');
     empty.className = 'fx-console-empty';
-    empty.textContent = '调整设置后会在这里留下可回退记录';
+    empty.textContent = fxConsoleUi('调整设置后会在这里留下可回退记录');
     pop.appendChild(empty);
     return;
   }
@@ -892,7 +944,7 @@ function renderFxConsoleHistory() {
       row.className = 'fx-console-history-item';
       var text = document.createElement('span');
       var title = document.createElement('strong');
-      title.textContent = record.label;
+      title.textContent = fxConsoleUi(record.label);
       var meta = document.createElement('small');
       var d = new Date(record.time);
       meta.textContent = [String(d.getHours()).padStart(2, '0'), String(d.getMinutes()).padStart(2, '0'), String(d.getSeconds()).padStart(2, '0')].join(':') + (record.detail ? ' · ' + record.detail : '');
@@ -900,7 +952,7 @@ function renderFxConsoleHistory() {
       text.appendChild(meta);
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = index === fxConsoleHistory.length - 1 ? '撤销' : '撤销至此项前';
+      btn.textContent = fxConsoleUi(index === fxConsoleHistory.length - 1 ? '撤销' : '撤销至此项前');
       btn.addEventListener('click', function () {
         if (index === fxConsoleHistory.length - 1) undoFxConsoleHistory();
         else rollbackFxConsoleHistoryTo(index);

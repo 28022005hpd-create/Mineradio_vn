@@ -1,3 +1,8 @@
+// Translate only FX-owned action feedback; no provider title/artist enters here.
+function showFxUiToast(message) {
+  return showToast(typeof MineradioI18n !== 'undefined' && MineradioI18n.ui
+    ? MineradioI18n.ui(message) : message);
+}
 var homeWaveTrackState = { bars: 0, smooth: [] };
 function ensureHomeWaveTrackBars() {
   var el = document.getElementById('home-wave-track');
@@ -67,7 +72,7 @@ function updateDevelopmentFxControls() {
     if (locked) {
       el.classList.remove('on');
       el.setAttribute('aria-disabled', 'true');
-      el.title = runtimeUnavailable ? '当前系统不支持桌面壁纸模式' : '开发中，暂不可用';
+      el.title = MineradioI18n.source(runtimeUnavailable ? '当前系统不支持桌面壁纸模式' : '开发中，暂不可用');
     } else {
       el.removeAttribute('aria-disabled');
       el.title = item[2];
@@ -129,7 +134,7 @@ function setLyricTextureClarity(value, silent) {
   if (!changed) return;
   if (typeof invalidateLyricQualityTextures === 'function') invalidateLyricQualityTextures('texture-clarity-change', { release: next <= 1 });
   saveLyricLayout({ user: true, reason: 'lyricTextureClarity' });
-  if (!silent) showToast('歌词清晰度: ' + lyricTextureClarityLabel(next));
+  if (!silent) showFxUiToast('歌词清晰度: ' + lyricTextureClarityLabel(next));
 }
 function updatePerformanceControls() {
   fx.performanceBackground = normalizePerformanceBackgroundMode(fx.performanceBackground, fx.liveBackgroundKeep === true);
@@ -195,7 +200,7 @@ function setPerformanceBackgroundMode(mode, silent) {
   if (next === 'keep') recoverVisualsAfterBackground('performance-background-keep');
   else if (next === 'release' && isDeepBackgroundMode()) trimRuntimeCaches('performance-release', true);
   if (!silent) {
-    showToast(next === 'keep' ? '后台策略: 保持运行' : (next === 'release' ? '后台策略: 停止并释放' : '后台策略: 自动优化'));
+    showFxUiToast(next === 'keep' ? '后台策略: 保持运行' : (next === 'release' ? '后台策略: 停止并释放' : '后台策略: 自动优化'));
   }
 }
 function setPerformanceQualityMode(mode, silent) {
@@ -206,7 +211,7 @@ function setPerformanceQualityMode(mode, silent) {
   saveLyricLayout({ user: true, reason: 'performanceQuality' });
   if (!silent) {
     var label = next === 'eco' ? '低' : (next === 'balanced' ? '中' : (next === 'ultra' ? '超高' : '高'));
-    showToast('画质档位: ' + label);
+    showFxUiToast('画质档位: ' + label);
   }
 }
 function setForegroundFpsMode(mode, silent) {
@@ -218,7 +223,7 @@ function setForegroundFpsMode(mode, silent) {
   if (typeof syncWallpaperEngineCaptureFrameRate === 'function') {
     Promise.resolve(syncWallpaperEngineCaptureFrameRate()).catch(function () { });
   }
-  if (!silent) showToast(next === 'vsync' ? '前台帧率: 跟随屏幕垂直同步' : ('前台帧率上限: ' + next + ' FPS'));
+  if (!silent) showFxUiToast(next === 'vsync' ? '前台帧率: 跟随屏幕垂直同步' : ('前台帧率上限: ' + next + ' FPS'));
 }
 function updateFxInputs() {
   normalizeDevelopmentLockedFxState();
@@ -497,7 +502,7 @@ function resetFxSliderValue(id, key, btn) {
   syncLyricRealtimeFxChange(key);
   saveLyricLayout({ syncDisk: key === 'controlGlassChromaticOffset', user: true, reason: 'reset:' + key });
   animateFxResetButton(btn);
-  showToast('已恢复默认数值');
+  showFxUiToast(MineradioI18n.source('已恢复默认数值'));
 }
 function ensureFxSliderResetButton(id, key) {
   var el = document.getElementById(id);
@@ -505,8 +510,8 @@ function ensureFxSliderResetButton(id, key) {
   var btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'fx-reset-one';
-  btn.title = '恢复当前滑条默认值';
-  btn.setAttribute('aria-label', '恢复当前滑条默认值');
+  btn.title = MineradioI18n.source('恢复当前滑条默认值');
+  btn.setAttribute('aria-label', MineradioI18n.source('恢复当前滑条默认值'));
   btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
   btn.addEventListener('click', function (e) {
     e.preventDefault();
@@ -648,12 +653,12 @@ function setFxSectionBefore(id, text) {
     prev.className = 'fx-section-label';
     block.parentNode.insertBefore(prev, block);
   }
-  prev.textContent = text;
+  prev.textContent = MineradioI18n.ui(text);
 }
 function setFxSliderLabel(id, text) {
   var block = fxControlBlock(id);
   var label = block && block.querySelector ? block.querySelector('label') : null;
-  if (label) label.textContent = text;
+  if (label) label.textContent = MineradioI18n.ui(text);
 }
 function setFxSectionBeforeNode(node, text) {
   if (!node || !node.parentNode) return;
@@ -663,7 +668,7 @@ function setFxSectionBeforeNode(node, text) {
     prev.className = 'fx-section-label';
     node.parentNode.insertBefore(prev, node);
   }
-  prev.textContent = text;
+  prev.textContent = MineradioI18n.ui(text);
 }
 function moveToggleToGrid(toggleId, grid) {
   var node = document.getElementById(toggleId);
@@ -683,7 +688,7 @@ function ensureFxRangeControl(anchorId, id, label, min, max, step) {
   var block = document.createElement('div');
   block.className = 'fx-slider';
   var lab = document.createElement('label');
-  lab.textContent = label;
+  lab.textContent = MineradioI18n.ui(label);
   var input = document.createElement('input');
   input.id = id;
   input.type = 'range';
@@ -704,7 +709,7 @@ function ensureLyricPrimaryControls() {
     var label = document.createElement('div');
     label.className = 'fx-section-label';
     label.id = 'fx-lyric-primary-label';
-    label.textContent = '歌词开关';
+    label.textContent = MineradioI18n.source('歌词开关');
     grid = document.createElement('div');
     grid.className = 'fx-toggle-grid lyric-primary-toggle-grid';
     grid.id = 'fx-lyric-primary-controls';
@@ -729,25 +734,25 @@ function applyBackgroundMediaHint() {
   var value = document.getElementById('bg-image-value');
   if (value && !value.dataset.mediaHint) {
     value.dataset.mediaHint = '1';
-    value.title = '支持封面原图、图片 / 视频上传，已设置媒体可重复裁切';
+    value.title = MineradioI18n.source('支持封面原图、图片 / 视频上传，已设置媒体可重复裁切');
   }
-  if (value) value.title = '\u652f\u6301\u5c01\u9762\u539f\u56fe\u3001\u56fe\u7247 / \u89c6\u9891\u4e0a\u4f20\uff0c\u5df2\u8bbe\u7f6e\u5a92\u4f53\u53ef\u91cd\u590d\u88c1\u5207';
+  if (value) value.title = MineradioI18n.ui('支持封面原图、图片 / 视频上传，已设置媒体可重复裁切');
   var label = value && value.closest ? value.closest('.fx-color-row-label') : null;
   if (label && !document.getElementById('bg-media-hint')) {
     var hint = document.createElement('small');
     hint.id = 'bg-media-hint';
-    hint.textContent = '\u5c01\u9762\u539f\u56fe / \u56fe\u7247 / \u89c6\u9891';
+    hint.textContent = MineradioI18n.ui('封面原图 / 图片 / 视频');
     label.appendChild(hint);
   }
 }
 function relabelFxPanelControls() {
-  setFxSliderLabel('fx-windowbgopacity', '\u7a97\u53e3\u80cc\u666f\u900f\u660e');
-  setFxSliderLabel('fx-bgglassopacity', '\u6bdb\u73bb\u7483\u900f\u660e');
-  setFxSliderLabel('fx-bgcropx', '\u88c1\u5207\u5de6\u53f3');
-  setFxSliderLabel('fx-bgcropy', '\u88c1\u5207\u4e0a\u4e0b');
-  setFxSliderLabel('fx-bgzoom', '\u88c1\u5207\u7f29\u653e');
+  setFxSliderLabel('fx-windowbgopacity', '窗口背景透明');
+  setFxSliderLabel('fx-bgglassopacity', '毛玻璃透明');
+  setFxSliderLabel('fx-bgcropx', '裁切左右');
+  setFxSliderLabel('fx-bgcropy', '裁切上下');
+  setFxSliderLabel('fx-bgzoom', '裁切缩放');
   var title = document.querySelector('#fx-panel .fx-title');
-  if (title) title.textContent = '视觉控制台';
+  if (title) title.textContent = MineradioI18n.source('视觉控制台');
   ensureLyricPrimaryControls();
   ensureFxRangeControl('fx-lyrictranslationgap', 'fx-lyrictranslationscale', '译文字号', 0.46, 1.12, 0.01);
   ensureFxRangeControl('fx-lyrictranslationscale', 'fx-lyrictranslationopacity', '译文透明', 0.20, 1, 0.01);

@@ -3,11 +3,27 @@ const { contextBridge, ipcRenderer, clipboard, webUtils } = require('electron');
 contextBridge.exposeInMainWorld('desktopWindow', {
   isDesktop: true,
   minimize: () => ipcRenderer.invoke('desktop-window-minimize'),
+  setMiniPlayerEnabled: (enabled) => ipcRenderer.invoke('mineradio-mini-player-set-enabled', enabled === true),
+  publishMiniPlayerState: (value) => ipcRenderer.send('mineradio-mini-player-state', value || {}),
+  onMiniPlayerCommand: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, command) => callback(command);
+    ipcRenderer.on('mineradio-mini-player-command', listener);
+    return () => ipcRenderer.removeListener('mineradio-mini-player-command', listener);
+  },
   restore: () => ipcRenderer.invoke('desktop-window-restore'),
   toggleMaximize: () => ipcRenderer.invoke('desktop-window-toggle-maximize'),
   toggleFullscreen: () => ipcRenderer.invoke('desktop-window-toggle-fullscreen'),
   exitFullscreenWindowed: () => ipcRenderer.invoke('desktop-window-exit-fullscreen-windowed'),
   getState: () => ipcRenderer.invoke('desktop-window-get-state'),
+  getUiLanguage: () => ipcRenderer.invoke('mineradio-ui-language-get'),
+  setUiLanguage: (locale) => ipcRenderer.invoke('mineradio-ui-language-set', locale),
+  onUiLanguageChanged: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, locale) => callback(locale);
+    ipcRenderer.on('mineradio-ui-language-changed', listener);
+    return () => ipcRenderer.removeListener('mineradio-ui-language-changed', listener);
+  },
   getGpuDiagnostics: () => ipcRenderer.invoke('mineradio-get-gpu-diagnostics'),
   getMemorySnapshot: () => ipcRenderer.invoke('mineradio-memory-get-snapshot'),
   configureMemoryReduct: (payload) => ipcRenderer.invoke('mineradio-memory-configure-auto', payload || {}),
@@ -76,7 +92,7 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   getLoginEasterEggStatus: () => ipcRenderer.invoke('mineradio-login-easter-egg-status'),
   unlockLoginEasterEgg: (value) => ipcRenderer.invoke('mineradio-login-easter-egg-unlock', String(value || '')),
   resetLoginEasterEgg: () => ipcRenderer.invoke('mineradio-login-easter-egg-reset'),
-  openNeteaseMusicLogin: () => ipcRenderer.invoke('netease-music-open-login'),
+  openNeteaseMusicLogin: (options) => ipcRenderer.invoke('netease-music-open-login', options || {}),
   clearNeteaseMusicLogin: () => ipcRenderer.invoke('netease-music-clear-login'),
   openQQMusicLogin: (options) => ipcRenderer.invoke('qq-music-open-login', options || {}),
   clearQQMusicLogin: () => ipcRenderer.invoke('qq-music-clear-login'),
@@ -84,6 +100,16 @@ contextBridge.exposeInMainWorld('desktopWindow', {
   clearKugouMusicLogin: () => ipcRenderer.invoke('kugou-music-clear-login'),
   clearQishuiMusicLogin: () => ipcRenderer.invoke('qishui-music-clear-login'),
   openUpdatePage: (url) => ipcRenderer.invoke('mineradio-open-update-page', String(url || '')),
+  getVnGithubUpdateStatus: () => ipcRenderer.invoke('mineradio-vn-update-status'),
+  checkVnGithubUpdate: () => ipcRenderer.invoke('mineradio-vn-update-check'),
+  installVnGithubUpdate: () => ipcRenderer.invoke('mineradio-vn-update-install'),
+  onVnGithubUpdateStatus: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const fn = (_event, status) => callback(status || {});
+    ipcRenderer.on('mineradio-vn-github-update-status', fn);
+    return () => ipcRenderer.removeListener('mineradio-vn-github-update-status', fn);
+  },
+
   restartApp: () => ipcRenderer.invoke('mineradio-restart-app'),
   configureGlobalHotkeys: (bindings) => ipcRenderer.invoke('mineradio-hotkeys-configure-global', bindings || []),
   copyText: (text) => {

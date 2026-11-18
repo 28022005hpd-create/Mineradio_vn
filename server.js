@@ -56,6 +56,9 @@ const {
 } = require('NeteaseCloudMusicApi');
 const http = require('http');
 const https = require('https');
+const { translateLyricLines } = require('./lyric-translation-service');
+const { resolveFallbackLyrics } = require('./lyric-fallback-service');
+const QRCode = require('qrcode'); // NCM can return a QR URL without qrimg.
 const fs   = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -111,7 +114,14 @@ const {
   handleQishuiSongUrl,
 } = require('./qishui-api');
 const qishuiQrLogin = require('./qishui-qr-login');
-const { clearSpotifyToken } = require('./spotify-api');
+const {
+  clearSpotifyToken, handleSpotifyStatus, handleSpotifySetupDiagnostics,
+  saveSpotifyConfig, getSpotifyConfig, handleSpotifyUserPlaylists,
+  handleSpotifyLibraryCheck, handleSpotifyLibrarySet, handleSpotifyPlaylistAddSong,
+  handleSpotifyPlaylistRemoveSong, handleSpotifyCreatePlaylist,
+  handleSpotifyPlaylistTracks, handleSpotifyAlbumDetail, handleSpotifySearch,
+  handleSpotifyRecommendations, handleSpotifySongUrl, handleSpotifyLyric
+} = require('./spotify-api');
 const {
   appendCuefieldFeedback,
   readCuefieldFeedbackStats,
@@ -2145,6 +2155,7 @@ function mapNeteasePlaylistMeta(pl, fallbackId) {
     creator: (pl.creator && pl.creator.nickname) || pl.creatorNickname || '',
     subscribed: !!pl.subscribed,
     specialType: pl.specialType || 0,
+    ownerId: String(pl.creator && pl.creator.userId || pl.userId || ''),
   };
 }
 
@@ -5150,6 +5161,24 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pn === '/api/spotify/playlist/remove-song') {
+    if (req.method !== 'POST') {
+      sendJSON(res, { provider: 'spotify', success: false, error: 'METHOD_NOT_ALLOWED' }, 405);
+      return;
+    }
+    try {
+      const body = await readRequestBody(req);
+      sendJSON(res, await handleSpotifyPlaylistRemoveSong(
+        body.pid || body.playlistId || '', body.song || body));
+    } catch (err) {
+      console.error('[SpotifyPlaylistRemoveSong]', err);
+      sendJSON(res, { provider: 'spotify', success: false,
+        error: err.code || err.message, message: err.message,
+        missingScopes: err.missingScopes || [] }, Number(err.statusCode) || 500);
+    }
+    return;
+  }
+
   if (pn === '/api/spotify/playlist/create') {
     try {
       if (req.method !== 'POST') {
@@ -6159,10 +6188,36 @@ const server = http.createServer(async (req, res) => {
   // ---------- 登录: QR 二维码图片 ----------
   if (pn === '/api/login/qr/create') {
     try {
-      const key = url.searchParams.get('key');
-      const r = await login_qr_create({ key, qrimg: true, timestamp: Date.now() });
-      const d = r.body && r.body.data;
-      sendJSON(res, { img: d && d.qrimg, url: d && d.qrurl });
+      const key = String(url.searchParams.get('key') || '').trim();
+      if (!key || key.length > 256) {
+        sendJSON(res, { error: 'MISSING_QR_KEY' }, 400);
+        return;
+      }
+      let qrData = {};
+      try {
+        const response = await login_qr_create({ key, qrimg: true, timestamp: Date.now() });
+        qrData = response && response.body && response.body.data || {};
+      } catch (serviceError) {
+        // A valid unikey already defines the standard NetEase QR login URL.
+        // The image endpoint can fail independently; keep inline login usable.
+        console.warn('[NetEaseQR] create API unavailable, using key URL:', serviceError.message);
+      }
+      const d = qrData;
+      // The QR login address is a documented official NetEase URL. Prefer
+      // the API result, but fall back to the key when qrimg/qrurl are omitted.
+      const apiUrl = typeof d.qrurl === 'string' ? d.qrurl : '';
+      const qrurl = /^https:\/\/music\.163\.com\/login\?codekey=/i.test(apiUrl)
+        ? apiUrl : 'https://music.163.com/login?codekey=' + encodeURIComponent(key);
+      let qrimg = typeof d.qrimg === 'string' ? d.qrimg : '';
+      if (!qrimg) {
+        qrimg = await QRCode.toDataURL(qrurl, { width: 256, margin: 2,
+          errorCorrectionLevel: 'M' });
+      }
+      if (!qrimg) {
+        sendJSON(res, { error: 'QR_IMAGE_UNAVAILABLE', url: qrurl || undefined }, 502);
+        return;
+      }
+      sendJSON(res, { img: qrimg, url: qrurl });
     } catch (err) { sendJSON(res, { error: err.message }, 500); }
     return;
   }
@@ -6247,7 +6302,11 @@ const server = http.createServer(async (req, res) => {
       const requestedOffset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0);
       if (requestedLimit || requestedOffset || url.searchParams.has('paged')) {
         const pageData = await fetchNeteaseUserPlaylistsPage(info.userId, requestedLimit || 48, requestedOffset);
-        const pageList = pageData.playlists.map(pl => mapNeteasePlaylistMeta(pl, pl && pl.id));
+        const pageList = pageData.playlists.map(pl => {
+          const row = mapNeteasePlaylistMeta(pl, pl && pl.id);
+          row.owned = !!row.ownerId && row.ownerId === String(info.userId);
+          return row;
+        });
         sendJSON(res, {
           loggedIn: true,
           userId: info.userId,
@@ -6262,7 +6321,11 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const rawPlaylists = await fetchAllNeteaseUserPlaylists(info.userId, requestedLimit);
-      const list = rawPlaylists.map(pl => mapNeteasePlaylistMeta(pl, pl && pl.id));
+      const list = rawPlaylists.map(pl => {
+        const row = mapNeteasePlaylistMeta(pl, pl && pl.id);
+        row.owned = !!row.ownerId && row.ownerId === String(info.userId);
+        return row;
+      });
       sendJSON(res, { loggedIn: true, userId: info.userId, playlists: list });
     } catch (err) {
       console.error('[UserPlaylists]', err);
@@ -6401,6 +6464,47 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Remove a track only from an owned NetEase playlist. Deleting a song from
+  // an artist's official album is not supported, and collected playlists are
+  // never writable. Keep this check server-side, not just in the UI.
+  if (pn === '/api/playlist/remove-song') {
+    if (req.method !== 'POST') {
+      sendJSON(res, { success: false, error: 'METHOD_NOT_ALLOWED' }, 405);
+      return;
+    }
+    try {
+      const info = await requireLogin(res);
+      if (!info) return;
+      const body = await readRequestBody(req);
+      const pid = String(body.pid || body.playlistId || '').trim();
+      const id = String(body.id || '').trim();
+      if (!/^\d{1,24}$/.test(pid) || !/^\d{1,24}$/.test(id)) {
+        sendJSON(res, { success: false, error: 'INVALID_PLAYLIST_OR_SONG_ID' }, 400);
+        return;
+      }
+      const detail = await playlist_detail({ id: pid, s: 0, cookie: userCookie, timestamp: Date.now() });
+      const pl = detail && detail.body && detail.body.playlist;
+      if (!pl || String(pl.creator && pl.creator.userId || pl.userId || '') !== String(info.userId)) {
+        sendJSON(res, { success: false, error: 'PLAYLIST_NOT_OWNED' }, 403);
+        return;
+      }
+      const result = await playlist_tracks({ op: 'del', pid, tracks: id,
+        cookie: userCookie, timestamp: Date.now() });
+      const code = normalizeApiCode(result);
+      if (code !== 200 || result.body && result.body.error) {
+        sendJSON(res, { success: false, code, error: normalizeApiMessage(result) || 'CLOUD_REMOVE_FAILED' }, 409);
+        return;
+      }
+      invalidateNeteasePlaylistTrackIndex(pid);
+      sendJSON(res, { provider: 'netease', success: true, pid, id, code,
+        synced: true, action: 'remove-from-playlist' });
+    } catch (err) {
+      console.error('[PlaylistRemoveSong]', err);
+      sendJSON(res, { success: false, error: err.message }, 500);
+    }
+    return;
+  }
+
   // ---------- 歌词 ----------
   function lyricNodeText(body, key) {
     return body && body[key] && typeof body[key].lyric === 'string' ? body[key].lyric : '';
@@ -6420,6 +6524,47 @@ const server = http.createServer(async (req, res) => {
       if (!lyricNodeText(merged, key) && fallback && fallback[key]) merged[key] = fallback[key];
     });
     return merged;
+  }
+
+  // Fallback for songs with no usable timed lyrics on their home provider.
+  // Never serve guessed text or artificially timed karaoke captions.
+  if (pn === '/api/lyrics/fallback') {
+    if (req.method !== 'GET') { sendJSON(res, { error: 'Use GET' }, 405); return; }
+    const title = String(url.searchParams.get('title') || '').slice(0, 220).trim();
+    const artist = String(url.searchParams.get('artist') || '').slice(0, 220).trim();
+    const album = String(url.searchParams.get('album') || '').slice(0, 220).trim();
+    const duration = Math.max(0, Math.min(36000, Number(url.searchParams.get('duration')) || 0));
+    if (!title || !artist) {
+      sendJSON(res, { error: 'Missing song title or artist', lyric: '' }, 400);
+      return;
+    }
+    try {
+      const lyrics = await resolveFallbackLyrics({ title, artist, album, duration });
+      sendJSON(res, lyrics || { lyric: '', source: 'no-verified-lyrics',
+        message: 'Chưa tìm được lời có thời gian khớp với bài hát' });
+    } catch (err) {
+      console.warn('[LyricFallback]', err && err.message);
+      sendJSON(res, { lyric: '', source: 'fallback-unavailable',
+        message: 'Không thể tìm lời bài hát lúc này' });
+    }
+    return;
+  }
+
+  // Language-aware subtitle route, separate from the provider's tlyric.
+  if (pn === '/api/lyrics/translate') {
+    if (req.method !== 'POST') {
+      sendJSON(res, { error: 'Use POST' }, 405);
+      return;
+    }
+    try {
+      const body = await readRequestBody(req);
+      const translations = await translateLyricLines(body.lines, body.locale);
+      sendJSON(res, { locale: 'vi-VN', translations });
+    } catch (error) {
+      const invalid = error instanceof RangeError;
+      sendJSON(res, { error: invalid ? 'Invalid translation request' : 'Subtitle translation unavailable' }, invalid ? 400 : 503);
+    }
+    return;
   }
 
   if (pn === '/api/lyric') {

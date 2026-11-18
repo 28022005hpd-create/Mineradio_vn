@@ -1776,7 +1776,12 @@ async function handleKugouUserPlaylists(cookie) {
     const lists = extractKugouGatewayPlaylistLists(data);
     const profile = pickKugouProfileFromLists(lists, auth);
     if (profile.nickname || profile.avatar) kugouProfileCache.set(kugouProfileCacheKey(auth), profile, 5 * 60 * 1000);
-    const playlists = lists.map(mapKugouPlaylistItem).filter(pl => pl.id && pl.name);
+    const favoriteRaw = pickKugouFavoritePlaylist(lists);
+    const favoriteId = favoriteRaw ? String(mapKugouPlaylistItem(favoriteRaw).id || '') : '';
+    const playlists = lists.map(mapKugouPlaylistItem).filter(pl => pl.id && pl.name)
+      .map(pl => Object.assign({}, pl, {
+        likedCollection: !!favoriteId && String(pl.id) === favoriteId,
+      }));
     return {
       provider: 'kugou',
       loggedIn: true,
