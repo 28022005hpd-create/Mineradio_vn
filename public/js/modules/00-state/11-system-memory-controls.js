@@ -1,3 +1,6 @@
+function memoryUiCopy(zh, vi) {
+  return typeof MineradioI18n !== 'undefined' && MineradioI18n.locale === 'vi-VN' ? vi : zh;
+}
 var MEMORY_REDUCT_MASK_BITS = {
   workingSet: 1,
   modifiedList: 4,
@@ -74,12 +77,16 @@ function memoryFormatSnapshot(snapshot) {
   var percent = Math.round(Number(snapshot.usedPercent) || 0);
   var proc = snapshot.process || {};
   var rss = Math.round(Number(proc.rssMB) || 0);
-  return '系统 ' + used + '/' + total + ' MB (' + percent + '%), 可用 ' + free + ' MB, 播放器 ' + rss + ' MB';
+  return memoryUiCopy(
+    '系统 ' + used + '/' + total + ' MB (' + percent + '%), 可用 ' + free + ' MB, 播放器 ' + rss + ' MB',
+    'RAM hệ thống ' + used + '/' + total + ' MB (' + percent + '%), còn trống ' + free +
+      ' MB, Mineradio ' + rss + ' MB');
 }
 
 function updateMemoryStatusText(text) {
   var chip = document.getElementById('memory-status-chip');
-  if (chip) chip.textContent = text || '系统内存读取中...';
+  if (chip) chip.textContent = (typeof MineradioI18n !== 'undefined' && MineradioI18n.ui
+    ? MineradioI18n.ui(text || '系统内存读取中...') : (text || '系统内存读取中...'));
 }
 
 function refreshMemorySnapshot(force) {
@@ -96,7 +103,7 @@ function refreshMemorySnapshot(force) {
     if (payload) rememberMemoryStatusPayload(payload);
     else memoryLastStatusPayload = null;
     var status = payload && payload.ok ? memoryFormatSnapshot(payload.snapshot) : '系统内存读取失败';
-    if (payload && payload.elevated) status += ' | 管理员';
+    if (payload && payload.elevated) status += memoryUiCopy(' | 管理员', ' | quyền quản trị');
     updateMemoryStatusText(status);
     updateMemoryControls();
     return payload;
