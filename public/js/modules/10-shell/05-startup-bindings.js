@@ -135,6 +135,16 @@ if (typeof MineradioI18n !== 'undefined' && MineradioI18n.bindDynamicUi) {
       return result;
     };
   }
+  // Login contents are frequently replaced by polling and provider switching.
+  // Translate only the known UI-owned modal, never track or account metadata.
+  if (typeof updateLoginProviderUi === 'function')
+    updateLoginProviderUi = afterLocalizedUiRender(updateLoginProviderUi, 'login-modal');
+  if (typeof renderLoginModal === 'function')
+    renderLoginModal = afterLocalizedUiRender(renderLoginModal, 'login-modal');
+  if (typeof renderUserModal === 'function')
+    renderUserModal = afterLocalizedUiRender(renderUserModal, 'user-modal');
+  if (typeof renderUserBtn === 'function')
+    renderUserBtn = afterLocalizedUiRender(renderUserBtn, 'user-modal');
   if (typeof renderFxConsoleSearchResults === 'function')
     renderFxConsoleSearchResults = afterLocalizedUiRender(renderFxConsoleSearchResults, 'fx-panel');
   if (typeof renderFxConsoleHistory === 'function')
