@@ -6166,8 +6166,16 @@ const server = http.createServer(async (req, res) => {
         sendJSON(res, { error: 'MISSING_QR_KEY' }, 400);
         return;
       }
-      const r = await login_qr_create({ key, qrimg: true, timestamp: Date.now() });
-      const d = r.body && r.body.data || {};
+      let qrData = {};
+      try {
+        const response = await login_qr_create({ key, qrimg: true, timestamp: Date.now() });
+        qrData = response && response.body && response.body.data || {};
+      } catch (serviceError) {
+        // A valid unikey already defines the standard NetEase QR login URL.
+        // The image endpoint can fail independently; keep inline login usable.
+        console.warn('[NetEaseQR] create API unavailable, using key URL:', serviceError.message);
+      }
+      const d = qrData;
       // The QR login address is a documented official NetEase URL. Prefer
       // the API result, but fall back to the key when qrimg/qrurl are omitted.
       const apiUrl = typeof d.qrurl === 'string' ? d.qrurl : '';
