@@ -135,6 +135,28 @@ if (typeof MineradioI18n !== 'undefined' && MineradioI18n.bindDynamicUi) {
       return result;
     };
   }
+  // The visual console builds its categories dynamically, and presets/archives
+  // replace their HTML on each interaction. Localize only after those renders,
+  // never on each WebGL frame or slider input.
+  if (typeof renderUserFxArchives === 'function')
+    renderUserFxArchives = afterLocalizedUiRender(renderUserFxArchives, 'fx-panel');
+  if (typeof buildPresetGrid === 'function')
+    buildPresetGrid = afterLocalizedUiRender(buildPresetGrid, 'fx-panel');
+  if (typeof refreshPresetGrid === 'function')
+    refreshPresetGrid = afterLocalizedUiRender(refreshPresetGrid, 'fx-panel');
+  if (typeof organizeFxConsoleWorkspace === 'function')
+    organizeFxConsoleWorkspace = afterLocalizedUiRender(organizeFxConsoleWorkspace, 'fx-panel');
+  if (typeof relabelFxPanelControls === 'function')
+    relabelFxPanelControls = afterLocalizedUiRender(relabelFxPanelControls, 'fx-panel');
+  // Existing startup initialization precedes the render wrappers.
+  // Sweep once now to translate its initial dynamically created labels.
+  var initialFxPanel = document.getElementById('fx-panel');
+  if (initialFxPanel) {
+    MineradioI18n.bind(initialFxPanel);
+    MineradioI18n.bindDynamicUi(initialFxPanel);
+    MineradioI18n.scheduleLayoutAudit(initialFxPanel);
+  }
+
   // Login contents are frequently replaced by polling and provider switching.
   // Translate only the known UI-owned modal, never track or account metadata.
   if (typeof updateLoginProviderUi === 'function')
