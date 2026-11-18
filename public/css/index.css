@@ -19567,3 +19567,11 @@ html[lang="vi-VN"] #fx-panel #hotkey-settings-btn {
   #mineradio-live-mv .live-mv-art-wrap img {animation:none}
   #mineradio-live-mv *,#mineradio-mini-inapp * {transition:none!important}
 }
+
+
+/* Keep the built-in welcome/startup interaction reachable even if users saved
+   Live MV or Mini as active in their previous listening session. */
+body.splash-active #mineradio-live-mv,
+body.splash-active #mineradio-mini-inapp {
+  display: none !important;
+}
