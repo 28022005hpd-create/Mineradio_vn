@@ -18943,3 +18943,63 @@ html[lang="vi-VN"] :is(
     transition-duration: .01ms !important;
   }
 }
+
+
+/* vi-VN visual console: long labels and preset names in narrow windows. */
+html[lang="vi-VN"] #fx-panel .fx-console-toolbar .fx-panel-tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scroll-padding-inline: 6px;
+}
+html[lang="vi-VN"] #fx-panel .fx-console-toolbar .fx-panel-tabs button {
+  flex: 0 0 auto;
+  min-width: 68px;
+  width: max-content;
+  max-width: none;
+  height: auto;
+  min-height: 30px;
+  padding: 6px 10px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+html[lang="vi-VN"] #fx-panel .fx-console-group-head .fx-fold-title,
+html[lang="vi-VN"] #fx-panel .fx-console-group-head .fx-fold-title strong,
+html[lang="vi-VN"] #fx-panel .fx-console-group-head .fx-fold-title small {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+html[lang="vi-VN"] #fx-panel .preset-card {
+  min-width: 0;
+  min-height: 108px;
+  height: auto;
+  padding: 12px 10px;
+}
+html[lang="vi-VN"] #fx-panel .preset-card :is(.pc-name, .pc-desc, .pc-name-en) {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  letter-spacing: 0;
+  line-height: 1.36;
+  text-overflow: clip;
+}
+html[lang="vi-VN"] #fx-panel .preset-card .pc-name { font-size: 12.5px; }
+html[lang="vi-VN"] #fx-panel .preset-card .pc-desc { font-size: 10.5px; }
+html[lang="vi-VN"] #fx-panel :is(.user-archive-toolbar, .user-archive-tools, .user-archive-actions, .user-archive-share-actions) {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+html[lang="vi-VN"] #fx-panel :is(.fx-console-search-result, .fx-console-breadcrumb, .user-archive-note) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 430px) {
+  html[lang="vi-VN"] #fx-panel .preset-grid { grid-template-columns: minmax(0, 1fr); }
+}
