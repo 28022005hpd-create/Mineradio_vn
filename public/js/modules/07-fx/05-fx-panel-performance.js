@@ -648,12 +648,12 @@ function setFxSectionBefore(id, text) {
     prev.className = 'fx-section-label';
     block.parentNode.insertBefore(prev, block);
   }
-  prev.textContent = text;
+  prev.textContent = MineradioI18n.ui(text);
 }
 function setFxSliderLabel(id, text) {
   var block = fxControlBlock(id);
   var label = block && block.querySelector ? block.querySelector('label') : null;
-  if (label) label.textContent = text;
+  if (label) label.textContent = MineradioI18n.ui(text);
 }
 function setFxSectionBeforeNode(node, text) {
   if (!node || !node.parentNode) return;
@@ -663,7 +663,7 @@ function setFxSectionBeforeNode(node, text) {
     prev.className = 'fx-section-label';
     node.parentNode.insertBefore(prev, node);
   }
-  prev.textContent = text;
+  prev.textContent = MineradioI18n.ui(text);
 }
 function moveToggleToGrid(toggleId, grid) {
   var node = document.getElementById(toggleId);
@@ -683,7 +683,7 @@ function ensureFxRangeControl(anchorId, id, label, min, max, step) {
   var block = document.createElement('div');
   block.className = 'fx-slider';
   var lab = document.createElement('label');
-  lab.textContent = label;
+  lab.textContent = MineradioI18n.ui(label);
   var input = document.createElement('input');
   input.id = id;
   input.type = 'range';
@@ -731,21 +731,21 @@ function applyBackgroundMediaHint() {
     value.dataset.mediaHint = '1';
     value.title = MineradioI18n.source('支持封面原图、图片 / 视频上传，已设置媒体可重复裁切');
   }
-  if (value) value.title = '\u652f\u6301\u5c01\u9762\u539f\u56fe\u3001\u56fe\u7247 / \u89c6\u9891\u4e0a\u4f20\uff0c\u5df2\u8bbe\u7f6e\u5a92\u4f53\u53ef\u91cd\u590d\u88c1\u5207';
+  if (value) value.title = MineradioI18n.ui('支持封面原图、图片 / 视频上传，已设置媒体可重复裁切');
   var label = value && value.closest ? value.closest('.fx-color-row-label') : null;
   if (label && !document.getElementById('bg-media-hint')) {
     var hint = document.createElement('small');
     hint.id = 'bg-media-hint';
-    hint.textContent = '\u5c01\u9762\u539f\u56fe / \u56fe\u7247 / \u89c6\u9891';
+    hint.textContent = MineradioI18n.ui('封面原图 / 图片 / 视频');
     label.appendChild(hint);
   }
 }
 function relabelFxPanelControls() {
-  setFxSliderLabel('fx-windowbgopacity', '\u7a97\u53e3\u80cc\u666f\u900f\u660e');
-  setFxSliderLabel('fx-bgglassopacity', '\u6bdb\u73bb\u7483\u900f\u660e');
-  setFxSliderLabel('fx-bgcropx', '\u88c1\u5207\u5de6\u53f3');
-  setFxSliderLabel('fx-bgcropy', '\u88c1\u5207\u4e0a\u4e0b');
-  setFxSliderLabel('fx-bgzoom', '\u88c1\u5207\u7f29\u653e');
+  setFxSliderLabel('fx-windowbgopacity', '窗口背景透明');
+  setFxSliderLabel('fx-bgglassopacity', '毛玻璃透明');
+  setFxSliderLabel('fx-bgcropx', '裁切左右');
+  setFxSliderLabel('fx-bgcropy', '裁切上下');
+  setFxSliderLabel('fx-bgzoom', '裁切缩放');
   var title = document.querySelector('#fx-panel .fx-title');
   if (title) title.textContent = MineradioI18n.source('视觉控制台');
   ensureLyricPrimaryControls();
