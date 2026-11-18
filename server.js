@@ -57,6 +57,7 @@ const {
 const http = require('http');
 const https = require('https');
 const { translateLyricLines } = require('./lyric-translation-service');
+const QRCode = require('qrcode'); // NCM can return a QR URL without qrimg.
 const fs   = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -6160,10 +6161,27 @@ const server = http.createServer(async (req, res) => {
   // ---------- 登录: QR 二维码图片 ----------
   if (pn === '/api/login/qr/create') {
     try {
-      const key = url.searchParams.get('key');
+      const key = String(url.searchParams.get('key') || '').trim();
+      if (!key || key.length > 256) {
+        sendJSON(res, { error: 'MISSING_QR_KEY' }, 400);
+        return;
+      }
       const r = await login_qr_create({ key, qrimg: true, timestamp: Date.now() });
-      const d = r.body && r.body.data;
-      sendJSON(res, { img: d && d.qrimg, url: d && d.qrurl });
+      const d = r.body && r.body.data || {};
+      const qrurl = typeof d.qrurl === 'string' ? d.qrurl : '';
+      let qrimg = typeof d.qrimg === 'string' ? d.qrimg : '';
+      // NeteaseCloudMusicApi can return only qrurl when its upstream image
+      // endpoint is blocked. The official URL can be encoded locally.
+      if (!qrimg && qrurl && qrurl.length <= 2048 &&
+          /^(https?:\/\/|orpheus:\/\/)/i.test(qrurl)) {
+        qrimg = await QRCode.toDataURL(qrurl, { width: 256, margin: 2,
+          errorCorrectionLevel: 'M' });
+      }
+      if (!qrimg) {
+        sendJSON(res, { error: 'QR_IMAGE_UNAVAILABLE', url: qrurl || undefined }, 502);
+        return;
+      }
+      sendJSON(res, { img: qrimg, url: qrurl });
     } catch (err) { sendJSON(res, { error: err.message }, 500); }
     return;
   }
