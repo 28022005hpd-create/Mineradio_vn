@@ -59,8 +59,9 @@ test('more than 180 lyric lines are translated in timed batches without changing
   for (let n = 0; n < 80 && (!displays.length || displays.at(-1).translationLines.length < 235); n++) {
     await new Promise(resolve => setImmediate(resolve));
   }
-  assert.equal(calls.length, 3, '235 lines must use three safe translation batches');
-  assert.ok(calls.every(call => call.locale === 'vi-VN' && call.lines.length <= 90));
+  assert.equal(calls.length, 6, '235 lines must start with two fast batches and complete all lyrics');
+  assert.ok(calls.every(call => call.locale === 'vi-VN' && call.lines.length <= 60));
+  assert.ok(calls.slice(0, 2).every(call => call.lines.length <= 12), 'The first lines should render quickly');
   const last = context.preferredLocalizedLyricsForDisplay(original);
   assert.equal(last.translationLines.length, 235);
   assert.equal(last.lines[234].translationTime, 234 * 2.5);
@@ -71,7 +72,7 @@ test('more than 180 lyric lines are translated in timed batches without changing
   assert.equal(context.currentLyricSong().artist, '周杰伦');
   context.window.MineradioI18n.locale = 'zh-CN';
   assert.equal(context.preferredLocalizedLyricsForDisplay(original), original);
-  assert.equal(calls.length, 3, 'Switching UI language must not trigger extra translations');
+  assert.equal(calls.length, 6, 'Switching UI language must not trigger extra translations');
 });
 
 test('Vietnamese CSS lets interface labels wrap but keeps music metadata elided', () => {
