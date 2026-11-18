@@ -163,7 +163,7 @@ var playlistPanelCloudRemovalBusy = '';
 var playlistPanelCloudLastRemoval = null;
 var playlistPanelCloudUndoBusy = false;
 
-// The default window.confirm() is not suitable inside Mineradio's dark
+// Native Windows confirmation boxes do not match Mineradio's dark
 // translucent window. Use an accessible, text-safe, app-owned modal instead.
 function playlistPanelConfirmCloudDelete(details) {
   return new Promise(function (resolve) {
@@ -370,7 +370,7 @@ async function removePlaylistPanelCloudTrack(index) {
   var pid = parts.slice(1).join(':');
   var action = playlistPanelCloudRemovalAction(state && state.playlist, provider);
   var song = state && state.tracks && state.tracks[index];
-  if (!action || !song || !pid || playlistPanelCloudRemovalBusy) return false;
+  if (!action || !song || !pid || playlistPanelCloudRemovalBusy || playlistPanelCloudUndoBusy) return false;
   if (typeof isSongAccountLoggedIn === 'function' && !isSongAccountLoggedIn(provider)) {
     showToast('Hãy đăng nhập ' + playlistProviderName(provider) + ' để đồng bộ xóa bài hát.');
     return false;
