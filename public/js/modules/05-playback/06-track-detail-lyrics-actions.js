@@ -315,7 +315,9 @@ async function translateDetailCommentsToVietnamese(comments, seq) {
     var text = detailCommentTranslationKey(c.content);
     return { index: index, text: text };
   }).filter(function (item) {
-    return item.text && /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(item.text) &&
+    // English and other-language comments need translation too. Vietnamese
+    // originals are harmless: the translator returns the unchanged string.
+    return item.text.length >= 3 && /[\p{L}]/u.test(item.text) &&
       !detailCommentTranslationCache.has(item.text);
   });
   for (var pos = 0; pos < missing.length; pos += 6) {
