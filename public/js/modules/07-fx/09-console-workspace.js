@@ -1,5 +1,18 @@
 'use strict';
 
+// Localize UI labels without touching the Chinese search aliases, metadata
+// or archived preset identifiers used by the visual engine.
+function fxConsoleUi(text) {
+  return typeof MineradioI18n !== 'undefined' && MineradioI18n.ui
+    ? MineradioI18n.ui(text) : text;
+}
+function fxConsoleLocalizePanel(panel) {
+  if (!panel || typeof MineradioI18n === 'undefined') return;
+  MineradioI18n.bind(panel);
+  MineradioI18n.bindDynamicUi(panel);
+  MineradioI18n.scheduleLayoutAudit(panel);
+}
+
 var FX_CONSOLE_TABS = [
   { key: 'home', label: '常用' },
   { key: 'interface', label: '界面' },
@@ -325,6 +338,7 @@ function fxConsoleMakeToolbar(panel) {
     '<div id="fx-console-search-results" class="fx-console-popover fx-console-search-results" hidden></div>' +
     '<div id="fx-panel-tabs" class="fx-panel-tabs" role="tablist" aria-label="视觉控制台分类"></div>' +
     '<div id="fx-console-history" class="fx-console-popover fx-console-history-popover" hidden></div>';
+  if (typeof MineradioI18n !== 'undefined') MineradioI18n.bindDynamicUi(toolbar);
   var tabs = toolbar.querySelector('#fx-panel-tabs');
   FX_CONSOLE_TABS.forEach(function (meta) {
     var btn = document.createElement('button');
@@ -335,7 +349,7 @@ function fxConsoleMakeToolbar(panel) {
     btn.setAttribute('aria-controls', 'fx-console-page-' + meta.key);
     btn.setAttribute('aria-selected', 'false');
     btn.setAttribute('tabindex', '-1');
-    btn.textContent = meta.label;
+    btn.textContent = fxConsoleUi(meta.label);
     tabs.appendChild(btn);
   });
   panel.appendChild(toolbar);
@@ -357,9 +371,9 @@ function fxConsoleMakeGroup(page, tabMeta, groupMeta) {
   var title = document.createElement('span');
   title.className = 'fx-fold-title';
   var strong = document.createElement('strong');
-  strong.textContent = groupMeta.title;
+  strong.textContent = fxConsoleUi(groupMeta.title);
   var small = document.createElement('small');
-  small.textContent = groupMeta.hint || '';
+  small.textContent = fxConsoleUi(groupMeta.hint || '');
   title.appendChild(strong);
   title.appendChild(small);
   var arrow = document.createElement('span');
@@ -524,6 +538,7 @@ function organizeFxConsoleWorkspace() {
   panel._fxConsoleWorkspaceOrganized = true;
   panel.setAttribute('data-console-layout', 'task-first-v2');
   setFxPanelTab(fxPanelTab);
+  fxConsoleLocalizePanel(panel);
 }
 
 function fxConsoleEntryForElement(element) {
