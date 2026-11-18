@@ -28,9 +28,10 @@ function viLyricTranslatable(line) {
 function viLyricTranslationBatches(items) {
   var batches = [], current = [], charCount = 0;
   items.forEach(function (item) {
-    // The opening 24 lyric lines arrive in small, fast batches. Longer bulk
-    // batches continue concurrently and progressively fill the whole song.
-    var cap = batches.length < 2 ? 12 : 60;
+    // The first five lines fit into one translation-service worker wave.
+    // Two tiny batches make the opening verse available while 60-line bulk
+    // batches continue filling the rest of the song in the background.
+    var cap = batches.length < 2 ? 5 : 60;
     if (current.length >= cap || (charCount + item.text.length > 9000 && current.length)) {
       batches.push(current);
       current = [];
