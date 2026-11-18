@@ -157,6 +157,34 @@ if (typeof MineradioI18n !== 'undefined' && MineradioI18n.bindDynamicUi) {
     MineradioI18n.scheduleLayoutAudit(initialFxPanel);
   }
 
+  // Account login updates asynchronously after QR generation, phone scanning,
+  // expiry, and official web authorization. Refresh only its modal, never the
+  // song titles/artist names in the surrounding player.
+  if (typeof refreshQr === 'function')
+    refreshQr = afterLocalizedUiRender(refreshQr, 'login-modal');
+  if (typeof pollQishuiQr === 'function')
+    pollQishuiQr = afterLocalizedUiRender(pollQishuiQr, 'login-modal');
+  if (typeof checkQr === 'function')
+    checkQr = afterLocalizedUiRender(checkQr, 'login-modal');
+  if (typeof openNeteaseWebLogin === 'function')
+    openNeteaseWebLogin = afterLocalizedUiRender(openNeteaseWebLogin, 'login-modal');
+  if (typeof openQQWebLogin === 'function')
+    openQQWebLogin = afterLocalizedUiRender(openQQWebLogin, 'login-modal');
+  if (typeof openKugouWebLogin === 'function')
+    openKugouWebLogin = afterLocalizedUiRender(openKugouWebLogin, 'login-modal');
+  if (typeof submitQQCookieLogin === 'function')
+    submitQQCookieLogin = afterLocalizedUiRender(submitQQCookieLogin, 'login-modal');
+  if (typeof submitNeteaseCookieLogin === 'function')
+    submitNeteaseCookieLogin = afterLocalizedUiRender(submitNeteaseCookieLogin, 'login-modal');
+  if (typeof updateUserModalUi === 'function')
+    updateUserModalUi = afterLocalizedUiRender(updateUserModalUi, 'user-modal');
+  if (typeof refreshMineradioCacheSettings === 'function')
+    refreshMineradioCacheSettings = afterLocalizedUiRender(refreshMineradioCacheSettings, 'fx-panel');
+  if (typeof refreshMemorySnapshot === 'function')
+    refreshMemorySnapshot = afterLocalizedUiRender(refreshMemorySnapshot, 'fx-panel');
+  if (typeof updateMemoryControls === 'function')
+    updateMemoryControls = afterLocalizedUiRender(updateMemoryControls, 'fx-panel');
+
   // Login contents are frequently replaced by polling and provider switching.
   // Translate only the known UI-owned modal, never track or account metadata.
   if (typeof updateLoginProviderUi === 'function')
