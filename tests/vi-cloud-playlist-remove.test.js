@@ -15,7 +15,7 @@ function makeUi(st = {key:'netease:123',playlist:{id:'123',name:'Tên của tôi
   const calls=[];
   const ctx = {
     console,
-    window:{confirm(msg){calls.push({type:'confirm',msg});return true;}},
+    window:{},
     normalizePlaylistProvider:p=>p,
     playlistPanelDetailState:st,
     playlistProviderName:p=>({netease:'NetEase Cloud Music',spotify:'Spotify',qishui:'Qishui Music',kugou:'KuGou Music'})[p] || p,
@@ -35,6 +35,10 @@ function makeUi(st = {key:'netease:123',playlist:{id:'123',name:'Tên của tôi
   };
   vm.createContext(ctx);
   vm.runInContext(frontend,ctx);
+  ctx.playlistPanelConfirmCloudDelete = async details => {
+    calls.push({type:'confirm',details}); return ctx.confirmApproved !== false;
+  };
+  ctx.playlistPanelRenderCloudUndo = () => { calls.push({type:'undo-ui'}); };
   return {ctx,calls,st};
 }
 test('show delete controls only for owned or explicitly recognized liked cloud lists',()=>{
@@ -56,7 +60,8 @@ test('cloud delete confirms first, sends exact playlist and song and then update
   const {ctx,calls,st}=makeUi();
   assert.equal(await ctx.removePlaylistPanelCloudTrack(0),true);
   assert.equal(calls[0].type,'confirm');
-  assert.match(calls[0].msg,/đồng bộ|đám mây/);
+  assert.equal(calls[0].details.provider,'NetEase Cloud Music');
+  assert.equal(calls[0].details.playlist,'Tên của tôi');
   const sent=calls.find(x=>x.type==='cloud');
   assert.equal(sent.url,'/api/playlist/remove-song');
   assert.deepEqual(JSON.parse(sent.opts.body).pid,'123');
@@ -71,7 +76,7 @@ test('never remove a local song when cloud refused or user canceled',async ()=>{
   assert.equal(st.tracks.length,1);
   assert.equal(calls.some(x=>x.type==='toast'&&x.msg.includes('quyền')),true);
   const second=makeUi();
-  second.ctx.window.confirm=()=>false;
+  second.ctx.confirmApproved=false;
   assert.equal(await second.ctx.removePlaylistPanelCloudTrack(0),false);
   assert.equal(second.calls.some(x=>x.type==='cloud'),false);
 });
@@ -139,4 +144,106 @@ test('cloud remove button is scoped to My Music playlist rows and not songs in p
   assert.match(ui,/if \(playlistPanelDetailState\.key === key && playlistPanelDetailState === state\)/);
   const css=read('public/css/index.css');
   assert.match(css,/#playlist-panel \.pl-detail-cloud-remove:focus-visible/);
+});
+
+test('undo uses the correct re-add endpoint for every supported provider and kind',()=>{
+  const {ctx}=makeUi();
+  const restore=ctx.playlistPanelCloudRestoreEndpoint;
+  function item(provider,kind,endpoint) {
+    return restore({provider,action:{kind,endpoint}});
+  }
+  assert.equal(item('netease','playlist','/api/playlist/remove-song'),'/api/playlist/add-song');
+  assert.equal(item('spotify','playlist','/api/spotify/playlist/remove-song'),'/api/spotify/playlist/add-song');
+  for(const [provider,url] of [
+    ['netease','/api/song/like'],
+    ['spotify','/api/spotify/song/like'],
+    ['qishui','/api/qishui/song/like'],
+    ['kugou','/api/kugou/song/like']
+  ]) assert.equal(item(provider,'unlike',url),url);
+  assert.equal(item('qq','playlist',''), '');
+});
+test('undo restores the exact cloud playlist song and its original index',async()=>{
+  const st={key:'netease:123',playlist:{id:'123',name:'Bộ sưu tập',owned:true},
+    tracks:[{provider:'netease',id:'111',name:'A'},{provider:'netease',id:'456',name:'B'},
+    {provider:'netease',id:'333',name:'C'}],total:3,nextOffset:3};
+  const {ctx,calls}=makeUi(st);
+  assert.equal(await ctx.removePlaylistPanelCloudTrack(1),true);
+  assert.deepEqual(Array.from(st.tracks,s=>s.id),['111','333']);
+  assert.ok(ctx.playlistPanelCloudLastRemoval,'Undo record must exist after successful cloud removal');
+  assert.equal(ctx.playlistPanelCloudLastRemoval.index,1);
+  assert.equal(await ctx.undoPlaylistPanelCloudTrack(),true);
+  assert.deepEqual(Array.from(st.tracks,s=>s.id),['111','456','333']);
+  assert.equal(st.total,3);
+  assert.equal(st.nextOffset,3);
+  const requests=calls.filter(c=>c.type==='cloud');
+  assert.equal(requests.length,2);
+  assert.equal(requests[0].url,'/api/playlist/remove-song');
+  assert.equal(requests[1].url,'/api/playlist/add-song');
+  assert.equal(JSON.parse(requests[1].opts.body).pid,'123');
+  assert.equal(JSON.parse(requests[1].opts.body).id,'456');
+  assert.equal(ctx.playlistPanelCloudLastRemoval,null);
+});
+test('undo re-likes cloud tracks and restores local heart only after successful API update',async()=>{
+  const st={key:'netease:123',playlist:{id:'123',name:'Yêu thích',owned:true,specialType:5},
+    tracks:[{id:'456',provider:'netease',name:'B'}],total:1,nextOffset:1};
+  const {ctx,calls}=makeUi(st,(url,options)=>({
+    liked:JSON.parse(options.body).like === true,code:200
+  }));
+  assert.equal(await ctx.removePlaylistPanelCloudTrack(0),true);
+  assert.equal(ctx.likedSongMap['netease:456'],false);
+  assert.equal(await ctx.undoPlaylistPanelCloudTrack(),true);
+  assert.equal(ctx.likedSongMap['netease:456'],true);
+  assert.equal(st.tracks.length,1);
+  const request=calls.filter(x=>x.type==='cloud');
+  assert.equal(request[1].url,'/api/song/like');
+  assert.equal(JSON.parse(request[1].opts.body).like,true);
+});
+test('a failed cloud undo is not faked locally and remains available for a retry',async()=>{
+  const st={key:'netease:123',playlist:{id:'123',name:'Danh sách',owned:true},
+    tracks:[{id:'456',provider:'netease',name:'B'}],total:1,nextOffset:1};
+  let failedOnce=false;
+  const {ctx,calls}=makeUi(st,(url)=> {
+    if (url==='/api/playlist/add-song' && !failedOnce) {
+      failedOnce=true;
+      return {success:false,error:'API_DOWN'};
+    }
+    return {success:true,code:200};
+  });
+  assert.equal(await ctx.removePlaylistPanelCloudTrack(0),true);
+  assert.equal(st.tracks.length,0);
+  assert.equal(await ctx.undoPlaylistPanelCloudTrack(),false);
+  assert.equal(st.tracks.length,0,'Never restore locally before cloud confirmation');
+  assert.ok(ctx.playlistPanelCloudLastRemoval,'Keep undo available');
+  assert.equal(await ctx.undoPlaylistPanelCloudTrack(),true);
+  assert.equal(st.tracks.length,1);
+  assert.equal(ctx.playlistPanelCloudLastRemoval,null);
+});
+test('undo does not insert a duplicate when an independent refresh already restored the track',async()=>{
+  const st={key:'netease:123',playlist:{id:'123',name:'Danh sách',owned:true},
+    tracks:[{id:'456',provider:'netease',name:'B'}],total:1,nextOffset:1};
+  const {ctx}=makeUi(st);
+  await ctx.removePlaylistPanelCloudTrack(0);
+  st.tracks.push({id:'456',provider:'netease',name:'B'});
+  st.total=1;
+  assert.equal(await ctx.undoPlaylistPanelCloudTrack(),true);
+  assert.equal(st.tracks.length,1);
+  assert.equal(st.total,1);
+});
+test('custom confirmation is accessible, localized, text-safe and never calls native Windows confirm',()=>{
+  assert.match(ui,/function playlistPanelConfirmCloudDelete\(details\)/);
+  assert.match(ui,/role="dialog" aria-modal="true"/);
+  assert.match(ui,/aria-labelledby="pl-cloud-confirm-title"/);
+  assert.match(ui,/details.name \|\| 'Bài hát'/);
+  assert.match(ui,/data-pl-cloud-cancel/);
+  assert.match(ui,/data-pl-cloud-accept/);
+  assert.match(ui,/e.key === 'Escape'/);
+  assert.match(ui,/e.key === 'Tab'/);
+  assert.doesNotMatch(frontend,/window\.confirm\s*\(/);
+  assert.match(ui,/data-pl-detail-undo/);
+  assert.match(ui,/undoPlaylistPanelCloudTrack\(\)/);
+  assert.match(ui,/isCloudBusy \? '…' : '×'/);
+  const css=read('public/css/index.css');
+  assert.match(css, /\.pl-cloud-confirm-overlay\s*\{/);
+  assert.match(css,/\.pl-cloud-undo-bar\s*\{/);
+  assert.match(css,/\.pl-detail-cloud-remove:hover/);
 });
