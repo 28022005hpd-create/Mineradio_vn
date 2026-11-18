@@ -139,5 +139,8 @@ test('stale-song jobs never mark a new same-lyrics track finished or erase its p
   resolveFirst({ok:true,async json(){return {locale:'vi-VN',translations:Array(4).fill('Cũ')};}});
   await flushTicks();
   assert.equal(ctx.viLyricTranslationPending.size,0);
-  assert.equal(ctx.preferredLocalizedLyricsForDisplay(ctx.originalLyricsState).translationLines.length,4);
+  const finalLyrics = ctx.preferredLocalizedLyricsForDisplay(ctx.originalLyricsState);
+  assert.equal(finalLyrics.translationLines.length,4);
+  assert.equal(finalLyrics.lines[0].translation, 'Dịch: Bài hát gốc 0',
+    'Stale responses must never replace a newer song translation');
 });
