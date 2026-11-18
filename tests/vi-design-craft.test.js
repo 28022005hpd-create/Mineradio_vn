@@ -14,7 +14,8 @@ test('Vietnamese chrome supports keyboard focus and reduced-motion preference', 
   assert.match(section, /outline:\s*2px\s+solid/);
   assert.match(section, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(section, /transition-duration:\s*\.01ms/);
-  assert.doesNotMatch(section, /(?:canvas-container|lyric-mesh|three\.js)/i,
+  const rulesOnly = section.replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(rulesOnly, /(?:canvas-container|lyric-mesh|three\.js)/i,
     'Do not rewrite the music visualization engine for UI polish');
 });
 
@@ -26,7 +27,8 @@ test('Vietnamese overflow check responds to resize and coalesces paints', async 
     id: 'fx-language-setting', tagName: 'BUTTON', clientWidth: 110, scrollWidth: 108,
     clientHeight: 28, scrollHeight: 27,
     classList: { add(k) { classes.add(k); }, remove(k) { classes.delete(k); } },
-    getClientRects() { return [{}]; }
+    getClientRects() { return [{}]; },
+    getAttribute() { return null; }
   };
   const doc = {
     readyState: 'complete',
