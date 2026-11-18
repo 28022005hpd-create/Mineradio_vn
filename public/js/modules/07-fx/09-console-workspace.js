@@ -139,6 +139,9 @@ var FX_CONSOLE_LAYOUT = [
   {
     key: 'motion',
     groups: [
+      { key: 'live-mv', title: 'MV lời hát trực tiếp', hint: 'Ảnh bìa và lời chạy theo nhạc · trình phát nổi', open: true, items: [
+        fxConsoleItem('mineradio-live-mv-controls', 'Live MV và Mini', 'mv lyric live ảnh bìa karaoke song ngữ thu nhỏ nổi điện thoại windows', false)
+      ] },
       { key: 'base', title: '基础画面', hint: '整体律动、景深、封面和电影镜头', open: true, items: [
         fxConsoleItem('fx-intensity', '律动强度', '音乐响应 节奏'),
         fxConsoleItem('fx-depth', '画面景深', '立体感 深度'),
