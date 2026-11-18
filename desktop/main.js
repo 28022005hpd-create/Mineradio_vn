@@ -2580,6 +2580,7 @@ async function openNeteaseMusicLoginWindow(owner) {
   return new Promise((resolve) => {
     let settled = false;
     let pollTimer = null;
+    let visibilityTimer = null;
 
     const loginWindow = new BrowserWindow({
       width: 940,
@@ -2605,6 +2606,7 @@ async function openNeteaseMusicLoginWindow(owner) {
       if (settled) return;
       settled = true;
       if (pollTimer) clearInterval(pollTimer);
+      if (visibilityTimer) clearTimeout(visibilityTimer);
       if (loginWindow && !loginWindow.isDestroyed()) {
         loginWindow.close();
       }
@@ -2654,10 +2656,20 @@ async function openNeteaseMusicLoginWindow(owner) {
       `, true).catch(() => {});
     });
 
-    loginWindow.on('ready-to-show', () => loginWindow.show());
+    // Third-party login pages sometimes never trigger ready-to-show.
+    // Present the real login window even when its first paint is delayed.
+    const presentLoginWindow = () => {
+      if (!settled && !loginWindow.isDestroyed()) {
+        loginWindow.show();
+        loginWindow.focus();
+      }
+    };
+    loginWindow.once('ready-to-show', presentLoginWindow);
+    visibilityTimer = setTimeout(presentLoginWindow, 2500);
     loginWindow.on('closed', async () => {
       if (settled) return;
       if (pollTimer) clearInterval(pollTimer);
+      if (visibilityTimer) clearTimeout(visibilityTimer);
       try {
         const cookie = await readNeteaseLoginCookieHeader(cookieSession);
         resolve(neteaseCookieHasLogin(cookie)
