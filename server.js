@@ -114,7 +114,14 @@ const {
   handleQishuiSongUrl,
 } = require('./qishui-api');
 const qishuiQrLogin = require('./qishui-qr-login');
-const { clearSpotifyToken } = require('./spotify-api');
+const {
+  clearSpotifyToken, handleSpotifyStatus, handleSpotifySetupDiagnostics,
+  saveSpotifyConfig, getSpotifyConfig, handleSpotifyUserPlaylists,
+  handleSpotifyLibraryCheck, handleSpotifyLibrarySet, handleSpotifyPlaylistAddSong,
+  handleSpotifyPlaylistRemoveSong, handleSpotifyCreatePlaylist,
+  handleSpotifyPlaylistTracks, handleSpotifyAlbumDetail, handleSpotifySearch,
+  handleSpotifyRecommendations, handleSpotifySongUrl, handleSpotifyLyric
+} = require('./spotify-api');
 const {
   appendCuefieldFeedback,
   readCuefieldFeedbackStats,
@@ -5150,6 +5157,24 @@ const server = http.createServer(async (req, res) => {
           : err.message,
         missingScopes: err.missingScopes || [],
       }, Number(err.statusCode) || 500);
+    }
+    return;
+  }
+
+  if (pn === '/api/spotify/playlist/remove-song') {
+    if (req.method !== 'POST') {
+      sendJSON(res, { provider: 'spotify', success: false, error: 'METHOD_NOT_ALLOWED' }, 405);
+      return;
+    }
+    try {
+      const body = await readRequestBody(req);
+      sendJSON(res, await handleSpotifyPlaylistRemoveSong(
+        body.pid || body.playlistId || '', body.song || body));
+    } catch (err) {
+      console.error('[SpotifyPlaylistRemoveSong]', err);
+      sendJSON(res, { provider: 'spotify', success: false,
+        error: err.code || err.message, message: err.message,
+        missingScopes: err.missingScopes || [] }, Number(err.statusCode) || 500);
     }
     return;
   }
