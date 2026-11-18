@@ -61,7 +61,7 @@ test('more than 180 lyric lines are translated in timed batches without changing
   }
   assert.equal(calls.length, 6, '235 lines must start with two fast batches and complete all lyrics');
   assert.ok(calls.every(call => call.locale === 'vi-VN' && call.lines.length <= 60));
-  assert.ok(calls.slice(0, 2).every(call => call.lines.length <= 12), 'The first lines should render quickly');
+  assert.ok(calls.slice(0, 2).every(call => call.lines.length <= 5), 'The first verse should render in one translation worker wave');
   const last = context.preferredLocalizedLyricsForDisplay(original);
   assert.equal(last.translationLines.length, 235);
   assert.equal(last.lines[234].translationTime, 234 * 2.5);
