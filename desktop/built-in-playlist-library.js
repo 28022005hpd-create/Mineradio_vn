@@ -19,7 +19,10 @@ const RUST_PREVIEW_BUILD = (() => {
     return false;
   }
 })();
-if (process.env.MINERADIO_RUST_PLAYLIST === '1' || RUST_PREVIEW_BUILD) {
+// Lazy-load the native DLL only when benchmarking/explicitly opting in.
+// Normal playback and playlists do not pay the addon startup/RSS cost.
+if (process.env.MINERADIO_RUST_PLAYLIST === '1' ||
+    (RUST_PREVIEW_BUILD && process.env.MINERADIO_RUST_PLAYLIST_BATCH_FORCE === '1')) {
   try {
     rustPlaylistBinding = require('../rust/mineradio-playlist-core/native/mineradio_playlist_core.node');
   } catch (error) {
@@ -27,6 +30,19 @@ if (process.env.MINERADIO_RUST_PLAYLIST === '1' || RUST_PREVIEW_BUILD) {
   }
 }
 const RUST_PLAYLIST_NATIVE_ACTIVE = !!(rustPlaylistBinding && typeof rustPlaylistBinding.sanitizeTrackJson === 'function');
+const RUST_PLAYLIST_BATCH_AVAILABLE = RUST_PLAYLIST_NATIVE_ACTIVE &&
+  typeof rustPlaylistBinding.sanitizeTracksJson === 'function';
+// Windows benchmark (3200 tracks): JS 13.14ms, Rust JSON bridge 37.26ms.
+// Do not activate the slower native path in normal operation.
+// Developers may force it in an isolated profile to test future improvements.
+const RUST_PLAYLIST_BATCH_ACTIVE = RUST_PLAYLIST_BATCH_AVAILABLE &&
+  process.env.MINERADIO_RUST_PLAYLIST_BATCH_FORCE === '1';
+const RUST_PLAYLIST_BATCH_SIZE = 128;
+const RUST_PLAYLIST_BATCH_THRESHOLD = 64;
+const RUST_PLAYLIST_BATCH_MAX_BYTES = 4 * 1024 * 1024;
+// Diagnostics contain counts only (no track names, credentials or file paths).
+const RUST_PLAYLIST_DIAGNOSTICS = { nativeBatchCalls: 0, nativeBatchTracks: 0, batchFallbacks: 0 };
+
 
 
 
@@ -114,33 +130,59 @@ function sanitizeTrackJs(source) {
   return track;
 }
 
+// Interactive single-track edits stay on the original JS implementation.
+// This avoids JSON conversion and native-boundary latency on user input, and
+// preserves JS semantics for values not representable in JSON (NaN, etc.).
 function sanitizeTrack(source) {
-  if (RUST_PLAYLIST_NATIVE_ACTIVE) {
-    try {
-      const input = JSON.stringify(source);
-      if (typeof input === 'string') {
-        const result = rustPlaylistBinding.sanitizeTrackJson(input);
-        return result == null ? null : JSON.parse(result);
+  return sanitizeTrackJs(source);
+}
+
+// Bulk Rust path is used only for data loaded from JSON playlist files. If any
+// native call fails, the entire chunk is replayed through the original JS path.
+// Order, duplicate suppression and on-disk schema remain unchanged.
+function sanitizePlaylistTracks(sourceTracks) {
+  const input = Array.isArray(sourceTracks) ? sourceTracks.slice(0, MAX_TRACKS_PER_PLAYLIST) : [];
+  const results = [];
+  const seen = new Set();
+  const bulk = RUST_PLAYLIST_BATCH_ACTIVE && input.length >= RUST_PLAYLIST_BATCH_THRESHOLD;
+  const stride = bulk ? RUST_PLAYLIST_BATCH_SIZE : 1;
+  for (let offset = 0; offset < input.length; offset += stride) {
+    const group = input.slice(offset, offset + stride);
+    let normalized = null;
+    if (bulk) {
+      try {
+        const payload = JSON.stringify(group);
+        if (typeof payload !== 'string' || Buffer.byteLength(payload, 'utf8') > RUST_PLAYLIST_BATCH_MAX_BYTES) {
+          throw new Error('RUST_PLAYLIST_BATCH_INPUT_TOO_LARGE');
+        }
+        normalized = JSON.parse(rustPlaylistBinding.sanitizeTracksJson(payload));
+        if (!Array.isArray(normalized) || normalized.length !== group.length) {
+          throw new Error('RUST_PLAYLIST_BATCH_BAD_RESPONSE');
+        }
+        RUST_PLAYLIST_DIAGNOSTICS.nativeBatchCalls += 1;
+        RUST_PLAYLIST_DIAGNOSTICS.nativeBatchTracks += group.length;
+      } catch (error) {
+        RUST_PLAYLIST_DIAGNOSTICS.batchFallbacks += 1;
+        if (RUST_PLAYLIST_DIAGNOSTICS.batchFallbacks === 1) {
+          console.warn('[RustPlaylist] Batch unavailable; JS normalization preserved:', error.message);
+        }
       }
-    } catch (error) {
-      console.warn('[RustPlaylist] Falling back to JavaScript:', error.message);
+    }
+    if (!normalized) normalized = group.map(sanitizeTrackJs);
+    for (const track of normalized) {
+      if (!track || typeof track.builtInIdentity !== 'string' || seen.has(track.builtInIdentity)) continue;
+      seen.add(track.builtInIdentity);
+      results.push(track);
     }
   }
-  return sanitizeTrackJs(source);
+  return results;
 }
 
 function sanitizePlaylist(source) {
   if (!source || typeof source !== 'object') return null;
   const id = cleanText(source.id, '', 64).toLowerCase();
   if (!/^[a-f0-9]{24}$/.test(id)) return null;
-  const tracks = [];
-  const seen = new Set();
-  for (const item of Array.isArray(source.tracks) ? source.tracks.slice(0, MAX_TRACKS_PER_PLAYLIST) : []) {
-    const track = sanitizeTrack(item);
-    if (!track || seen.has(track.builtInIdentity)) continue;
-    seen.add(track.builtInIdentity);
-    tracks.push(track);
-  }
+  const tracks = sanitizePlaylistTracks(source.tracks);
   return {
     id,
     name: cleanText(source.name, '未命名歌单', 80),
@@ -326,6 +368,10 @@ module.exports = {
   BUILT_IN_PLAYLIST_VERSION,
   BuiltInPlaylistLibrary,
   sanitizeTrack,
+  sanitizePlaylistTracks,
   trackIdentity,
   RUST_PLAYLIST_NATIVE_ACTIVE,
+  RUST_PLAYLIST_BATCH_AVAILABLE,
+  RUST_PLAYLIST_BATCH_ACTIVE,
+  RUST_PLAYLIST_DIAGNOSTICS,
 };
