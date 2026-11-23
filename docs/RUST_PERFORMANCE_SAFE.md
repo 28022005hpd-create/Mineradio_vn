@@ -1,0 +1,43 @@
+# Mineradio-VN Performance Safe Optimization (Rust + Electron)
+
+## Thay đổi đã thực hiện
+
+- Cải thiện đường nạp playlist lưu trên đĩa: gọi thư viện Rust theo lô tối đa 128 bài thay vì gọi từng bài.
+- Hạn chế dữ liệu 4 MiB cho mỗi lô, có phương án tự quay về JavaScript nếu thư viện Rust hoặc dữ liệu lỗi.
+- Xử lý lệnh thêm bài hát của người dùng bằng JavaScript gốc, không phát sinh chi phí gọi Rust cho từng thao tác nhỏ; giữ hành vi với dữ liệu JS đặc biệt.
+- Tránh nhân bản toàn bộ đối tượng bài hát khi tính `builtInIdentity` bên Rust.
+- Ghi nhận thống kê `nativeBatchCalls`, `nativeBatchTracks`, `batchFallbacks` không chứa thông tin người dùng.
+- Giữ nguyên bộ phát nhạc, vòng lặp render, API đăng nhập, Live MV, Mini Player và hệ thống hiệu ứng để giảm rủi ro hồi quy.
+- Phiên bản thử nghiệm dùng profile và đường dẫn cài đặt riêng (`Mineradio_Rust_Optimized`), không ghi đè bản chính thức hoặc Rust Preview.
+
+## Điều kiện và giới hạn
+
+Đây là **bản tối ưu có thành phần Rust**, không phải bản viết thuần Rust.
+Lợi ích đo được chỉ áp dụng với quá trình nạp playlist nhiều bài; không khẳng định CPU/RAM/GPU hoặc FPS tổng thể sẽ tăng.
+CI kiểm tra tương đương nội dung playlist, chạy unit test Rust và JavaScript, benchmark tổng hợp; benchmark không dùng ngưỡng cứng do biến động môi trường Windows runner.
+
+Cấu hình giới hạn nạp Rust được kích hoạt khi thư viện có sẵn và playlist chứa ít nhất 64 bài. Các playlist nhỏ và thao tác trực tiếp của người dùng sử dụng JavaScript cũ.
+
+## Kiểm thử thủ công trước khi coi là bản ổn định
+
+1. Sao lưu playlist, dùng bản thử nghiệm với profile riêng.
+2. Thử playlist lớn chứa bài Netease, QQ, Kugou, Qishui và nhạc local; kiểm tra thứ tự, dedup, metadata.
+3. Thử thao tác thêm/xóa/đổi tên/đổi vị trí bài hát, đóng mở app; đối chiếu file `built-in-playlists.json`.
+4. Phát nhạc liên tục, chuyển bài, Live MV, Mini Player, Wallpaper Engine, đăng nhập, lời Việt và hiệu ứng JSON/MR2.
+5. Đo RAM/CPU/GPU/FPS ở cùng cấu hình máy, so sánh bản chính thức, Rust Preview và Rust Optimized.
+
+## Cài đặt từ nguồn
+
+```powershell
+npm ci
+cargo test --manifest-path rust/mineradio-playlist-core/Cargo.toml
+cargo build --manifest-path rust/mineradio-playlist-core/Cargo.toml --release --features node
+New-Item -ItemType Directory -Force rust/mineradio-playlist-core/native | Out-Null
+Copy-Item rust/mineradio-playlist-core/target/release/mineradio_playlist_core.dll rust/mineradio-playlist-core/native/mineradio_playlist_core.node
+node --test tests/rust-performance-playlist.test.js
+node scripts/bench-rust-playlist.js
+npx electron-builder --config electron-builder.rust-optimized.json --win nsis --publish never
+node scripts/verify-rust-optimized-windows-package.js dist-rust-optimized/win-unpacked/resources/app
+```
+
+Build GitHub Actions chỉ xuất bản prerelease `mineradio-vn-rust-optimized`, không cập nhật kênh Mineradio-VN ổn định.

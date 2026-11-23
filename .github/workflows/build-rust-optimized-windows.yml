@@ -1,0 +1,92 @@
+name: Build Mineradio-VN Rust optimized Windows
+on:
+  push:
+    branches: [feature/performance-safe-optimization]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: mineradio-vn-rust-performance-build
+  cancel-in-progress: false
+jobs:
+  package:
+    if: github.repository == '28022005hpd-create/Mineradio_vn'
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Rust formatting, tests, static analysis
+        shell: pwsh
+        run: |
+          cargo fmt --manifest-path rust/mineradio-playlist-core/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --manifest-path rust/mineradio-playlist-core/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo clippy --manifest-path rust/mineradio-playlist-core/Cargo.toml --all-features -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Rust N-API library
+        run: cargo build --manifest-path rust/mineradio-playlist-core/Cargo.toml --release --features node
+      - name: Copy Rust native addon
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force rust/mineradio-playlist-core/native | Out-Null
+          Copy-Item rust/mineradio-playlist-core/target/release/mineradio_playlist_core.dll rust/mineradio-playlist-core/native/mineradio_playlist_core.node
+      - name: Native Rust playlist correctness and regression tests
+        run: node --test tests/rust-performance-playlist.test.js tests/built-in-playlist-library.test.js tests/playback-audio-graph-recovery.test.js tests/vi-live-mv-mini-player.test.js tests/vi-i18n.test.js tests/vn-windows-packaging.test.js
+      - name: Performance comparison (informational)
+        run: node scripts/bench-rust-playlist.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Rust-playlist-performance-measurements
+          path: rust-playlist-perf.json
+          retention-days: 30
+      - name: Build standalone, isolated Windows installer
+        run: npx electron-builder --config electron-builder.rust-optimized.json --win nsis --publish never
+      - name: Check packaged Rust functionality, visuals and identity
+        run: node scripts/verify-rust-optimized-windows-package.js dist-rust-optimized/win-unpacked/resources/app
+      - name: Prepare immutable installer and checksum
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem -LiteralPath dist-rust-optimized -Filter '*-Setup.exe' | Select-Object -First 1
+          if (-not $file) { throw 'Optimized EXE missing' }
+          $name = 'Mineradio-VN-Rust-Optimized-' + $env:GITHUB_SHA.Substring(0,12) + '-Setup.exe'
+          Copy-Item -LiteralPath $file.FullName -Destination $name
+          $item = Get-Item $name
+          if ($item.Length -lt 50000000) { throw 'Unexpectedly small installer' }
+          $fd = [System.IO.File]::OpenRead($item.FullName)
+          try { $first = $fd.ReadByte(); $second = $fd.ReadByte() } finally { $fd.Dispose() }
+          if ($first -ne 77 -or $second -ne 90) { throw 'Missing MZ signature' }
+          $hash = (Get-FileHash -LiteralPath $name -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -LiteralPath SHA256SUMS.txt -Value ($hash + '  ' + $name) -Encoding ascii
+          @{ commit=$env:GITHUB_SHA; variant='rust-performance-batch-electron-hybrid'; name=$name; size=$item.Length; sha256=$hash } | ConvertTo-Json | Set-Content -LiteralPath rust-optimized-manifest.json -Encoding utf8
+          Write-Host ('OPTIMIZED_INSTALLER_READY ' + $name + ' SHA256 ' + $hash)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mineradio-Rust-Optimized-Installer
+          path: |
+            Mineradio-VN-Rust-Optimized-*-Setup.exe
+            SHA256SUMS.txt
+            rust-optimized-manifest.json
+          retention-days: 30
+      - name: Publish isolated Rust-optimized prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'mineradio-vn-rust-optimized'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --prerelease --title 'Mineradio-VN Rust Optimized (Experimental)' --notes 'Windows x64 isolated hybrid app: playlist batch Rust optimization, behavior-parity tests. Not a pure Rust player.' --target $env:GITHUB_SHA
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to create optimized release' }
+          }
+          $file = Get-ChildItem -Filter 'Mineradio-VN-Rust-Optimized-*-Setup.exe' | Select-Object -First 1
+          gh release upload $tag $file.Name SHA256SUMS.txt rust-optimized-manifest.json --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to publish optimized installer' }
