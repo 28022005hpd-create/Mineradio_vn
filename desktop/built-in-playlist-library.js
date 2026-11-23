@@ -10,6 +10,19 @@ const MAX_INDEX_BYTES = 32 * 1024 * 1024;
 const MAX_TRACK_BYTES = 48 * 1024;
 const ALLOWED_PROVIDERS = new Set(['netease', 'qq', 'kugou', 'qishui', 'local']);
 
+// Opt-in Rust normalization: the stable Electron build does not depend on this addon.
+let rustPlaylistBinding = null;
+if (process.env.MINERADIO_RUST_PLAYLIST === '1') {
+  try {
+    rustPlaylistBinding = require('../rust/mineradio-playlist-core/native/mineradio_playlist_core.node');
+  } catch (error) {
+    console.warn('[RustPlaylist] Native module unavailable; using JS:', error.message);
+  }
+}
+const RUST_PLAYLIST_NATIVE_ACTIVE = !!(rustPlaylistBinding && typeof rustPlaylistBinding.sanitizeTrackJson === 'function');
+
+
+
 const TRACK_FIELDS = [
   'provider', 'source', 'type', 'id', 'providerSongId', 'provider_song_id', 'trackId', 'track_id',
   'mid', 'songmid', 'mediaMid', 'media_mid', 'qqId',
@@ -70,7 +83,7 @@ function trackIdentity(track) {
   return value ? `${provider}:${provider === 'kugou' ? value.toLowerCase() : value}` : '';
 }
 
-function sanitizeTrack(source) {
+function sanitizeTrackJs(source) {
   if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
   const provider = normalizeProvider(source);
   if (!ALLOWED_PROVIDERS.has(provider)) return null;
@@ -92,6 +105,21 @@ function sanitizeTrack(source) {
   const serialized = JSON.stringify(track);
   if (Buffer.byteLength(serialized, 'utf8') > MAX_TRACK_BYTES) return null;
   return track;
+}
+
+function sanitizeTrack(source) {
+  if (RUST_PLAYLIST_NATIVE_ACTIVE) {
+    try {
+      const input = JSON.stringify(source);
+      if (typeof input === 'string') {
+        const result = rustPlaylistBinding.sanitizeTrackJson(input);
+        return result == null ? null : JSON.parse(result);
+      }
+    } catch (error) {
+      console.warn('[RustPlaylist] Falling back to JavaScript:', error.message);
+    }
+  }
+  return sanitizeTrackJs(source);
 }
 
 function sanitizePlaylist(source) {
@@ -292,4 +320,5 @@ module.exports = {
   BuiltInPlaylistLibrary,
   sanitizeTrack,
   trackIdentity,
+  RUST_PLAYLIST_NATIVE_ACTIVE,
 };

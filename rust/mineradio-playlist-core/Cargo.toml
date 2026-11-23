@@ -1,0 +1,18 @@
+[package]
+name = "mineradio-playlist-core"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+
+[lib]
+name = "mineradio_playlist_core"
+crate-type = ["rlib", "cdylib"]
+
+[features]
+default = []
+node = ["dep:napi", "dep:napi-derive"]
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+napi = { version = "2", default-features = false, features = ["napi4"], optional = true }
+napi-derive = { version = "2", optional = true }

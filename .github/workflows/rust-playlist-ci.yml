@@ -1,0 +1,42 @@
+name: Rust playlist migration parity
+on:
+  push:
+    branches: [feature/rust-playlist-core-port]
+  pull_request:
+    paths:
+      - rust/**
+      - desktop/built-in-playlist-library.js
+      - tests/rust-playlist-parity.test.js
+      - .github/workflows/rust-playlist-ci.yml
+permissions:
+  contents: read
+jobs:
+  windows-rust:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Cargo fmt
+        run: cargo fmt --manifest-path rust/mineradio-playlist-core/Cargo.toml -- --check
+      - name: Cargo test
+        run: cargo test --manifest-path rust/mineradio-playlist-core/Cargo.toml
+      - name: Cargo clippy
+        run: cargo clippy --manifest-path rust/mineradio-playlist-core/Cargo.toml --all-features -- -D warnings
+      - name: Build native addon
+        run: cargo build --manifest-path rust/mineradio-playlist-core/Cargo.toml --release --features node
+      - name: Install native addon for parity tests
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force rust/mineradio-playlist-core/native | Out-Null
+          Copy-Item target/release/mineradio_playlist_core.dll rust/mineradio-playlist-core/native/mineradio_playlist_core.node
+      - name: Existing playlist integration tests with native Rust
+        env:
+          MINERADIO_RUST_PLAYLIST: "1"
+        run: node --test tests/built-in-playlist-library.test.js
+      - name: Rust versus original JS
+        run: node --test tests/rust-playlist-parity.test.js
