@@ -12,7 +12,14 @@ const ALLOWED_PROVIDERS = new Set(['netease', 'qq', 'kugou', 'qishui', 'local'])
 
 // Opt-in Rust normalization: the stable Electron build does not depend on this addon.
 let rustPlaylistBinding = null;
-if (process.env.MINERADIO_RUST_PLAYLIST === '1') {
+const RUST_PREVIEW_BUILD = (() => {
+  try {
+    return require('../package.json').mineradio?.rustPlaylistPreview === true;
+  } catch (_) {
+    return false;
+  }
+})();
+if (process.env.MINERADIO_RUST_PLAYLIST === '1' || RUST_PREVIEW_BUILD) {
   try {
     rustPlaylistBinding = require('../rust/mineradio-playlist-core/native/mineradio_playlist_core.node');
   } catch (error) {

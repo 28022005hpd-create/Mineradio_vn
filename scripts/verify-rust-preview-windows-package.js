@@ -1,0 +1,31 @@
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+
+const root = path.resolve(process.argv[2] || 'dist-rust-preview/win-unpacked/resources/app');
+const exists = relative => {
+  const file = path.join(root, relative);
+  assert.ok(fs.existsSync(file) && fs.statSync(file).isFile(), 'Missing installed file: ' + relative);
+  return file;
+};
+exists('server.js');
+exists('public/index.html');
+exists('desktop/main.js');
+exists('desktop/built-in-playlist-library.js');
+exists('lyric-translation-service.js');
+exists('lyric-fallback-service.js');
+exists('rust/mineradio-playlist-core/native/mineradio_playlist_core.node');
+const metadata = JSON.parse(fs.readFileSync(exists('package.json'), 'utf8'));
+assert.equal(metadata.productName, 'Mineradio_Rust_Preview');
+assert.equal(metadata.mineradio.runtimeName, 'Mineradio_Rust_Preview');
+assert.equal(metadata.mineradio.appUserModelId, 'com.mineradio.vn.rustpreview');
+assert.equal(metadata.mineradio.rustPlaylistPreview, true);
+assert.equal(metadata.mineradio.githubAutoUpdate.enabled, false);
+assert.equal(metadata.mineradio.update.disabled, true);
+const playlist = require(path.join(root, 'desktop', 'built-in-playlist-library.js'));
+assert.equal(playlist.RUST_PLAYLIST_NATIVE_ACTIVE, true, 'Actual .node addon not loaded');
+const sample = playlist.sanitizeTrack({ provider: 'qq', mid: 'RUST123', name: 'Bài thử nghiệm' });
+assert.equal(sample.builtInIdentity, 'qq:RUST123');
+assert.equal(sample.name, 'Bài thử nghiệm');
+console.log('SUCCESS: packaged Windows runtime loads native Rust and uses isolated preview metadata.');

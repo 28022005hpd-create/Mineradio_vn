@@ -1,0 +1,83 @@
+name: Build Mineradio-VN Rust preview Windows installer
+on:
+  push:
+    branches: [feature/rust-windows-installer-preview]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: mineradio-rust-preview-build
+  cancel-in-progress: false
+jobs:
+  build-preview:
+    if: github.repository == '28022005hpd-create/Mineradio_vn'
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install JS dependencies
+        run: npm ci
+      - name: Test Rust crate
+        run: cargo test --manifest-path rust/mineradio-playlist-core/Cargo.toml
+      - name: Verify Rust code
+        run: cargo clippy --manifest-path rust/mineradio-playlist-core/Cargo.toml --all-features -- -D warnings
+      - name: Compile native Rust binding
+        run: cargo build --manifest-path rust/mineradio-playlist-core/Cargo.toml --release --features node
+      - name: Stage native Rust binding
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force rust/mineradio-playlist-core/native | Out-Null
+          Copy-Item rust/mineradio-playlist-core/target/release/mineradio_playlist_core.dll rust/mineradio-playlist-core/native/mineradio_playlist_core.node
+      - name: Verify native parity
+        run: node --test tests/rust-playlist-parity.test.js tests/built-in-playlist-library.test.js
+      - name: Verify Vietnamese interface and Live MV
+        run: node --test tests/vi-i18n.test.js tests/vi-live-mv-mini-player.test.js tests/vn-windows-packaging.test.js
+      - name: Package separate preview application as Windows NSIS installer
+        run: npx electron-builder --config electron-builder.rust-preview.json --win nsis --publish never
+      - name: Verify installed files and actually loaded Rust module
+        run: node scripts/verify-rust-preview-windows-package.js dist-rust-preview/win-unpacked/resources/app
+      - name: Verify installer and prepare immutable files
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem -LiteralPath dist-rust-preview -Filter '*-Setup.exe' | Select-Object -First 1
+          if (-not $file) { throw 'Windows NSIS setup.exe missing' }
+          $name = 'Mineradio-VN-Rust-Preview-' + $env:GITHUB_SHA.Substring(0,12) + '-Setup.exe'
+          Copy-Item -LiteralPath $file.FullName -Destination $name
+          $item = Get-Item $name
+          if ($item.Length -lt 50000000) { throw 'Unexpectedly small installer' }
+          $fd = [System.IO.File]::OpenRead($item.FullName)
+          try { $first = $fd.ReadByte(); $second = $fd.ReadByte() } finally { $fd.Dispose() }
+          if ($first -ne 77 -or $second -ne 90) { throw 'Missing Windows MZ executable signature' }
+          $hash = (Get-FileHash -LiteralPath $name -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -LiteralPath SHA256SUMS.txt -Value ($hash + '  ' + $name) -Encoding ascii
+          @{ commit=$env:GITHUB_SHA; variant='electron-rust-hybrid'; name=$name; size=$item.Length; sha256=$hash } | ConvertTo-Json | Set-Content -LiteralPath rust-preview-manifest.json -Encoding utf8
+          Write-Host ('INSTALLER_READY ' + $name + ' SHA256 ' + $hash)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mineradio-VN-Rust-Preview-Windows
+          path: |
+            Mineradio-VN-Rust-Preview-*-Setup.exe
+            SHA256SUMS.txt
+            rust-preview-manifest.json
+          retention-days: 30
+      - name: Publish to isolated Rust preview prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'mineradio-vn-rust-preview'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --prerelease --title 'Mineradio-VN Rust Preview (Electron + Rust)' --notes 'Windows x64 preview, separate installation and profile. First Rust playlist core only; not a pure Rust edition.' --target $env:GITHUB_SHA
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to create preview release' }
+          }
+          $file = Get-ChildItem -Filter 'Mineradio-VN-Rust-Preview-*-Setup.exe' | Select-Object -First 1
+          gh release upload $tag $file.Name SHA256SUMS.txt rust-preview-manifest.json --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to upload preview installer' }

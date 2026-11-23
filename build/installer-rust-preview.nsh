@@ -1,0 +1,8 @@
+!define MINERADIO_INSTALL_DIR_NAME "Mineradio_Rust_Preview"
+!define MINERADIO_INSTALL_DIR_NAME_LOWER "mineradio_rust_preview"
+!define MINERADIO_INSTALL_MARKER ".mineradio-rust-preview-install-root"
+!define MINERADIO_MARKER_APP_ID "com.mineradio.vn.rustpreview"
+!define MINERADIO_INSTALL_BRAND "MINERADIO RUST PREVIEW"
+!define MINERADIO_INSTALL_TITLE "Cài đặt Mineradio-VN thử nghiệm Rust"
+!define MINERADIO_INSTALL_NOTICE "Bản thử nghiệm Electron + Rust. Cài đặt riêng, không thay thế Mineradio-VN chính thức."
+!include "${BUILD_RESOURCES_DIR}\installer.nsh"
