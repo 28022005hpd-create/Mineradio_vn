@@ -23,9 +23,9 @@ assert.equal(meta.mineradio.rustPerformanceEdition,true);
 assert.equal(meta.mineradio.update.disabled,true);
 assert.equal(meta.mineradio.githubAutoUpdate.enabled,false);
 const api=require(path.join(root,'desktop/built-in-playlist-library.js'));
-assert.equal(api.RUST_PLAYLIST_NATIVE_ACTIVE,true,'Native addon not loaded');
-assert.equal(api.RUST_PLAYLIST_BATCH_AVAILABLE,true,'Native batch binding is absent');
-assert.equal(api.RUST_PLAYLIST_BATCH_ACTIVE,false,'Experimental slow batch must be OFF by default');
+assert.equal(api.RUST_PLAYLIST_NATIVE_ACTIVE,false,'Native DLL must not load in ordinary mode');
+assert.equal(api.RUST_PLAYLIST_BATCH_AVAILABLE,false,'Native batch must not load in ordinary mode');
+assert.equal(api.RUST_PLAYLIST_BATCH_ACTIVE,false,'Slower native batch must remain OFF by default');
 const songs=Array.from({length:128},(_,i)=>({provider:'netease',id:String(i),name:'Bài '+i}));
 const got=api.sanitizePlaylistTracks(songs);
 assert.equal(got.length,128);
@@ -34,4 +34,18 @@ assert.equal(api.RUST_PLAYLIST_DIAGNOSTICS.nativeBatchCalls,0,'Default path must
 const addon=require(file('rust/mineradio-playlist-core/native/mineradio_playlist_core.node'));
 const native=JSON.parse(addon.sanitizeTracksJson(JSON.stringify(songs)));
 assert.deepEqual(native,got,'Experimental native batch must retain playlist semantics');
+// Verify opt-in native route loads in a clean process without changing user profile.
+const {spawnSync}=require('node:child_process');
+const checkScript=[
+  'const api=require('+JSON.stringify(path.join(root,'desktop/built-in-playlist-library.js'))+');',
+  'if(!api.RUST_PLAYLIST_BATCH_ACTIVE) process.exit(2);',
+  'const songs=Array.from({length:128},(_,i)=>({provider:"netease",id:String(i),name:"Nhạc"}));',
+  'const tracks=api.sanitizePlaylistTracks(songs);',
+  'if(tracks.length!==128 || api.RUST_PLAYLIST_DIAGNOSTICS.nativeBatchCalls<1) process.exit(3);'
+].join('\n');
+const child=spawnSync(process.execPath,['-e',checkScript],{
+  encoding:'utf8',
+  env:{...process.env,MINERADIO_RUST_PLAYLIST_BATCH_FORCE:'1',MINERADIO_RUST_PLAYLIST:'1'},
+});
+assert.equal(child.status,0,child.stderr||'Forced native batch failed');
 console.log('OK: packaged Windows optimized edition loads Rust batch and remains isolated');

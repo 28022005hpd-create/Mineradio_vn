@@ -19,7 +19,10 @@ const RUST_PREVIEW_BUILD = (() => {
     return false;
   }
 })();
-if (process.env.MINERADIO_RUST_PLAYLIST === '1' || RUST_PREVIEW_BUILD) {
+// Lazy-load the native DLL only when benchmarking/explicitly opting in.
+// Normal playback and playlists do not pay the addon startup/RSS cost.
+if (process.env.MINERADIO_RUST_PLAYLIST === '1' ||
+    (RUST_PREVIEW_BUILD && process.env.MINERADIO_RUST_PLAYLIST_BATCH_FORCE === '1')) {
   try {
     rustPlaylistBinding = require('../rust/mineradio-playlist-core/native/mineradio_playlist_core.node');
   } catch (error) {

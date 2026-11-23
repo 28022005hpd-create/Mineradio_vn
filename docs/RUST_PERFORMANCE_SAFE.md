@@ -7,6 +7,7 @@
 - Xử lý lệnh thêm bài hát của người dùng bằng JavaScript gốc, không phát sinh chi phí gọi Rust cho từng thao tác nhỏ; giữ hành vi với dữ liệu JS đặc biệt.
 - Tránh nhân bản toàn bộ đối tượng bài hát khi tính `builtInIdentity` bên Rust.
 - Ghi nhận thống kê `nativeBatchCalls`, `nativeBatchTracks`, `batchFallbacks` không chứa thông tin người dùng.
+- Tải thư viện Rust theo yêu cầu (lazy load); mặc định không nạp DLL Rust khi mở ứng dụng nhằm tránh dùng RAM và thời gian khởi động không cần thiết.
 - Giữ nguyên bộ phát nhạc, vòng lặp render, API đăng nhập, Live MV, Mini Player và hệ thống hiệu ứng để giảm rủi ro hồi quy.
 - Phiên bản thử nghiệm dùng profile và đường dẫn cài đặt riêng (`Mineradio_Rust_Optimized`), không ghi đè bản chính thức hoặc Rust Preview.
 
@@ -16,7 +17,7 @@
 Lợi ích đo được chỉ áp dụng với quá trình nạp playlist nhiều bài; không khẳng định CPU/RAM/GPU hoặc FPS tổng thể sẽ tăng.
 CI kiểm tra tương đương nội dung playlist, chạy unit test Rust và JavaScript, benchmark tổng hợp. Benchmark Windows 3.200 bài lần đầu: JavaScript 13,14 ms trung vị, Rust N-API JSON batch 37,26 ms. Rust vì vậy được tắt trong chế độ thông thường. Không dùng kết quả benchmark để khẳng định FPS cải thiện.
 
-Chỉ khi lập trình viên cố ý đặt cả `MINERADIO_RUST_PLAYLIST=1` và `MINERADIO_RUST_PLAYLIST_BATCH_FORCE=1`, Rust mới được sử dụng cho playlist chứa từ 64 bài. Trong bản cài Windows, app được đóng gói có native binding nhưng đường xử lý này vẫn tắt nếu không đặt biến FORCE. Các thao tác trực tiếp của người dùng vẫn đi qua JavaScript.
+Chỉ khi lập trình viên cố ý đặt cả `MINERADIO_RUST_PLAYLIST=1` và `MINERADIO_RUST_PLAYLIST_BATCH_FORCE=1`, Rust mới được sử dụng cho playlist chứa từ 64 bài. Trong bản cài Windows, app đóng gói chứa native binding nhưng không nạp DLL Rust và không dùng đường xử lý này nếu không đặt biến FORCE. Các thao tác trực tiếp của người dùng vẫn đi qua JavaScript.
 
 ## Kiểm thử thủ công trước khi coi là bản ổn định
 
