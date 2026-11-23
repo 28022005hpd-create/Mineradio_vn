@@ -1,0 +1,88 @@
+{
+  "appId": "com.mineradio.vn.rustoptimized",
+  "productName": "Mineradio_Rust_Optimized",
+  "directories": {
+    "output": "dist-rust-optimized",
+    "buildResources": "build"
+  },
+  "afterPack": "build/after-pack.js",
+  "toolsets": {
+    "winCodeSign": "1.1.0"
+  },
+  "extraMetadata": {
+    "name": "mineradio-rust-optimized",
+    "productName": "Mineradio_Rust_Optimized",
+    "version": "2.2.0-rustperf.1",
+    "mineradio": {
+      "runtimeName": "Mineradio_Rust_Optimized",
+      "appUserModelId": "com.mineradio.vn.rustoptimized",
+      "rustPlaylistPreview": true,
+      "loginEasterEggEnabled": false,
+      "update": {
+        "disabled": true,
+        "provider": "none",
+        "preview": false,
+        "preferMirrors": false,
+        "mirrors": []
+      },
+      "githubAutoUpdate": {
+        "enabled": false
+      },
+      "rustPerformanceEdition": true
+    }
+  },
+  "files": [
+    "desktop/**/*",
+    "public/**/*",
+    "build/**/*",
+    "cuefield/**/*",
+    "server.js",
+    "lyric-translation-service.js",
+    "lyric-fallback-service.js",
+    "*-api.js",
+    "qishui-auth-v6.js",
+    "qishui-qr-login.js",
+    "qishui-auth-v6/**/*",
+    "qishui-audio-decryptor/**/*",
+    "dj-analyzer.js",
+    "rust/mineradio-playlist-core/native/*.node",
+    "LICENSE",
+    "NOTICE.md",
+    "docs/THIRD_PARTY_PORTS.md",
+    "package.json",
+    "!desktop/wallpaper-preload.js",
+    "!public/wallpaper.html",
+    "!public/index.*.html",
+    "public/index.html"
+  ],
+  "asar": false,
+  "win": {
+    "executableName": "Mineradio_Rust_Optimized",
+    "icon": "build/icon.ico",
+    "signAndEditExecutable": false,
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Mineradio_Rust_Optimized",
+    "installerIcon": "build/icon.ico",
+    "uninstallerIcon": "build/icon.ico",
+    "installerSidebar": "build/installerSidebar.bmp",
+    "uninstallerSidebar": "build/installerSidebar.bmp",
+    "installerHeader": "build/installerHeader.bmp",
+    "include": "build/installer-rust-optimized.nsh",
+    "artifactName": "Mineradio-VN-Rust-Optimized-${version}-Setup.${ext}"
+  },
+  "publish": null
+}

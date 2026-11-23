@@ -3,6 +3,9 @@
 
 use serde_json::{Map, Value};
 const MAX_TRACK_BYTES: usize = 48 * 1024;
+const MAX_NATIVE_BATCH_TRACKS: usize = 128;
+const MAX_NATIVE_BATCH_BYTES: usize = 4 * 1024 * 1024;
+
 const TRACK_FIELDS: &[&str] = &[
     "provider","source","type","id","providerSongId","provider_song_id",
     "trackId","track_id","mid","songmid","mediaMid","media_mid","qqId",
@@ -79,9 +82,7 @@ fn clean_value(v: &Value, depth: u8) -> Option<Value> {
         _ => None,
     }
 }
-pub fn track_identity(track: &Value) -> String {
-    let Some(obj) = track.as_object() else { return String::new(); };
-    let provider = normalize_provider(track);
+fn track_identity_with_provider(obj: &Map<String, Value>, provider: &str) -> String {
     let keys: &[&str] = match provider {
         "local" => &["localFileId","localKey","id"],
         "qq" => &["mid","songmid","id"],
@@ -96,6 +97,10 @@ pub fn track_identity(track: &Value) -> String {
     if id.is_empty() { return String::new(); }
     if provider == "kugou" { id = id.to_lowercase(); }
     format!("{provider}:{id}")
+}
+pub fn track_identity(track: &Value) -> String {
+    let Some(obj) = track.as_object() else { return String::new(); };
+    track_identity_with_provider(obj, normalize_provider(track))
 }
 pub fn sanitize_track(source: &Value) -> Option<Value> {
     let obj = source.as_object()?;
@@ -123,7 +128,8 @@ pub fn sanitize_track(source: &Value) -> Option<Value> {
     out.insert("name".to_string(), Value::String(name));
     out.insert("title".to_string(), Value::String(title));
     out.insert("artist".to_string(), Value::String(artist));
-    let identity = track_identity(&Value::Object(out.clone()));
+    // Compute the identity in-place: no full map clone per track.
+    let identity = track_identity_with_provider(&out, provider);
     if identity.is_empty() { return None; }
     out.insert("builtInIdentity".to_string(), Value::String(identity));
     let track = Value::Object(out);
@@ -139,11 +145,56 @@ pub fn sanitize_track_json(input: String) -> napi::Result<Option<String>> {
         .map(|v| serde_json::to_string(&v).map_err(|e| napi::Error::from_reason(e.to_string())))
         .transpose()
 }
+/// All-or-nothing JSON array bridge for disk playlist normalization.
+/// Reduces thousands of JS -> Rust transitions to one transition per chunk.
+/// It intentionally has no filesystem or network access.
+pub fn sanitize_tracks_batch(items: &[Value]) -> Vec<Option<Value>> {
+    items.iter().map(sanitize_track).collect()
+}
+#[cfg(feature = "node")]
+#[napi_derive::napi(js_name = "sanitizeTracksJson")]
+pub fn sanitize_tracks_json(input: String) -> napi::Result<String> {
+    if input.len() > MAX_NATIVE_BATCH_BYTES {
+        return Err(napi::Error::from_reason("RUST_PLAYLIST_BATCH_TOO_LARGE"));
+    }
+    let items: Vec<Value> = serde_json::from_str(&input)
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    if items.len() > MAX_NATIVE_BATCH_TRACKS {
+        return Err(napi::Error::from_reason("RUST_PLAYLIST_BATCH_TOO_MANY_TRACKS"));
+    }
+    serde_json::to_string(&sanitize_tracks_batch(&items))
+        .map_err(|e| napi::Error::from_reason(e.to_string()))
+}
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
 
+
+    #[test]
+    fn batch_matches_individual_and_preserves_null_positions() {
+        let items = vec![
+            json!({"provider":"netease","id":1,"name":" Nhạc "}),
+            json!({"provider":"kugou","hash":"HELLO","name":"Music"}),
+            json!({"provider":"spotify","id":5}),
+            json!({"provider":"qq","id":"123","mid":"qq-track"}),
+            json!({"provider":"local","id":"local:abc"}),
+            Value::Null,
+        ];
+        let expected: Vec<Option<Value>> = items.iter().map(sanitize_track).collect();
+        assert_eq!(sanitize_tracks_batch(&items), expected);
+        assert_eq!(sanitize_tracks_batch(&items).len(), items.len());
+    }
+
+    #[test]
+    fn sanitizing_large_playlist_keeps_provider_order_and_ids() {
+        let items: Vec<Value> = (0..128)
+            .map(|index| json!({"provider":"netease","id":index,"name": format!("Bài {index}")}))
+            .collect();
+        let result = sanitize_tracks_batch(&items);
+        assert_eq!(result.len(), 128);
+        assert_eq!(result[127].as_ref().unwrap()["builtInIdentity"], "netease:127");
+    }
     #[test]
     fn providers_are_preserved() {
         for p in ["netease", "qq", "kugou", "qishui", "local"] {

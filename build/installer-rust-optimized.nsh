@@ -1,0 +1,8 @@
+!define MINERADIO_INSTALL_DIR_NAME "Mineradio_Rust_Optimized"
+!define MINERADIO_INSTALL_DIR_NAME_LOWER "mineradio_rust_optimized"
+!define MINERADIO_INSTALL_MARKER ".mineradio-rust-optimized-install-root"
+!define MINERADIO_MARKER_APP_ID "com.mineradio.vn.rustoptimized"
+!define MINERADIO_INSTALL_BRAND "MINERADIO RUST OPTIMIZED"
+!define MINERADIO_INSTALL_TITLE "Cài đặt Mineradio-VN tối ưu Rust"
+!define MINERADIO_INSTALL_NOTICE "Bản thử nghiệm tối ưu Rust: dữ liệu và cài đặt riêng, không ghi đè Mineradio-VN chính thức."
+!include "${BUILD_RESOURCES_DIR}\installer.nsh"
