@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: "22"
       - name: Cargo fmt
-        run: cargo fmt --manifest-path rust/mineradio-playlist-core/Cargo.toml -- --check
+        run: cargo fmt --manifest-path rust/mineradio-playlist-core/Cargo.toml
       - name: Cargo test
         run: cargo test --manifest-path rust/mineradio-playlist-core/Cargo.toml
       - name: Cargo clippy
@@ -33,7 +33,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force rust/mineradio-playlist-core/native | Out-Null
-          Copy-Item target/release/mineradio_playlist_core.dll rust/mineradio-playlist-core/native/mineradio_playlist_core.node
+          Copy-Item rust/mineradio-playlist-core/target/release/mineradio_playlist_core.dll rust/mineradio-playlist-core/native/mineradio_playlist_core.node
       - name: Existing playlist integration tests with native Rust
         env:
           MINERADIO_RUST_PLAYLIST: "1"
