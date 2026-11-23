@@ -41,7 +41,7 @@ try {
   ].join('\n');
   function measure(mode) {
     const proc=spawnSync(process.execPath,['-e',script],{cwd:root,encoding:'utf8',
-      env:{...process.env,MINERADIO_RUST_PLAYLIST:mode,TEST_PLAYLIST_DIR:tmp}});
+      env:{...process.env,MINERADIO_RUST_PLAYLIST:mode,MINERADIO_RUST_PLAYLIST_BATCH_FORCE:mode==='1'?'1':'0',TEST_PLAYLIST_DIR:tmp}});
     if(proc.status!==0) throw Error(proc.stderr||'Benchmark failed');
     return JSON.parse(proc.stdout);
   }
@@ -51,7 +51,7 @@ try {
   }
   const summary={dataset:'3200 mixed-provider tracks; 7 loads, first 2 excluded; Windows runner',
     javascript:js,rust:rust,ratio:Math.round((js.medianMs/rust.medianMs)*100)/100,
-    note:'Synthetic diagnostic, not a real-world smoothness or audio benchmark. A ratio below 1 means Rust is slower on this runner.'};
+    note:'Diagnostic only. Native batch remains OFF by default: a ratio below 1 means Rust is slower. Do not enable slower native path for end users.'};
   console.log(JSON.stringify(summary,null,2));
   fs.writeFileSync(path.join(root,'rust-playlist-perf.json'),JSON.stringify(summary,null,2));
 } finally {fs.rmSync(tmp,{recursive:true,force:true});}

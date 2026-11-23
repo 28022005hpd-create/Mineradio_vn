@@ -2,8 +2,8 @@
 
 ## Thay đổi đã thực hiện
 
-- Cải thiện đường nạp playlist lưu trên đĩa: gọi thư viện Rust theo lô tối đa 128 bài thay vì gọi từng bài.
-- Hạn chế dữ liệu 4 MiB cho mỗi lô, có phương án tự quay về JavaScript nếu thư viện Rust hoặc dữ liệu lỗi.
+- Thêm API Rust xử lý playlist theo lô tối đa 128 bài; đường xử lý này chỉ dành cho kiểm thử, không bật mặc định vì benchmark Windows cho thấy chậm hơn JavaScript.
+- Giới hạn 4 MiB cho mỗi lô và tự quay về JavaScript nếu Rust gặp lỗi. Khi chạy bình thường, Mineradio dùng JavaScript gốc.
 - Xử lý lệnh thêm bài hát của người dùng bằng JavaScript gốc, không phát sinh chi phí gọi Rust cho từng thao tác nhỏ; giữ hành vi với dữ liệu JS đặc biệt.
 - Tránh nhân bản toàn bộ đối tượng bài hát khi tính `builtInIdentity` bên Rust.
 - Ghi nhận thống kê `nativeBatchCalls`, `nativeBatchTracks`, `batchFallbacks` không chứa thông tin người dùng.
@@ -14,9 +14,9 @@
 
 Đây là **bản tối ưu có thành phần Rust**, không phải bản viết thuần Rust.
 Lợi ích đo được chỉ áp dụng với quá trình nạp playlist nhiều bài; không khẳng định CPU/RAM/GPU hoặc FPS tổng thể sẽ tăng.
-CI kiểm tra tương đương nội dung playlist, chạy unit test Rust và JavaScript, benchmark tổng hợp; benchmark không dùng ngưỡng cứng do biến động môi trường Windows runner.
+CI kiểm tra tương đương nội dung playlist, chạy unit test Rust và JavaScript, benchmark tổng hợp. Benchmark Windows 3.200 bài lần đầu: JavaScript 13,14 ms trung vị, Rust N-API JSON batch 37,26 ms. Rust vì vậy được tắt trong chế độ thông thường. Không dùng kết quả benchmark để khẳng định FPS cải thiện.
 
-Cấu hình giới hạn nạp Rust được kích hoạt khi thư viện có sẵn và playlist chứa ít nhất 64 bài. Các playlist nhỏ và thao tác trực tiếp của người dùng sử dụng JavaScript cũ.
+Chỉ khi lập trình viên cố ý đặt cả `MINERADIO_RUST_PLAYLIST=1` và `MINERADIO_RUST_PLAYLIST_BATCH_FORCE=1`, Rust mới được sử dụng cho playlist chứa từ 64 bài. Trong bản cài Windows, app được đóng gói có native binding nhưng đường xử lý này vẫn tắt nếu không đặt biến FORCE. Các thao tác trực tiếp của người dùng vẫn đi qua JavaScript.
 
 ## Kiểm thử thủ công trước khi coi là bản ổn định
 

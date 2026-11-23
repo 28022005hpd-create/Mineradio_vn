@@ -69,7 +69,7 @@ test('bulk Rust path preserves exact saved playlist data, order and duplicate se
   ].join('\n');
   function run(rust) {
     const child=spawnSync(process.execPath,['-e',script],{cwd:root,encoding:'utf8',
-      env:{...process.env,MINERADIO_RUST_PLAYLIST:rust?'1':'0',TEST_PLAYLIST_DIR:dir,TEST_PLAYLIST_ID:id}});
+      env:{...process.env,MINERADIO_RUST_PLAYLIST:rust?'1':'0',MINERADIO_RUST_PLAYLIST_BATCH_FORCE:rust?'1':'0',TEST_PLAYLIST_DIR:dir,TEST_PLAYLIST_ID:id}});
     assert.equal(child.status,0,child.stderr);
     return JSON.parse(child.stdout);
   }

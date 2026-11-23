@@ -27,8 +27,13 @@ if (process.env.MINERADIO_RUST_PLAYLIST === '1' || RUST_PREVIEW_BUILD) {
   }
 }
 const RUST_PLAYLIST_NATIVE_ACTIVE = !!(rustPlaylistBinding && typeof rustPlaylistBinding.sanitizeTrackJson === 'function');
-const RUST_PLAYLIST_BATCH_ACTIVE = RUST_PLAYLIST_NATIVE_ACTIVE &&
+const RUST_PLAYLIST_BATCH_AVAILABLE = RUST_PLAYLIST_NATIVE_ACTIVE &&
   typeof rustPlaylistBinding.sanitizeTracksJson === 'function';
+// Windows benchmark (3200 tracks): JS 13.14ms, Rust JSON bridge 37.26ms.
+// Do not activate the slower native path in normal operation.
+// Developers may force it in an isolated profile to test future improvements.
+const RUST_PLAYLIST_BATCH_ACTIVE = RUST_PLAYLIST_BATCH_AVAILABLE &&
+  process.env.MINERADIO_RUST_PLAYLIST_BATCH_FORCE === '1';
 const RUST_PLAYLIST_BATCH_SIZE = 128;
 const RUST_PLAYLIST_BATCH_THRESHOLD = 64;
 const RUST_PLAYLIST_BATCH_MAX_BYTES = 4 * 1024 * 1024;
@@ -363,6 +368,7 @@ module.exports = {
   sanitizePlaylistTracks,
   trackIdentity,
   RUST_PLAYLIST_NATIVE_ACTIVE,
+  RUST_PLAYLIST_BATCH_AVAILABLE,
   RUST_PLAYLIST_BATCH_ACTIVE,
   RUST_PLAYLIST_DIAGNOSTICS,
 };
